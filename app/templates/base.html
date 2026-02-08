@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Arctic Media{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=9">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+</head>
+
+<body>
+
+    <header>
+        <nav class="navbar">
+            <div class="logo">Arctic Media 2.0</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/libraries/movies">Movies</a>
+                <a href="/libraries/shows">TV Shows</a>
+                <a href="/settings">Settings</a>
+            </div>
+            <div class="nav-auth">
+                <!-- We will toggle this with JS later -->
+                <a href="/login" id="loginBtn">Login</a>
+                <a href="#" id="logoutBtn" style="display:none;">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <!-- Child pages inject content here -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Arctic Media Server</p>
+    </footer>
+
+    <script src="/static/js/main.js?v=3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

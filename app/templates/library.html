@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero" style="height: 30vh; min_height: 200px; display: flex; align-items: flex-end; padding-bottom: 2rem;">
+    <div class="container">
+        <h1 id="library-title" style="font-size: 3rem; font-weight: 700;">Loading...</h1>
+    </div>
+</div>
+
+<div class="container" style="margin-top: -2rem; padding-bottom: 4rem;">
+    <!-- Filters / Search could go here -->
+
+    <!-- Grid -->
+    <div id="media-grid"
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
+        <!-- JS will populate this -->
+    </div>
+
+    <div id="loading" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+        Loading content...
+    </div>
+
+    <div id="empty-state" class="hidden" style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+        <h3>No content found</h3>
+        <p>Use the Scanner in Settings to add media.</p>
+    </div>
+</div>
+
+<!-- Config for JS -->
+<script>
+    const LIBRARY_TYPE = "{{ lib_type }}"; // 'movies' or 'shows'
+</script>
+<script src="/static/js/library.js?v=2"></script>
+{% endblock %}

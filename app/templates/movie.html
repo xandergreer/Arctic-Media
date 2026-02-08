@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="backdrop-container"
+    style="position: relative; height: 60vh; margin: -2rem -2rem 2rem -2rem; mask-image: linear-gradient(to bottom, black 50%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);">
+    <img id="backdrop-img" src="" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.6;">
+    <div
+        style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 2rem; background: linear-gradient(to top, var(--background-color), transparent);">
+    </div>
+</div>
+
+<div class="container" style="position: relative; margin-top: -150px; display: flex; gap: 3rem; align-items: flex-end;">
+    <!-- Poster -->
+    <div style="flex: 0 0 300px;">
+        <img id="poster-img" src=""
+            style="width: 100%; border-radius: var(--border-radius); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    </div>
+
+    <!-- Info -->
+    <div style="flex: 1; padding-bottom: 2rem;">
+        <h1 id="title" style="font-size: 3.5rem; margin-bottom: 0.5rem; line-height: 1.1;">Loading...</h1>
+        <div
+            style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; color: #94a3b8; font-size: 1.1rem;">
+            <span id="year"></span>
+            <span>•</span>
+            <span id="duration"></span>
+            <span>•</span>
+            <span
+                style="border: 1px solid #475569; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">MOVIE</span>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+            <button onclick="playMovie()"
+                style="padding: 1rem 2.5rem; font-size: 1.2rem; font-weight: bold; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                <span class="material-icons">play_arrow</span> Play
+            </button>
+            <button
+                style="padding: 1rem; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                <span class="material-icons">add</span>
+            </button>
+            <!-- Edit Button (Hidden by default, shown by JS if admin) -->
+            <button id="editBtn" class="hidden"
+                style="padding: 1rem; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+                <span class="material-icons">edit</span>
+            </button>
+        </div>
+
+        <p id="overview" style="font-size: 1.1rem; line-height: 1.6; color: #cbd5e1; max-width: 800px;"></p>
+
+        <!-- Embedded Video Player -->
+        <div class="video-container" id="video-container">
+            <video id="video-player" controls crossorigin playsinline></video>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Metadata Modal -->
+<div id="editModal" class="modal hidden">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 1.5rem;">Edit Metadata</h2>
+        <div style="display: grid; gap: 1rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">Title</label>
+                <input id="edit-title" type="text"
+                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">TMDB ID</label>
+                <input id="edit-tmdb" type="number"
+                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">Poster URL</label>
+                <input id="edit-poster" type="text"
+                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">Backdrop URL</label>
+                <input id="edit-backdrop" type="text"
+                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input id="edit-refresh" type="checkbox" style="width: 1.2rem; height: 1.2rem;">
+                <label for="edit-refresh" style="color: #cbd5e1;">Refresh from TMDB (uses ID if present)</label>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button id="closeEditModal"
+                    style="padding: 0.8rem 1.5rem; background: transparent; color: #cbd5e1; border: 1px solid #334155; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <button id="saveEditModal"
+                    style="padding: 0.8rem 1.5rem; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal.hidden {
+        display: none;
+    }
+
+    .modal-content {
+        background: #0f172a;
+        padding: 2rem;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 500px;
+        border: 1px solid #334155;
+    }
+</style>
+
+<!-- Hidden ID for JS -->
+<input type="hidden" id="media-id" value="{{ item_id }}">
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/details.js?v=PlyrV19"></script>
+{% endblock %}

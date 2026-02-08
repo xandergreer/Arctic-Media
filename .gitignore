@@ -1,0 +1,53 @@
+# Bytes
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Database
+*.db
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+ffmpeg_error.log
+backend_debug.txt
+ffmpeg.exe
+ffprobe.exe
+bin/ffmpeg.exe
+bin/ffprobe.exe
+
+# OS
+.DS_Store
+Thumbs.db

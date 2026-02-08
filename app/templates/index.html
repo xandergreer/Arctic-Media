@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Arctic Media{% endblock %}
+
+{% block content %}
+<section class="hero-section" style="padding: 2rem 0; text-align: center;">
+    <div class="hero-content">
+        <h1>Welcome to Arctic Media</h1>
+        <p style="color: var(--text-secondary);">Your collection, beautifully organized.</p>
+    </div>
+</section>
+
+<div class="container" style="padding-bottom: 4rem;">
+
+    <div id="loading" style="text-align: center; padding: 2rem;">Loading Dashboard...</div>
+
+    <!-- Movies Section -->
+    <div id="movies-section" class="hidden" style="margin-bottom: 3rem;">
+        <h2 style="margin-bottom: 1rem;">Recently Added Movies</h2>
+        <div id="movies-row"
+            style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x mandatory; scroll-behavior: smooth;">
+            <!-- JS Populated -->
+        </div>
+    </div>
+
+    <!-- TV Section -->
+    <div id="tv-section" class="hidden" style="margin-bottom: 3rem;">
+        <h2 style="margin-bottom: 1rem;">Recently Added TV Shows</h2>
+        <div id="shows-row"
+            style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x mandatory; scroll-behavior: smooth;">
+            <!-- JS Populated -->
+        </div>
+    </div>
+
+    <div id="empty-state" class="hidden" style="text-align: center; margin-top: 2rem;">
+        <h3>Nothing here yet?</h3>
+        <p>Go to <a href="/settings">Settings</a> to scan your media.</p>
+    </div>
+
+</div>
+
+<!-- Hides the scrollbar but keeps functionality for Webkit -->
+<style>
+    #movies-row::-webkit-scrollbar,
+    #episodes-row::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    #movies-row::-webkit-scrollbar-thumb,
+    #episodes-row::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+    }
+
+    #movies-row::-webkit-scrollbar-track,
+    #episodes-row::-webkit-scrollbar-track {
+        background: transparent;
+    }
+</style>
+
+<script src="/static/js/home.js"></script>
+{% endblock %}
