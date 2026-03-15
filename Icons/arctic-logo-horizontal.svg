@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="80" viewBox="0 0 520 80">
+  <defs>
+    <linearGradient id="arctic-gradient-h" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#5bc0ff"/>
+      <stop offset="1" stop-color="#2a6bff"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(6,10)">
+    <path fill="url(#arctic-gradient-h)" fill-rule="evenodd"
+          d="M26 0 L52 52 H40 L34 38 L26 48 L18 38 L12 52 H0 Z
+             M26 20 L34 34 L18 34 Z"/>
+    <path d="M18 16 L26 0 L34 16 Z" fill="#EAF5FF" opacity=".95"/>
+  </g>
+  <text x="86" y="50" font-family="system-ui, -apple-system, Arial" font-size="30" font-weight="800" fill="#ffffff">Arctic</text>
+  <text x="190" y="50" font-family="system-ui, -apple-system, Arial" font-size="30" font-weight="600" fill="#9ec8ff">Media Server</text>
+</svg>

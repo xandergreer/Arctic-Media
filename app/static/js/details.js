@@ -70,6 +70,58 @@ async function loadDetails() {
         // Type specific
         if (!isShow && els.duration) {
             els.duration.innerText = "2h 15m"; // TODO: Fetch from file metadata
+
+            // Fetch multiple files (versions/trailers)
+            try {
+                const fRes = await fetch(`/api/v1/media/${mediaId}/files`, { headers: getAuthHeaders() });
+                if (fRes.ok) {
+                    const files = await fRes.json();
+                    if (files && files.length > 0) {
+                        // Sort by size descending (largest is likely the main feature)
+                        files.sort((a, b) => b.size_bytes - a.size_bytes);
+                        window.currentFileId = files[0].id; // Set default
+
+                        if (files.length > 1) {
+                            const container = document.getElementById("file-versions-container");
+                            if (container) {
+                                container.innerHTML = `<span style="color:var(--text-muted);font-size:0.875rem;margin-right:0.5rem">Versions:</span>`;
+                                files.forEach(f => {
+                                    const sizeMB = (f.size_bytes / (1024 * 1024)).toFixed(0);
+                                    let nameDisp = f.filename;
+                                    // Shorten long filenames for UI
+                                    if (nameDisp.length > 30) nameDisp = nameDisp.substring(0, 27) + "...";
+
+                                    const isDefault = f.id === window.currentFileId;
+                                    const btn = document.createElement("button");
+                                    // Using chip + active for styling
+                                    btn.className = `badge ${isDefault ? 'active-version' : ''}`;
+                                    btn.style.cursor = "pointer";
+                                    btn.style.border = "none";
+                                    if (isDefault) btn.style.backgroundColor = "var(--primary)";
+
+                                    btn.innerHTML = `${nameDisp} <span style="opacity:0.7;font-size:0.9em;margin-left:4px">(${sizeMB}MB)</span>`;
+
+                                    btn.onclick = () => {
+                                        window.currentFileId = f.id;
+                                        // Update active state visuals
+                                        container.querySelectorAll(".badge").forEach(c => {
+                                            c.style.backgroundColor = "";
+                                            c.classList.remove("active-version");
+                                        });
+                                        btn.style.backgroundColor = "var(--primary)";
+                                        btn.classList.add("active-version");
+
+                                        // Force player reload on next play
+                                        currentMediaId = null;
+                                    };
+                                    container.appendChild(btn);
+                                });
+                                container.classList.remove("hidden");
+                            }
+                        }
+                    }
+                }
+            } catch (e) { console.error("Could not load files", e); }
         }
     } catch (e) {
         throw e; // Propagate to main catch
@@ -118,6 +170,10 @@ function checkAdminAndSetupEdit() {
                 if (event.target == modal) {
                     modal.classList.add("hidden");
                 }
+                const deleteModal = document.getElementById("deleteModal");
+                if (deleteModal && event.target == deleteModal) {
+                    deleteModal.classList.add("hidden");
+                }
             }
 
             if (saveBtn) {
@@ -153,9 +209,58 @@ function checkAdminAndSetupEdit() {
                     }
                 };
             }
+
+            // --- Wire delete button for the whole movie / show ---
+            setupDelete(mediaId, currentMetadata.title || "This item", () => {
+                window.location.href = isShow ? "/libraries/shows" : "/libraries/movies";
+            });
         }
     } catch (e) {
         console.error("Admin check failed", e);
+    }
+}
+
+/**
+ * Wire up #deleteBtn to show a confirmation modal and call DELETE /api/v1/media/{id}.
+ */
+function setupDelete(id, label, onSuccess) {
+    const deleteBtn = document.getElementById("deleteBtn");
+    const deleteModal = document.getElementById("deleteModal");
+    const cancelBtn = document.getElementById("cancelDeleteBtn");
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    const msgEl = document.getElementById("deleteModalMsg");
+
+    if (!deleteBtn || !deleteModal) return;
+
+    deleteBtn.classList.remove("hidden");
+    deleteBtn.onclick = () => {
+        if (msgEl) msgEl.innerText = `"${label}" will be removed from Arctic Media. Files on disk will NOT be deleted.`;
+        deleteModal.classList.remove("hidden");
+    };
+
+    if (cancelBtn) cancelBtn.onclick = () => deleteModal.classList.add("hidden");
+
+    if (confirmBtn) {
+        // Clone to clear any previous listeners
+        const freshBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(freshBtn, confirmBtn);
+        freshBtn.onclick = async () => {
+            freshBtn.disabled = true;
+            freshBtn.innerText = "Removing...";
+            try {
+                const r = await fetch(`/api/v1/media/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
+                deleteModal.classList.add("hidden");
+                if (onSuccess) onSuccess();
+            } catch (e) {
+                alert("Failed to remove: " + e.message);
+                freshBtn.disabled = false;
+                freshBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">delete</span> Remove';
+            }
+        };
     }
 }
 
@@ -171,9 +276,8 @@ async function loadSeasons() {
     if (!els.seasonList) return;
 
     els.seasonList.innerHTML = seasons.map((s, index) => {
-        return `<button onclick="loadEpisodes(${s.id}, ${s.season_number})" 
-        class="season-btn ${index === 0 ? 'active' : ''}"
-        style="padding: 0.5rem 1.5rem; background: var(--surface-color); border: 1px solid var(--border-color); color: white; border-radius: 20px; cursor: pointer; white-space: nowrap;">
+        return `<button onclick="loadEpisodes(${s.id}, ${s.season_number})"
+            class="chip season-btn ${index === 0 ? 'active' : ''}">
             Season ${s.season_number}
         </button>`;
     }).join("");
@@ -185,9 +289,9 @@ async function loadSeasons() {
 
 window.loadEpisodes = async function (seasonId, seasonNum) {
     document.querySelectorAll(".season-btn").forEach(btn => {
-        btn.style.background = "var(--surface-color)";
-        if (btn.innerText.includes(`Season ${seasonNum}`)) {
-            btn.style.background = "var(--primary-color)";
+        btn.classList.remove('active');
+        if (btn.innerText.trim() === `Season ${seasonNum}`) {
+            btn.classList.add('active');
         }
     });
 
@@ -200,25 +304,56 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
     const episodes = await res.json();
 
     if (els.episodeGrid) {
+        // Detect admin to show per-episode delete buttons
+        let isAdmin = false;
+        try {
+            const token = getCookie("access_token");
+            if (token) {
+                const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+                const pl = JSON.parse(decodeURIComponent(window.atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+                isAdmin = pl.is_superuser === true;
+            }
+        } catch (_) { }
+
         els.episodeGrid.innerHTML = episodes.map(ep => {
-            const still = ep.poster_url || "";
+            const still = ep.poster_url || '';
+            const safeTitle = (ep.title || 'Episode ' + ep.episode_number).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const delBtn = isAdmin
+                ? `<button class="ep-delete-btn" onclick="deleteEpisode(event,${ep.id},'${safeTitle}',${seasonId},${seasonNum})" title="Remove episode">
+                    <span class="material-icons" style="font-size:14px;">close</span>
+                   </button>`
+                : '';
             return `
-            <div class="media-card" style="background: var(--surface-color); border-radius: 8px; overflow: hidden; cursor: pointer;" onclick="playEpisode(${ep.id})">
-                <div style="height: 140px; background: #000; position: relative;">
-                    <img src="${still}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
-                    <div style="position: absolute; bottom: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">
-                        E${ep.episode_number}
-                    </div>
+            <div class="episode-card" onclick="playEpisode(${ep.id})">
+                <div class="episode-thumb">
+                    <img src="${still}" alt="" loading="lazy">
+                    <div class="episode-num">E${ep.episode_number}</div>
+                    <div class="episode-play-icon"><span class="material-icons">play_arrow</span></div>
+                    ${delBtn}
                 </div>
-                <div style="padding: 1rem;">
-                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ep.title || 'Episode ' + ep.episode_number}</h4>
-                    <p style="font-size: 0.85rem; color: #94a3b8; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0;">
-                        ${ep.overview || "No description."}
-                    </p>
+                <div class="episode-info">
+                    <div class="episode-title">${ep.title || 'Episode ' + ep.episode_number}</div>
+                    <p class="episode-desc">${ep.overview || 'No description.'}</p>
                 </div>
-            </div>
-            `;
-        }).join("");
+            </div>`;
+        }).join('');
+    }
+}
+
+/** Delete an episode card inline (no page reload, removes card from DOM). */
+window.deleteEpisode = async function (event, epId, epLabel, seasonId, seasonNum) {
+    event.stopPropagation(); // don't trigger playEpisode
+    if (!confirm(`Remove "${epLabel}" from library? Files on disk will NOT be deleted.`)) return;
+    try {
+        const r = await fetch(`/api/v1/media/${epId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
+        // Reload the season so counts stay correct
+        await loadEpisodes(seasonId, seasonNum);
+    } catch (e) {
+        alert("Failed to remove episode: " + e.message);
     }
 }
 
@@ -281,10 +416,11 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     // 2. Fetch Metadata for Tracks
     let info = { audio_tracks: [], subtitle_tracks: [] };
     try {
-        const res = await fetch(`/api/v1/stream/${id}/info?token=${token}`);
+        let infoUrl = `/api/v1/stream/${id}/info?token=${token}`;
+        if (window.currentFileId) infoUrl += `&file_id=${window.currentFileId}`;
+        const res = await fetch(infoUrl);
         if (res.ok) info = await res.json();
     } catch (e) { console.error("Meta fetch error", e); }
-
 
     // 4. Initialize Plyr (HLS ONLY)
     if (plyr) plyr.destroy();
@@ -295,6 +431,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
 
     // ALWAYS USE HLS
     let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
+    if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
     if (targetS !== null) {
         srcUrl += `&sidx=${targetS}`;
         if (info.subtitle_tracks && info.subtitle_tracks[targetS]) {

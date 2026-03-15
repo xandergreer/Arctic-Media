@@ -5,8 +5,11 @@ from jose import jwt
 from app.core.config import settings
 
 # Password Hashing Setup
-# "bcrypt" is the industry standard for secure password hashing.
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# argon2 is the primary scheme for new passwords.
+# bcrypt is kept as a deprecated fallback so that existing accounts
+# whose passwords were hashed with bcrypt can still log in.
+# passlib auto-detects which scheme a stored hash belongs to.
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated=["bcrypt"])
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Checks if the typed password matches the stored hash."""

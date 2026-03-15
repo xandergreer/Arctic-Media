@@ -1,132 +1,139 @@
 {% extends "base.html" %}
+{% block title %}Settings — Arctic Media{% endblock %}
 
-{% block title %}Settings - Arctic Media{% endblock %}
+{% block full_content %}
+<div class="section" style="padding-top:calc(var(--nav-height) + 2rem);max-width:900px;margin:0 auto;">
 
-{% block content %}
-<div class="settings-container" style="max-width: 800px; margin: 0 auto;">
-    <!-- General Settings -->
-    <div class="card"
-        style="background: var(--surface-color); padding: 2rem; border-radius: var(--border-radius); margin-bottom: 2rem;">
-        <h3 style="margin-bottom: 1.5rem;">General Settings</h3>
+    <div class="section-label" style="margin-bottom:2rem;">
+        <h2>Settings</h2>
+    </div>
+
+    <!-- General -->
+    <div class="card" style="margin-bottom:1.25rem;">
+        <div class="settings-section-head">
+            <span class="material-icons">public</span>
+            <h3>General</h3>
+        </div>
         <form id="general-settings-form">
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label style="display: block; margin-bottom: 0.5rem;">Custom Domain / Public URL</label>
-                <input type="text" id="custom-domain" name="custom_domain" placeholder="https://media.example.com"
-                    style="width: 100%; padding: 0.8rem; background: var(--bg-color); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px;">
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                    This URL will be used for sharing links and potentially remote access. Ensure it is accessible.
-                </p>
+            <div class="form-group">
+                <label for="custom-domain">Public URL / Custom Domain</label>
+                <input type="text" id="custom-domain" name="custom_domain" class="form-control"
+                    placeholder="https://media.example.com">
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;">Used for share links and remote
+                    access. Make sure it's externally reachable.</p>
             </div>
-            <button type="submit" class="btn-primary" style="margin-top: 0; border: none; cursor: pointer;">Save
-                Settings</button>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.25rem;">
+                <span class="material-icons" style="font-size:1rem;">save</span> Save
+            </button>
         </form>
     </div>
 
-    <div class="section-header">
-        <h2>Library Management</h2>
-        <p class="text-secondary">Configure where Arctic Media looks for your content.</p>
-    </div>
+    <!-- Libraries -->
+    <div class="card" style="margin-bottom:1.25rem;">
+        <div class="settings-section-head">
+            <span class="material-icons">video_library</span>
+            <h3>Library Management</h3>
+        </div>
 
-    <!-- Existing Libraries List -->
-    <div class="card"
-        style="background: var(--surface-color); padding: 2rem; border-radius: var(--border-radius); margin-bottom: 2rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
-            <h3 style="margin:0;">Your Libraries</h3>
-            <button id="scan-btn" class="btn-primary" style="margin:0; padding: 0.5rem 1rem; font-size: 0.9rem;">Scan
-                All Libraries</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+            <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Configure where Arctic Media looks for your
+                content.</p>
+            <button id="scan-btn" class="btn btn-primary btn-sm">
+                <span class="material-icons" style="font-size:0.95rem;">sync</span> Scan All
+            </button>
         </div>
 
         {% if libraries %}
-        <ul class="library-list">
+        <div id="library-list">
             {% for lib in libraries %}
-            <li
-                style="display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div class="lib-item">
                 <div>
-                    <strong>{{ lib.name }}</strong>
-                    <span class="badge"
-                        style="background: rgba(56, 189, 248, 0.1); color: var(--primary-color); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.5rem;">{{
-                        lib.type.value|title }}</span>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">{{ lib.path }}
+                    <div class="lib-name">
+                        {{ lib.name }}
+                        <span class="badge" style="margin-left:0.5rem;">{{ lib.type.value|title }}</span>
                     </div>
+                    <div class="lib-path">{{ lib.path }}</div>
                 </div>
-                <button class="btn-icon delete-lib-btn" data-id="{{ lib.id }}"
-                    style="background: none; border: none; color: #ef4444; cursor: pointer;">Delete</button>
-            </li>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <button class="btn btn-ghost btn-sm rescan-lib-btn" data-id="{{ lib.id }}"
+                        title="Rescan this library">
+                        <span class="material-icons" style="font-size:0.9rem;">sync</span>
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-lib-btn" data-id="{{ lib.id }}" title="Remove library">
+                        <span class="material-icons" style="font-size:0.9rem;">delete</span>
+                    </button>
+                </div>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
         {% else %}
-        <p style="color: var(--text-secondary); font-style: italic;">No libraries configured yet.</p>
+        <p style="color:var(--text-muted);font-style:italic;font-size:0.9rem;">No libraries configured yet.</p>
         {% endif %}
     </div>
 
-    <!-- Add New Library Form -->
-    <div class="card" style="background: var(--surface-color); padding: 2rem; border-radius: var(--border-radius);">
-        <h3 style="margin-bottom: 1.5rem;">Add New Library</h3>
-        <form id="add-library-form"> <!-- JS will handle this -->
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label style="display: block; margin-bottom: 0.5rem;">Library Name</label>
-                <input type="text" id="lib-name" name="name" placeholder="e.g. 4K Movies"
-                    style="width: 100%; padding: 0.8rem; background: var(--bg-color); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px;">
+    <!-- Add Library -->
+    <div class="card">
+        <div class="settings-section-head">
+            <span class="material-icons">add_circle</span>
+            <h3>Add New Library</h3>
+        </div>
+        <form id="add-library-form">
+            <div class="form-group">
+                <label for="lib-name">Library Name</label>
+                <input type="text" id="lib-name" name="name" class="form-control" placeholder="e.g. 4K Movies">
             </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label style="display: block; margin-bottom: 0.5rem;">Folder Path</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="folder-path-input" name="path" placeholder="E:/Media/Movies"
-                        style="flex: 1; padding: 0.8rem; background: var(--bg-color); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px;">
-                    <button type="button" id="browse-btn" class="btn-primary"
-                        style="margin-top: 0; padding: 0.8rem 1.5rem; background: var(--surface-color); border: 1px solid rgba(255,255,255,0.1);">Browse</button>
+            <div class="form-group">
+                <label for="folder-path-input">Folder Path</label>
+                <div style="display:flex;gap:0.5rem;">
+                    <input type="text" id="folder-path-input" name="path" class="form-control"
+                        placeholder="E:/Media/Movies">
+                    <button type="button" id="browse-btn" class="btn btn-ghost" style="flex-shrink:0;">
+                        <span class="material-icons" style="font-size:1rem;">folder_open</span> Browse
+                    </button>
                 </div>
             </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label style="display: block; margin-bottom: 0.5rem;">Content Type</label>
-                <select id="lib-type" name="type"
-                    style="width: 100%; padding: 0.8rem; background: var(--bg-color); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px;">
+            <div class="form-group">
+                <label for="lib-type">Content Type</label>
+                <select id="lib-type" name="type" class="form-control">
                     <option value="movies">Movies</option>
                     <option value="shows">TV Shows</option>
                 </select>
             </div>
-
-            <button type="submit" class="btn-primary"
-                style="margin-top: 0; width: 100%; border: none; cursor: pointer;">Add Library</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                <span class="material-icons" style="font-size:1rem;">add</span> Add Library
+            </button>
         </form>
     </div>
+
 </div>
 
 <!-- File Browser Modal -->
 <div id="fs-modal" class="modal-overlay hidden">
     <div class="modal-window">
         <div class="modal-header">
-            <h3>Select Folder</h3>
+            <h3 style="margin:0;font-size:1rem;">Select Folder</h3>
             <button id="fs-close"
-                style="background:none; border:none; color:white; cursor:pointer; font-size:1.2rem;">&times;</button>
+                style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;line-height:1;padding:0.25rem;">
+                <span class="material-icons">close</span>
+            </button>
         </div>
         <div class="modal-body">
-            <!-- Drive Selector -->
-            <div style="margin-bottom: 1rem;">
-                <select id="fs-roots" class="drive-select" style="width: 100%;">
-                    <!-- Options populated by JS -->
-                </select>
+            <div style="margin-bottom:1rem;">
+                <select id="fs-roots" class="form-control drive-select"></select>
             </div>
-
-            <!-- Breadcrumbs -->
-            <div id="fs-bc" class="fs-breadcrumb">
-                <!-- Buttons populated by JS -->
-            </div>
-
-            <!-- File List -->
-            <div id="fs-list" class="fs-list">
-                <!-- Rows populated by JS -->
-            </div>
+            <div id="fs-bc" class="fs-breadcrumb"></div>
+            <div id="fs-list" class="fs-list"></div>
             <input type="hidden" id="fs-path">
         </div>
         <div class="modal-footer">
-            <button type="button" id="fs-select" class="btn-primary" style="margin-top:0;">Select This Folder</button>
+            <button type="button" id="fs-select" class="btn btn-primary">
+                <span class="material-icons" style="font-size:1rem;">check</span> Select This Folder
+            </button>
         </div>
     </div>
 </div>
 
-<script src="/static/js/fsbrowser.js"></script>
-<script src="/static/js/settings.js"></script>
+<script src="/static/js/fsbrowser.js?v=2"></script>
+<script src="/static/js/settings.js?v=2"></script>
+
 {% endblock %}

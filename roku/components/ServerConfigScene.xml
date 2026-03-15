@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="ServerConfigScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/source/api.brs" />
+  <script type="text/brightscript" uri="pkg:/source/server_config.brs" />
+  <children>
+    <Rectangle color="0x000000FF" width="1920" height="1080" />
+    <Label id="title" 
+           translation="[160,100]" 
+           width="1600" 
+           height="80"
+           color="0xFFFFFFFF"
+           font="font:LargeBoldSystemFont"
+           text="Arctic Media Server Setup" />
+    <Label id="prompt" 
+           translation="[160,220]" 
+           width="1600" 
+           height="60"
+           color="0xFFFFFFFF"
+           font="font:MediumSystemFont"
+           text="Enter your server address:" />
+    <Label id="input_display" 
+           translation="[160,320]" 
+           width="1600" 
+           height="80"
+           color="0x00FF00FF"
+           font="font:LargeSystemFont"
+           text="http://" />
+    <Label id="hint" 
+           translation="[160,450]" 
+           width="1600" 
+           height="100"
+           color="0xCCCCCCFF"
+           font="font:SmallSystemFont"
+           text="Example: http://192.168.1.100:8085" />
+    <Label id="status" 
+           translation="[160,600]" 
+           width="1600" 
+           height="60"
+           color="0xFFFF00FF"
+           font="font:SmallSystemFont"
+           text="Press OK to open keyboard" />
+    <Keyboard id="keyboard"
+              translation="[160,700]"
+              text="http://"
+              maxTextLength="200"
+              visible="false"
+              minWidth="1600" />
+  </children>
+</component>
+

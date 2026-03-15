@@ -1,11 +1,23 @@
 from contextlib import asynccontextmanager
-import asyncio, os
+import asyncio, os, sys
 from fastapi import FastAPI, Request, Depends
 
 if os.name == 'nt':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(base_path, relative_path)
+
+# ... existing imports ...
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -20,10 +32,10 @@ from app.api.v1.libraries import router as library_router
 from app.api.v1.system import router as system_router
 from app.api.v1.scan import router as scan_router
 from app.api.v1.media import router as media_router
-from app.api.v1.media import router as media_router
 from app.api.v1.stream import router as stream_router
 from app.api.v1.stream_hls import router as hls_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.remote import router as remote_router
 
 # IMPORTS: These lines register the models with the 'Base' class
 from app.models.user import User
@@ -32,15 +44,13 @@ from app.models.media import MediaItem, MediaFile
 from app.models.settings import ServerSetting
 
 # Setup Templates
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=resource_path("app/templates"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting up {settings.PROJECT_NAME}...")
     
     # 1. Create Tables
-    # This checks the DB and creates any missing tables.
-    # In production, we'd use Alembic (migrations), but for a start-up, this is perfect.
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
@@ -77,10 +87,13 @@ app.include_router(media_router, prefix="/api/v1/media", tags=["Media"])
 app.include_router(stream_router, prefix="/api/v1/stream", tags=["Stream"])
 app.include_router(hls_router, prefix="/api/v1", tags=["Stream HLS"])
 app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
+app.include_router(remote_router) # /pair endpoints
+
+
 
 # Mount Static Files
 # This means: http://.../static/css/style.css -> serves app/static/css/style.css
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=resource_path("app/static")), name="static")
 
 @app.get("/")
 async def dashboard(request: Request):

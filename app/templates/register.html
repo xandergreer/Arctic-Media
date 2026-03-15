@@ -1,35 +1,45 @@
 {% extends "base.html" %}
+{% block title %}Register — Arctic Media{% endblock %}
 
-{% block title %}Register - Arctic Media{% endblock %}
+{% block full_content %}
+<div class="auth-page" style="padding-top:0;">
+    <div class="auth-bg-glow"></div>
+    <div class="auth-bg-glow-2"></div>
 
-{% block content %}
-<div class="auth-container"
-    style="max-width: 400px; margin: 4rem auto; background: var(--surface-color); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-glow);">
-    <h2 style="text-align: center; margin-bottom: 2rem;">Create Account</h2>
+    <div class="auth-card">
+        <a href="/" class="auth-logo">
+            <div class="logo-icon">❄</div>
+            <span class="logo-text" style="font-size:1.3rem;font-weight:800;letter-spacing:-0.04em;">ARCTIC <span
+                    style="color:var(--blue-300);">MEDIA</span></span>
+        </a>
 
-    <form id="registerForm">
-        <div class="form-group" style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Username</label>
-            <input type="text" id="username" required
-                style="width: 100%; padding: 0.8rem; background: var(--bg-color); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px;">
-        </div>
+        <h1 class="auth-title">Create account</h1>
+        <p class="auth-sub">Join your personal streaming server</p>
 
-        <div class="form-group" style="margin-bottom: 2rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Password (Its
-                Encrypted!)</label>
-            <input type="password" id="password" required
-                style="width: 100%; padding: 0.8rem; background: var(--bg-color); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px;">
-        </div>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input class="form-control" type="text" id="username" placeholder="choose_a_username" required
+                    autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input class="form-control" type="password" id="password" placeholder="••••••••" required
+                    autocomplete="new-password">
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;">Your password is securely
+                    encrypted with Argon2.</p>
+            </div>
 
-        <button type="submit" class="btn-primary"
-            style="width: 100%; border: none; cursor: pointer; margin-top: 0;">Register</button>
-    </form>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem;justify-content:center;">
+                Create Account
+            </button>
+        </form>
 
-    <div style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
-        Already have an account? <a href="/login" style="color: var(--primary-color);">Login</a>
+        <div id="msg-box" style="margin-top:1rem;text-align:center;font-size:0.9rem;display:none;"></div>
+
+        <p style="margin-top:1.5rem;text-align:center;font-size:0.875rem;color:var(--text-muted);">
+            Already have an account? <a href="/login" style="color:var(--primary);font-weight:600;">Sign in</a>
+        </p>
     </div>
-
-    <!-- Error/Success Message Container -->
-    <div id="msg-box" style="margin-top: 1rem; text-align: center; display: none;"></div>
 </div>
 {% endblock %}

@@ -50,6 +50,7 @@ _WIN_BELOW_NORMAL = (0x00004000 | 0x08000000) if os.name == 'nt' else 0
 class TranscodeJob:
     job_id: str
     item_id: int
+    file_id: int
     container: str  # "ts" | "fmp4"
     vcodec: str
     acodec: str
@@ -84,13 +85,13 @@ class TranscodeJob:
 _JOBS: Dict[str, TranscodeJob] = {}
 _ITEM_JOB: Dict[int, str] = {}
 
-def make_job_id(item_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text") -> str:
+def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text") -> str:
     h = hashlib.sha1()
-    h.update(f"{item_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|v13".encode())
+    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|v14".encode())
     return h.hexdigest()[:16]
 
-async def get_or_create_job(item_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text") -> TranscodeJob:
-    job_id = make_job_id(item_id, container, vcodec, acodec, a_map, s_index, s_type)
+async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text") -> TranscodeJob:
+    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type)
     job = _JOBS.get(job_id)
     if not job:
         # Stop old job for same item if exists
@@ -106,7 +107,7 @@ async def get_or_create_job(item_id: int, container: str, vcodec: str, acodec: s
                 finally:
                     _JOBS.pop(prev_id, None)
         
-        job = TranscodeJob(job_id=job_id, item_id=item_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type)
+        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type)
         _JOBS[job_id] = job
         _ITEM_JOB[item_id] = job_id
         
@@ -116,7 +117,8 @@ async def get_or_create_job(item_id: int, container: str, vcodec: str, acodec: s
 # ──────────────────────────────────────────────────────────────────────────────
 # FFmpeg Logic
 # ──────────────────────────────────────────────────────────────────────────────
-FFMPEG_PATH = r"e:\Arctic_ Media\bin\ffmpeg.exe" # Hardcoded based on prev stream.py, should verify or import
+from app.api.v1.stream import get_ffmpeg_path
+FFMPEG_PATH = get_ffmpeg_path("ffmpeg")
 
 async def _pick_audio_map(src_path: str, aidx: int) -> str:
     return f"0:a:{aidx}"
@@ -232,6 +234,7 @@ async def get_master_playlist(
     aidx: int = Query(0), # Added aidx
     sidx: Optional[int] = Query(None),
     stype: str = Query("text"),
+    file_id: Optional[int] = Query(None), # Support switching specific files
     db: AsyncSession = Depends(get_db) 
 ):
     # Verify User
@@ -240,7 +243,11 @@ async def get_master_playlist(
          if not user: raise HTTPException(401, "Invalid Token")
     
     # Get File Info from DB
-    q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+    if file_id:
+        q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
+    else:
+        q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+        
     result = await db.execute(q)
     mf = result.scalars().first()
     if not mf: raise HTTPException(404, "Media Not Found")
@@ -253,7 +260,7 @@ async def get_master_playlist(
         
     # Create Job with Audio Map
     a_map = await _pick_audio_map(mf.path, aidx)
-    job = await get_or_create_job(media_id, "ts", vcodec, "aac", a_map, sidx, stype)
+    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, sidx, stype)
     await start_or_warm_job(mf.path, job)
     
     # Wait for manifest

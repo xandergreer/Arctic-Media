@@ -36,24 +36,34 @@
 
     // Fetch API: Get Roots
     async function loadRoots() {
-        set(listEl, '<div class="muted" style="color:var(--text-secondary)">Loading drives...</div>');
+        set(listEl, '<div style="color:var(--text-muted);padding:0.5rem;">Loading drives...</div>');
+
+        // Pre-check: must have a token
+        const token = getCookie('access_token');
+        if (!token) {
+            set(listEl, '<div style="color:#f87171;padding:0.5rem;">Not logged in — please log in as admin first.</div>');
+            return;
+        }
+
         try {
             const res = await fetch('/api/v1/system/fs/roots', {
                 headers: getAuthHeaders()
             });
-            if (!res.ok) throw new Error("Failed to load roots");
+            if (!res.ok) {
+                let detail = res.statusText;
+                try { const j = await res.json(); detail = j.detail || detail; } catch (_) { }
+                throw new Error(`HTTP ${res.status}: ${detail}`);
+            }
 
             const data = await res.json();
-            // data is Array of FSNode: [{path: "C:\\", name: "C:\\", is_dir: true}, ...]
 
             if (!data.length) {
-                set(listEl, '<div class="muted">No drives found</div>');
+                set(listEl, '<div style="color:var(--text-muted);padding:0.5rem;">No drives found</div>');
                 return;
             }
 
             rootsSel.innerHTML = '';
 
-            // Populate Dropdown
             data.forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.path;
@@ -61,15 +71,15 @@
                 rootsSel.appendChild(opt);
             });
 
-            // Select first drive and list it
             curPath = data[0].path;
             list(curPath);
 
         } catch (e) {
             console.error('roots error', e);
-            set(listEl, '<div class="muted" style="color:#ef4444">Error loading drives</div>');
+            set(listEl, `<div style="color:#f87171;padding:0.5rem;">Error loading drives: ${e.message}</div>`);
         }
     }
+
 
     // Build Breadcrumbs
     function breadcrumb(path) {

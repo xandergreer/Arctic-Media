@@ -27,7 +27,6 @@ def _img(url_part: Optional[str], size: str = "w500") -> Optional[str]:
 
 def _headers(api_key: str) -> Dict[str, str]:
     if not api_key: return {}
-    # Support Bearer Token (Long) or Query Param (Short)
     return {"Authorization": f"Bearer {api_key}"} if len(api_key) > 40 else {}
 
 def _params(api_key: str) -> Dict[str, str]:
@@ -36,21 +35,15 @@ def _params(api_key: str) -> Dict[str, str]:
 
 async def _get(api_key: str, path: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Non-blocking HTTP GET helper using httpx AsyncClient."""
-    # Slight rate limit
-    await asyncio.sleep(0.05) 
-    
+    await asyncio.sleep(0.05)
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             p = {**_params(api_key), **params}
             h = _headers(api_key)
-            
             r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
-            
             if r.status_code == 429:
-                # gentle backoff then one retry
                 await asyncio.sleep(1.0)
                 r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
-            
             r.raise_for_status()
             return r.json()
     except Exception as e:
@@ -59,16 +52,10 @@ async def _get(api_key: str, path: str, params: Dict[str, Any]) -> Optional[Dict
 
 # ---- Cleaners ----
 
-# Using the robust logic from scanner.py for 'clean_title' so we don't duplicate it here.
-# But we need a helper for 'search_title' which might be different? 
-# Actually, the scanner already cleans the title on the MediaItem. 
-# So we can just use `item.title` directly!
-
 def normalize_sort(title: str) -> str:
-    """Simple normalization for comparison."""
     return re.sub(r"[^a-z0-9]", "", (title or "").lower())
 
-# ---- Packers (Convert TMDB JSON to our format) ----
+# ---- Packers ----
 
 def _pack_common(d: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -88,31 +75,20 @@ def _pack_common(d: Dict[str, Any]) -> Dict[str, Any]:
 # ---- Search Logic ----
 
 async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Optional[int]:
-    """Search TMDB for a movie."""
     if not title: return None
-    
-    # Strategy 1: Title + Year
     res = await _get(api_key, "search/movie", {"query": title, "year": year} if year else {"query": title})
     results = res.get("results", []) if res else []
-    
     if not results and year:
-        # Strategy 2: Title only (maybe year mismatch)
         res = await _get(api_key, "search/movie", {"query": title})
         results = res.get("results", []) if res else []
-        
     if results:
-        # Pick best match (simply first for now, or use logic from v2)
-        # v2 had complex matching logic, keeping it simple first.
         return results[0]["id"]
     return None
 
 async def _search_tv(api_key: str, title: str) -> Optional[int]:
-    """Search TMDB for a TV Show."""
     if not title: return None
-    
     res = await _get(api_key, "search/tv", {"query": title})
     results = res.get("results", []) if res else []
-    
     if results:
         return results[0]["id"]
     return None
@@ -127,22 +103,11 @@ async def _movie_details(api_key: str, tmdb_id: int) -> Dict[str, Any]:
 async def _tv_details(api_key: str, tmdb_id: int) -> Dict[str, Any]:
     data = await _get(api_key, f"tv/{tmdb_id}", {})
     if not data: return {}
-    
     info = _pack_common(data)
-    info["title"] = data.get("name") #/original_name
+    info["title"] = data.get("name")
     return info
 
-async def _episode_details(api_key: str, tmdb_id: int, season_num: int, episode_num: int) -> Dict[str, Any]:
-    data = await _get(api_key, f"tv/{tmdb_id}/season/{season_num}/episode/{episode_num}", {})
-    if not data: return {}
-    
-    return {
-        "title": data.get("name"),
-        "overview": data.get("overview"),
-        "still": _img(data.get("still_path")),
-        "air_date": data.get("air_date"),
-        "rating": data.get("vote_average")
-    }
+# ---- Single Item Refresh ----
 
 async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
     """
@@ -152,50 +117,45 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
     api_key = settings.TMDB_API_KEY
     if not api_key:
         return False
-        
+
     try:
         updated = False
         meta = dict(item.extra_json) if item.extra_json else {}
-        
-        # 1. MOVIE
+
         if item.kind == MediaKind.MOVIE:
-            # Prefer existing TMDB ID if present (supports "Change ID" flow)
             tmdb_id = meta.get("tmdb_id")
             if not tmdb_id:
                 tmdb_id = await _search_movie(api_key, item.title, item.year)
-                
             if tmdb_id:
                 details = await _movie_details(api_key, tmdb_id)
-                # Update fields
                 if details:
                     item.poster_url = details.get("poster")
                     item.backdrop_url = details.get("backdrop")
                     item.overview = details.get("overview")
-                    # Store rest in JSON
                     meta.update(details)
                     item.extra_json = meta
                     log.info(f"Refreshed Movie: {item.title} -> {tmdb_id}")
+                    print(f"  [META] Movie: {item.title} -> TMDB {tmdb_id}")
                     updated = True
-        
-        # 2. SHOW
+
         elif item.kind == MediaKind.SHOW:
             tmdb_id = meta.get("tmdb_id")
             if not tmdb_id:
                 tmdb_id = await _search_tv(api_key, item.title)
-                
             if tmdb_id:
                 details = await _tv_details(api_key, tmdb_id)
                 if details:
                     item.poster_url = details.get("poster")
                     item.backdrop_url = details.get("backdrop")
                     item.overview = details.get("overview")
-                    
                     meta.update(details)
                     item.extra_json = meta
                     log.info(f"Refreshed Show: {item.title} -> {tmdb_id}")
+                    print(f"  [META] Show: {item.title} -> TMDB {tmdb_id}")
                     updated = True
             else:
-                log.warning(f"No match for Show: {item.title}")
+                log.warning(f"No TMDB match for Show: {item.title}")
+                print(f"  [META] No match for show: {item.title}")
 
         return updated
     except Exception as e:
@@ -206,100 +166,72 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
 
 async def enrich_library(session: AsyncSession, library_id: int):
     """
-    Iterates over MediaItems in the library and fetches metadata if missing.
+    Iterates over MediaItems in the library and fetches metadata for movies,
+    shows, and episodes.
     """
-    # ... (Keep existing bulk logic or refactor to use above? 
-    # For now, let's keep bulk logic slightly separate for performance/batching if needed, 
-    # or just use the new function to be clean. Let's use the new function for clean code.)
-    
+    api_key = settings.TMDB_API_KEY
+    if not api_key:
+        log.warning("No TMDB API key configured — skipping metadata enrichment.")
+        print("  [META] Skipping enrichment: no TMDB API key configured.")
+        return
+
     stmt = select(MediaItem).where(MediaItem.library_id == library_id)
     result = await session.execute(stmt)
     items = result.scalars().all()
-    
+
     log.info(f"Enriching Library {library_id} with {len(items)} items...")
-    
+    print(f"  [META] Enriching {len(items)} items for library {library_id}...")
+
+    # Phase 1: Enrich movies and shows (episodes handled in batch phase)
     for item in items:
-        # Skip if already has TMDB ID and we are in "enrich" mode (not force refresh)
+        if item.kind not in (MediaKind.MOVIE, MediaKind.SHOW):
+            continue
         meta = dict(item.extra_json) if item.extra_json else {}
         if meta.get("tmdb_id") and item.poster_url:
-            continue
-            
+            continue  # already enriched
         await refresh_item_metadata(session, item)
 
-    # ... (Episode batching logic remains below as it is very specific)
-
-    # --- Batch Process Episodes using Seasons ---
-    # Group episodes by (Show_TMDB_ID, Season_Num)
-    # 1. Build a map of items: (show_id, season_num, episode_num) -> item
-    
-    # We need to ensure we have the show's TMDB ID.
-    # The 'tv_cache' is show_id -> tmdb_id
-    # But we might have missed some shows if they were already enriched?
-    # Let's rebuild tv_cache from all shows in memory
+    # Phase 2: Build tv_cache from freshly-enriched shows
+    tv_cache: dict = {}
     for item in items:
         if item.kind == MediaKind.SHOW and item.extra_json:
             t_id = item.extra_json.get("tmdb_id")
             if t_id:
                 tv_cache[item.id] = t_id
 
-    # Grouping
-    season_batches = {} # (tmdb_id, season_num) -> list of items
-
+    # Phase 3: Group episodes by (tmdb_id, season_num)
+    season_batches: dict = {}
     for item in items:
-        if item.kind == MediaKind.EPISODE:
-            # We need to find the Show ID.
-            # Hierarchy: Episode -> Season (parent) -> Show (parent)
-            if not item.parent_id: continue
-            
-            # Find Season
-            season = next((x for x in items if x.id == item.parent_id), None)
-            if not season or not season.parent_id: continue
-            
-            # Find Show ID (Season's parent)
-            show_id = season.parent_id
-            tmdb_id = tv_cache.get(show_id)
-            
-            if tmdb_id and item.episode_number is not None:
-                # We also need the season number. 
-                # The episode item doesn't always performantly link to season in this loop.
-                # But we can assume season.season_number is correct?
-                if season.season_number is not None:
-                    key = (tmdb_id, season.season_number)
-                    if key not in season_batches:
-                        season_batches[key] = []
-                    
-                    season_batches[key].append(item)
-    
-    # Fetch Metadata for each Season Batch
+        if item.kind != MediaKind.EPISODE or not item.parent_id:
+            continue
+        # Find parent Season
+        season = next((x for x in items if x.id == item.parent_id), None)
+        if not season or not season.parent_id:
+            continue
+        show_id = season.parent_id
+        tmdb_id = tv_cache.get(show_id)
+        if tmdb_id and item.episode_number is not None and season.season_number is not None:
+            key = (tmdb_id, season.season_number)
+            season_batches.setdefault(key, []).append(item)
+
+    # Phase 4: Fetch episode metadata per season
     for (tmdb_id, season_num), batched_items in season_batches.items():
         try:
-            log.info(f"Fetching Season: ID {tmdb_id} S{season_num}")
-            print(f"  Fetching Metadata: Show ID {tmdb_id}, Season {season_num} ({len(batched_items)} episodes)")
-
-            # Fetch entire season details
-            # We need a helper for this (adding inline or separate). 
-            # Inline for now using _get directly to avoid tool issues
+            print(f"  [META] Fetching episodes: TMDB Show {tmdb_id}, Season {season_num} ({len(batched_items)} eps)")
             season_data = await _get(api_key, f"tv/{tmdb_id}/season/{season_num}", {})
-            
             if not season_data or "episodes" not in season_data:
+                log.warning(f"No season data for TMDB {tmdb_id} S{season_num}")
                 continue
-                
-            tmdb_episodes = season_data["episodes"] # List of dictionaries
-            
-            # Create lookup for the API results: episode_number -> details
-            ep_lookup = {ep["episode_number"]: ep for ep in tmdb_episodes}
-            
-            # Update our database items
+            ep_lookup = {ep["episode_number"]: ep for ep in season_data["episodes"]}
             for item in batched_items:
                 ep_data = ep_lookup.get(item.episode_number)
                 if ep_data:
-                    item.title = ep_data.get("name") # Update real title
+                    item.title = ep_data.get("name") or item.title
                     item.overview = ep_data.get("overview")
                     item.poster_url = _img(ep_data.get("still_path"))
-                    item.release_date = None # Could parse air_date if needed
                     item.extra_json = ep_data
         except Exception as e:
-            log.error(f"Failed batch season {tmdb_id} S{season_num}: {e}")
+            log.error(f"Failed episode batch TMDB {tmdb_id} S{season_num}: {e}")
 
-    # Commit all changes
     await session.commit()
+    print(f"  [META] Enrichment complete for library {library_id}.")

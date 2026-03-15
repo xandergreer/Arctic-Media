@@ -125,45 +125,88 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- DELETE LIBRARY ---
-    document.querySelectorAll(".delete-lib-btn").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            const libId = e.target.getAttribute("data-id");
-            if (!confirm("Are you sure? This removes it from the database.")) return;
-
+    document.querySelectorAll('.delete-lib-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const libId = e.currentTarget.getAttribute('data-id');
+            if (!confirm('Are you sure? This removes it from the database.')) return;
             try {
                 const res = await fetch(`/api/v1/libraries/${libId}`, {
-                    method: "DELETE",
+                    method: 'DELETE',
                     headers: getAuthHeaders()
                 });
                 if (res.ok) window.location.reload();
             } catch (err) {
-                alert("Failed to delete.");
+                alert('Failed to delete.');
             }
         });
     });
 
-    // --- SCAN NOW ---
-    const scanBtn = document.getElementById("scan-btn");
-    if (scanBtn) {
-        scanBtn.addEventListener("click", async () => {
-            scanBtn.textContent = "Scanning...";
-            scanBtn.disabled = true;
+    // --- RESCAN SINGLE LIBRARY ---
+    document.querySelectorAll('.rescan-lib-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const libId = e.currentTarget.getAttribute('data-id');
+            const icon = e.currentTarget.querySelector('.material-icons');
+            const orig = icon.textContent;
+            icon.style.animation = 'spin 1s linear infinite';
+            e.currentTarget.disabled = true;
             try {
-                const res = await fetch("/api/v1/scan/run", {
-                    method: "POST",
+                const res = await fetch(`/api/v1/scan/library/${libId}`, {
+                    method: 'POST',
                     headers: getAuthHeaders()
                 });
+                const data = await res.json();
                 if (res.ok) {
-                    alert("Scan Complete!");
+                    alert(`Rescan complete: ${data.library}`);
                     window.location.reload();
                 } else {
-                    alert("Scan Failed.");
+                    alert(`Rescan failed: ${data.detail || 'Unknown error'}`);
                 }
             } catch (err) {
-                alert("Scan Error.");
+                alert('Rescan request failed.');
+                console.error(err);
             }
-            scanBtn.textContent = "Scan All Libraries";
+            icon.style.animation = '';
+            icon.textContent = orig;
+            e.currentTarget.disabled = false;
+        });
+    });
+
+
+
+    // --- SCAN NOW ---
+    const scanBtn = document.getElementById('scan-btn');
+    if (scanBtn) {
+        scanBtn.addEventListener('click', async () => {
+            const orig = scanBtn.innerHTML;
+            scanBtn.innerHTML = '<span class="material-icons" style="font-size:0.95rem;animation:spin 1s linear infinite;">sync</span> Scanning…';
+            scanBtn.disabled = true;
+            try {
+                const res = await fetch('/api/v1/scan/run', {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+
+                if (data.status === 'no_libraries') {
+                    alert('No libraries configured. Add a library below first.');
+                } else if (data.status === 'partial') {
+                    const errors = data.results.filter(r => r.status === 'error');
+                    const ok = data.results.filter(r => r.status === 'ok');
+                    alert(`Scan finished with errors.\n\nCompleted: ${ok.map(r => r.library).join(', ') || 'none'}\n\nFailed:\n${errors.map(r => `• ${r.library}: ${r.detail}`).join('\n')}`);
+                    window.location.reload();
+                } else if (data.status === 'ok') {
+                    alert(`Scan complete! ${data.results.length} library(s) scanned successfully.`);
+                    window.location.reload();
+                } else {
+                    alert('Scan returned an unexpected response.');
+                }
+            } catch (err) {
+                alert('Scan request failed — check server connection.');
+                console.error(err);
+            }
+            scanBtn.innerHTML = orig;
             scanBtn.disabled = false;
         });
     }
+
 });

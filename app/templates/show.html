@@ -1,145 +1,117 @@
 {% extends "base.html" %}
+{% block title %}Loading… — Arctic Media{% endblock %}
 
-{% block content %}
-<div id="backdrop-container"
-    style="position: relative; height: 60vh; margin: -2rem -2rem 2rem -2rem; mask-image: linear-gradient(to bottom, black 50%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);">
-    <img id="backdrop-img" src="" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.6;">
-    <div
-        style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 2rem; background: linear-gradient(to top, var(--background-color), transparent);">
-    </div>
+{% block full_content %}
+<!-- Backdrop -->
+<div class="detail-backdrop-wrap">
+    <img id="backdrop-img" class="detail-backdrop-img" src="" alt="">
+    <div class="detail-backdrop-overlay"></div>
 </div>
 
-<div class="container" style="position: relative; margin-top: -150px; display: flex; gap: 3rem; align-items: flex-end;">
+<!-- Detail content -->
+<div class="detail-content">
     <!-- Poster -->
-    <div style="flex: 0 0 300px;">
-        <img id="poster-img" src=""
-            style="width: 100%; border-radius: var(--border-radius); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div class="detail-poster">
+        <img id="poster-img" src="" alt="">
     </div>
 
     <!-- Info -->
-    <div style="flex: 1; padding-bottom: 2rem;">
-        <h1 id="title" style="font-size: 3.5rem; margin-bottom: 0.5rem; line-height: 1.1;">Loading...</h1>
-        <div
-            style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; color: #94a3b8; font-size: 1.1rem;">
+    <div class="detail-info">
+        <h1 class="detail-title" id="title">Loading…</h1>
+        <div class="detail-meta-row">
             <span id="year"></span>
-            <span>•</span>
+            <span class="detail-meta-dot">·</span>
             <span id="seasons-count"></span>
-            <span>•</span>
-            <span style="border: 1px solid #475569; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">TV
-                SHOW</span>
+            <span class="detail-meta-dot">·</span>
+            <span class="badge">TV SHOW</span>
         </div>
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-            <!-- Placeholder for potential series-level actions -->
-            <button
-                style="padding: 1rem; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                <span class="material-icons">add</span>
-            </button>
-            <!-- Edit Button (Hidden by default, shown by JS if admin) -->
-            <button id="editBtn" class="hidden"
-                style="padding: 1rem; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+
+        <div class="detail-actions">
+            <!-- Edit (admin only, shown by JS) -->
+            <button id="editBtn" class="btn btn-ghost hidden" title="Edit metadata">
                 <span class="material-icons">edit</span>
             </button>
+            <!-- Delete (admin only, shown by JS) -->
+            <button id="deleteBtn" class="btn btn-danger hidden" title="Remove from library">
+                <span class="material-icons">delete</span>
+            </button>
         </div>
 
-        <p id="overview"
-            style="font-size: 1.1rem; line-height: 1.6; color: #cbd5e1; max-width: 800px; margin-bottom: 2rem;"></p>
+        <p class="detail-overview" id="overview"></p>
 
-        <!-- Embedded Video Player -->
+        <!-- Video player -->
         <div class="video-container" id="video-container">
             <video id="video-player" controls crossorigin playsinline></video>
         </div>
     </div>
 </div>
 
-<!-- Edit Metadata Modal -->
+<!-- Edit Modal -->
 <div id="editModal" class="modal hidden">
     <div class="modal-content">
-        <h2 style="margin-bottom: 1.5rem;">Edit Metadata</h2>
-        <div style="display: grid; gap: 1rem;">
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">Title</label>
-                <input id="edit-title" type="text"
-                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+        <h2 style="margin-bottom:1.5rem;">Edit Metadata</h2>
+        <div style="display:grid;gap:1rem;">
+            <div class="form-group" style="margin:0;">
+                <label>Title</label>
+                <input id="edit-title" type="text" class="form-control">
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">TMDB ID</label>
-                <input id="edit-tmdb" type="number"
-                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            <div class="form-group" style="margin:0;">
+                <label>TMDB ID</label>
+                <input id="edit-tmdb" type="number" class="form-control">
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">Poster URL</label>
-                <input id="edit-poster" type="text"
-                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            <div class="form-group" style="margin:0;">
+                <label>Poster URL</label>
+                <input id="edit-poster" type="text" class="form-control">
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">Backdrop URL</label>
-                <input id="edit-backdrop" type="text"
-                    style="width: 100%; padding: 0.8rem; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+            <div class="form-group" style="margin:0;">
+                <label>Backdrop URL</label>
+                <input id="edit-backdrop" type="text" class="form-control">
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <input id="edit-refresh" type="checkbox" style="width: 1.2rem; height: 1.2rem;">
-                <label for="edit-refresh" style="color: #cbd5e1;">Refresh from TMDB (uses ID if present)</label>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
-                <button id="closeEditModal"
-                    style="padding: 0.8rem 1.5rem; background: transparent; color: #cbd5e1; border: 1px solid #334155; border-radius: 6px; cursor: pointer;">Cancel</button>
-                <button id="saveEditModal"
-                    style="padding: 0.8rem 1.5rem; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">Save</button>
-            </div>
+            <label
+                style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;color:var(--text-sub);font-size:0.9rem;">
+                <input id="edit-refresh" type="checkbox" style="width:1rem;height:1rem;accent-color:var(--primary);">
+                Refresh from TMDB
+            </label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.5rem;">
+            <button id="closeEditModal" class="btn btn-ghost">Cancel</button>
+            <button id="saveEditModal" class="btn btn-primary">Save Changes</button>
         </div>
     </div>
 </div>
 
-<style>
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .modal.hidden {
-        display: none;
-    }
-
-    .modal-content {
-        background: #0f172a;
-        padding: 2rem;
-        border-radius: 12px;
-        width: 100%;
-        max-width: 500px;
-        border: 1px solid #334155;
-    }
-</style>
-
-<!-- Seasons & Episodes -->
-<div class="container" style="margin-top: 2rem;">
-    <!-- Season Selector -->
-    <div id="season-list"
-        style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem;">
-        <!-- Filled by JS -->
-    </div>
-
-    <!-- Episodes Grid -->
-    <h3 id="season-title">Episodes</h3>
-    <div id="episodes-grid"
-        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
-        <!-- Filled by JS -->
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal hidden">
+    <div class="modal-content" style="max-width:420px;text-align:center;">
+        <span class="material-icons" style="font-size:3rem;color:#f87171;margin-bottom:0.75rem;">delete_forever</span>
+        <h2 style="margin-bottom:0.5rem;">Remove from Library?</h2>
+        <p id="deleteModalMsg" style="color:var(--text-muted);margin-bottom:1.75rem;font-size:0.95rem;">This item will
+            be removed from Arctic Media. Files on disk will NOT be deleted.</p>
+        <div style="display:flex;gap:0.75rem;justify-content:center;">
+            <button id="cancelDeleteBtn" class="btn btn-ghost">Cancel</button>
+            <button id="confirmDeleteBtn" class="btn btn-danger">
+                <span class="material-icons" style="font-size:1rem;">delete</span> Remove
+            </button>
+        </div>
     </div>
 </div>
 
-<!-- Hidden ID for JS -->
 <input type="hidden" id="media-id" value="{{ item_id }}">
 <input type="hidden" id="is-show" value="true">
 
+<!-- Seasons & Episodes -->
+<div class="section">
+    <!-- Season tabs -->
+    <div id="season-list" class="season-tabs"><!-- JS --></div>
+
+    <div class="section-label" style="margin-bottom:1rem;">
+        <h3 id="season-title">Episodes</h3>
+    </div>
+
+    <div id="episodes-grid" class="episode-grid"><!-- JS --></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/details.js?v=PlyrV19"></script>
+<script src="/static/js/details.js?v=PlyrV20"></script>
 {% endblock %}

@@ -9,6 +9,7 @@ from app.core import security
 from app.core.database import get_db
 from app.models.user import User
 from app.services import auth as auth_service
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -58,3 +59,14 @@ async def register_user(
     
     new_user = await auth_service.create_user(db, username, password)
     return {"username": new_user.username, "status": "User created"}
+
+@router.get("/me", response_model=dict)
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """
+    Get current user info.
+    """
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "is_superuser": current_user.is_superuser
+    }

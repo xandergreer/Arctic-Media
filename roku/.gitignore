@@ -1,0 +1,10 @@
+# Roku build artifacts
+*.zip
+*.pkg
+out/
+dist/
+
+# Placeholder images (replace with actual icons before sideload)
+# images/app_icon_hd.png
+# images/app_icon_sd.png
+

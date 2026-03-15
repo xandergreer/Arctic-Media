@@ -5,43 +5,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Arctic Media{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=9">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=20">
 </head>
 
 <body>
 
     <header>
         <nav class="navbar">
-            <div class="logo">Arctic Media 2.0</div>
+            <a href="/" class="logo">
+                <div class="logo-icon">❄</div>
+                <span class="logo-text">ARCTIC <span>MEDIA</span></span>
+            </a>
+
             <div class="nav-links">
-                <a href="/">Home</a>
-                <a href="/libraries/movies">Movies</a>
-                <a href="/libraries/shows">TV Shows</a>
-                <a href="/settings">Settings</a>
+                <a href="/" id="nav-home">Home</a>
+                <a href="/libraries/movies" id="nav-movies">Movies</a>
+                <a href="/libraries/shows" id="nav-shows">TV Shows</a>
+                <a href="/settings" id="nav-settings">Settings</a>
             </div>
-            <div class="nav-auth">
-                <!-- We will toggle this with JS later -->
-                <a href="/login" id="loginBtn">Login</a>
-                <a href="#" id="logoutBtn" style="display:none;">Logout</a>
+
+            <div class="nav-right">
+                <!-- Search -->
+                <div class="search-wrapper">
+                    <button id="search-toggle-btn" class="search-toggle" aria-label="Search">
+                        <span class="material-icons" style="font-size:18px;">search</span>
+                    </button>
+                    <div class="search-container" id="search-container" style="display:none;">
+                        <div class="search-input-wrapper">
+                            <span class="material-icons"
+                                style="font-size:18px;color:var(--text-muted);margin:0 4px;">search</span>
+                            <input type="text" id="search-input" placeholder="Search movies and shows…"
+                                autocomplete="off">
+                            <button id="search-clear" class="search-clear" type="button" aria-label="Clear"
+                                style="display:none;">
+                                <span class="material-icons" style="font-size:16px;">close</span>
+                            </button>
+                        </div>
+                        <div id="search-results" class="search-results-popup">
+                            <div class="search-placeholder">
+                                <span class="material-icons"
+                                    style="font-size:2rem;color:var(--text-muted);">search</span>
+                                <p>Type to search your library</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auth -->
+                <div class="nav-auth">
+                    <a href="/login" id="loginBtn">Login</a>
+                    <a href="#" id="logoutBtn" style="display:none;">Logout</a>
+                </div>
             </div>
         </nav>
     </header>
 
-    <main class="container">
-        <!-- Child pages inject content here -->
+    {% block full_content %}
+    <main>
         {% block content %}{% endblock %}
     </main>
+    {% endblock %}
 
     <footer>
-        <p>&copy; 2026 Arctic Media Server</p>
+        <p>© 2026 Arctic Media &nbsp;·&nbsp; <span style="color:var(--primary);">❄</span> Your personal streaming server
+        </p>
     </footer>
 
     <script src="/static/js/main.js?v=3"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="/static/js/search.js?v=2"></script>
+
+    <!-- Active nav highlight -->
+    <script>
+        (function () {
+            const path = window.location.pathname;
+            const map = {
+                '/': 'nav-home',
+                '/libraries/movies': 'nav-movies',
+                '/libraries/shows': 'nav-shows',
+                '/settings': 'nav-settings'
+            };
+            let best = '', bestId = '';
+            for (const [p, id] of Object.entries(map)) {
+                if (path === p || (p !== '/' && path.startsWith(p))) {
+                    if (p.length > best.length) { best = p; bestId = id; }
+                }
+            }
+            if (bestId) {
+                const el = document.getElementById(bestId);
+                if (el) el.classList.add('active');
+            }
+        })();
+    </script>
+
     {% block scripts %}{% endblock %}
 </body>
 

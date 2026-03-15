@@ -23,22 +23,37 @@ router = APIRouter()
 # --- Config ---
 CHUNK_SIZE = 1024 * 1024  # 1MB chunks
 
-def _get_ffmpeg_path(binary_name: str) -> str:
-    """Find ffmpeg/ffprobe binary in local bin/ or system path."""
-    # 1. Local bin/ folder
+import sys
+
+def get_ffmpeg_path(binary_name: str) -> str:
+    """Find ffmpeg/ffprobe binary in PyInstaller bundle, local bin/, or system path."""
+    
+    # 1. PyInstaller Bundle (_MEIPASS)
+    if hasattr(sys, '_MEIPASS'):
+        # Check bin/ inside bundle
+        bundled_bin = os.path.join(sys._MEIPASS, "bin", f"{binary_name}.exe")
+        if os.path.exists(bundled_bin):
+            return bundled_bin
+            
+        # Check root of bundle (fallback)
+        bundled_root = os.path.join(sys._MEIPASS, f"{binary_name}.exe")
+        if os.path.exists(bundled_root):
+            return bundled_root
+
+    # 2. Local bin/ folder (Development)
     local_bin = os.path.join(os.getcwd(), "bin", f"{binary_name}.exe")
     if os.path.exists(local_bin):
         return local_bin
     
-    # 2. System path
+    # 3. System path
     path = shutil.which(binary_name)
     if path:
         return path
         
     return binary_name  # Fallback
 
-FFMPEG_PATH = _get_ffmpeg_path("ffmpeg")
-FFPROBE_PATH = _get_ffmpeg_path("ffprobe")
+FFMPEG_PATH = get_ffmpeg_path("ffmpeg")
+FFPROBE_PATH = get_ffmpeg_path("ffprobe")
 
 # --- Helpers ---
 
@@ -204,7 +219,8 @@ def can_stream_copy_video(info: dict, caps: dict) -> bool:
 async def get_media_metadata(
     media_id: int, 
     request: Request,
-    token: str = Query(None)
+    token: str = Query(None),
+    file_id: Optional[int] = Query(None)
 ):
     """
     Return JSON with audio/subtitle track info for the player UI.
@@ -218,7 +234,11 @@ async def get_media_metadata(
         user = await get_current_user_from_token(token, db)
         if not user: raise HTTPException(401, "Unauthorized")
 
-        q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+        if file_id:
+            q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
+        else:
+            q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+            
         result = await db.execute(q)
         media_file = result.scalars().first()
         if not media_file or not os.path.exists(media_file.path):
@@ -240,7 +260,8 @@ async def get_media_metadata(
 async def get_subtitle(
     media_id: int,
     track_index: int,
-    token: str = Query(None)
+    token: str = Query(None),
+    file_id: Optional[int] = Query(None)
 ):
     """
     Extract a subtitle track and convert to WebVTT on the fly.
@@ -255,7 +276,11 @@ async def get_subtitle(
              user = await get_current_user_from_token(token, db)
              if not user: raise HTTPException(401, "Unauthorized")
         
-        q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+        if file_id:
+            q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
+        else:
+            q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+            
         result = await db.execute(q)
         media_file = result.scalars().first()
         if not media_file: raise HTTPException(404, "File not found")
@@ -317,6 +342,7 @@ async def stream_video(
     sidx: Optional[int] = Query(None),
     quality: Optional[str] = Query(None),
     start_time: float = Query(0.0), # Seeking Support
+    file_id: Optional[int] = Query(None),
     range: str = Header(None) 
 ):
     try:
@@ -334,7 +360,11 @@ async def stream_video(
         user = await get_current_user_from_token(token, db)
         if not user: raise HTTPException(401, "Unauthorized")
 
-        q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+        if file_id:
+            q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
+        else:
+            q = select(MediaFile).where(MediaFile.media_item_id == media_id)
+            
         result = await db.execute(q)
         media_file = result.scalars().first()
         if not media_file or not os.path.exists(media_file.path):
@@ -349,8 +379,11 @@ async def stream_video(
     # --- HLS FORCED REDIRECTION (As requested) ---
     # We redirect ALL video playback to HLS to ensure consistent seeking behavior.
     if not quality: # Only redirect default request. If user specifically asks for quality/direct, we might respect it later but for now force HLS.
+        url = f"/api/v1/stream/{media_id}/master.m3u8?token={token}"
+        if file_id:
+            url += f"&file_id={file_id}"
         return RedirectResponse(
-            url=f"/api/v1/stream/{media_id}/master.m3u8?token={token}", 
+            url=url, 
             status_code=302
         )
 
