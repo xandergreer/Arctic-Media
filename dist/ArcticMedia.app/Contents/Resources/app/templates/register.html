@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Register — Arctic Media{% endblock %}
+
+{% block full_content %}
+<div class="auth-page" style="padding-top:0;">
+    <div class="auth-bg-glow"></div>
+    <div class="auth-bg-glow-2"></div>
+
+    <div class="auth-card">
+        <a href="/" class="auth-logo">
+            <div class="logo-icon">❄</div>
+            <span class="logo-text" style="font-size:1.3rem;font-weight:800;letter-spacing:-0.04em;">ARCTIC <span
+                    style="color:var(--blue-300);">MEDIA</span></span>
+        </a>
+
+        <h1 class="auth-title">Create account</h1>
+        <p class="auth-sub">Join your personal streaming server</p>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input class="form-control" type="text" id="username" placeholder="choose_a_username" required
+                    autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input class="form-control" type="password" id="password" placeholder="••••••••" required
+                    autocomplete="new-password">
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;">Your password is securely
+                    encrypted with Argon2.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem;justify-content:center;">
+                Create Account
+            </button>
+        </form>
+
+        <div id="msg-box" style="margin-top:1rem;text-align:center;font-size:0.9rem;display:none;"></div>
+
+        <p style="margin-top:1.5rem;text-align:center;font-size:0.875rem;color:var(--text-muted);">
+            Already have an account? <a href="/login" style="color:var(--primary);font-weight:600;">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

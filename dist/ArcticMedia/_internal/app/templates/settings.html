@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Settings — Arctic Media{% endblock %}
+
+{% block full_content %}
+<div class="section" style="padding-top:calc(var(--nav-height) + 2rem);max-width:900px;margin:0 auto;">
+
+    <div class="section-label" style="margin-bottom:2rem;">
+        <h2>Settings</h2>
+    </div>
+
+    <!-- General -->
+    <div class="card" style="margin-bottom:1.25rem;">
+        <div class="settings-section-head">
+            <span class="material-icons">public</span>
+            <h3>General</h3>
+        </div>
+        <form id="general-settings-form">
+            <div class="form-group">
+                <label for="custom-domain">Public URL / Custom Domain</label>
+                <input type="text" id="custom-domain" name="custom_domain" class="form-control"
+                    placeholder="https://media.example.com">
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;">Used for share links and remote
+                    access. Make sure it's externally reachable.</p>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.25rem;">
+                <span class="material-icons" style="font-size:1rem;">save</span> Save
+            </button>
+        </form>
+    </div>
+
+    <!-- Libraries -->
+    <div class="card" style="margin-bottom:1.25rem;">
+        <div class="settings-section-head">
+            <span class="material-icons">video_library</span>
+            <h3>Library Management</h3>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+            <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Configure where Arctic Media looks for your
+                content.</p>
+            <button id="scan-btn" class="btn btn-primary btn-sm">
+                <span class="material-icons" style="font-size:0.95rem;">sync</span> Scan All
+            </button>
+        </div>
+
+        {% if libraries %}
+        <div id="library-list">
+            {% for lib in libraries %}
+            <div class="lib-item">
+                <div>
+                    <div class="lib-name">
+                        {{ lib.name }}
+                        <span class="badge" style="margin-left:0.5rem;">{{ lib.type.value|title }}</span>
+                    </div>
+                    <div class="lib-path">{{ lib.path }}</div>
+                </div>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <button class="btn btn-ghost btn-sm rescan-lib-btn" data-id="{{ lib.id }}"
+                        title="Rescan this library">
+                        <span class="material-icons" style="font-size:0.9rem;">sync</span>
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-lib-btn" data-id="{{ lib.id }}" title="Remove library">
+                        <span class="material-icons" style="font-size:0.9rem;">delete</span>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted);font-style:italic;font-size:0.9rem;">No libraries configured yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Add Library -->
+    <div class="card">
+        <div class="settings-section-head">
+            <span class="material-icons">add_circle</span>
+            <h3>Add New Library</h3>
+        </div>
+        <form id="add-library-form">
+            <div class="form-group">
+                <label for="lib-name">Library Name</label>
+                <input type="text" id="lib-name" name="name" class="form-control" placeholder="e.g. 4K Movies">
+            </div>
+            <div class="form-group">
+                <label for="folder-path-input">Folder Path</label>
+                <div style="display:flex;gap:0.5rem;">
+                    <input type="text" id="folder-path-input" name="path" class="form-control"
+                        placeholder="E:/Media/Movies">
+                    <button type="button" id="browse-btn" class="btn btn-ghost" style="flex-shrink:0;">
+                        <span class="material-icons" style="font-size:1rem;">folder_open</span> Browse
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="lib-type">Content Type</label>
+                <select id="lib-type" name="type" class="form-control">
+                    <option value="movies">Movies</option>
+                    <option value="shows">TV Shows</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                <span class="material-icons" style="font-size:1rem;">add</span> Add Library
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<!-- File Browser Modal -->
+<div id="fs-modal" class="modal-overlay hidden">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3 style="margin:0;font-size:1rem;">Select Folder</h3>
+            <button id="fs-close"
+                style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;line-height:1;padding:0.25rem;">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:1rem;">
+                <select id="fs-roots" class="form-control drive-select"></select>
+            </div>
+            <div id="fs-bc" class="fs-breadcrumb"></div>
+            <div id="fs-list" class="fs-list"></div>
+            <input type="hidden" id="fs-path">
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="fs-select" class="btn btn-primary">
+                <span class="material-icons" style="font-size:1rem;">check</span> Select This Folder
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/fsbrowser.js?v=2"></script>
+<script src="/static/js/settings.js?v=2"></script>
+
+{% endblock %}

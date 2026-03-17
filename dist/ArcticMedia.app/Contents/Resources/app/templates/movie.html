@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Loading… — Arctic Media{% endblock %}
+
+{% block full_content %}
+<!-- Backdrop -->
+<div class="detail-backdrop-wrap">
+    <img id="backdrop-img" class="detail-backdrop-img" src="" alt="">
+    <div class="detail-backdrop-overlay"></div>
+</div>
+
+<!-- Detail content -->
+<div class="detail-content">
+    <!-- Poster -->
+    <div class="detail-poster">
+        <img id="poster-img" src="" alt="">
+    </div>
+
+    <!-- Info -->
+    <div class="detail-info">
+        <h1 class="detail-title" id="title">Loading…</h1>
+        <div class="detail-meta-row" style="margin-bottom: 0.5rem;">
+            <span id="year"></span>
+            <span class="detail-meta-dot" id="dot-duration" style="display:none;">·</span>
+            <span id="duration"></span>
+            <span class="detail-meta-dot">·</span>
+            <span class="badge">MOVIE</span>
+        </div>
+
+        <div id="file-versions-container" class="hidden"
+            style="margin-bottom:1.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+            <span style="color:var(--text-muted);font-size:0.875rem;">Versions:</span>
+        </div>
+
+        <div class="detail-actions">
+            <button onclick="playMovie()" class="btn btn-primary btn-lg">
+                <span class="material-icons">play_arrow</span> Play
+            </button>
+            <button onclick="openCastModal(mediaId)" class="btn btn-ghost btn-lg" title="Cast to Roku">
+                <span class="material-icons">cast</span>
+            </button>
+            <!-- Edit (admin only, shown by JS) -->
+            <button id="editBtn" class="btn btn-ghost hidden" title="Edit metadata">
+                <span class="material-icons">edit</span>
+            </button>
+            <!-- Delete (admin only, shown by JS) -->
+            <button id="deleteBtn" class="btn btn-danger hidden" title="Remove from library">
+                <span class="material-icons">delete</span>
+            </button>
+        </div>
+
+        <p class="detail-overview" id="overview"></p>
+
+        <!-- Video player -->
+        <div class="video-container" id="video-container">
+            <video id="video-player" controls crossorigin playsinline></video>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal hidden">
+    <div class="modal-content">
+        <h2 style="margin-bottom:1.5rem;">Edit Metadata</h2>
+        <div style="display:grid;gap:1rem;">
+            <div class="form-group" style="margin:0;">
+                <label>Title</label>
+                <input id="edit-title" type="text" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>TMDB ID</label>
+                <input id="edit-tmdb" type="number" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Poster URL</label>
+                <input id="edit-poster" type="text" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Backdrop URL</label>
+                <input id="edit-backdrop" type="text" class="form-control">
+            </div>
+            <label
+                style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;color:var(--text-sub);font-size:0.9rem;">
+                <input id="edit-refresh" type="checkbox" style="width:1rem;height:1rem;accent-color:var(--primary);">
+                Refresh from TMDB
+            </label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.5rem;">
+            <button id="closeEditModal" class="btn btn-ghost">Cancel</button>
+            <button id="saveEditModal" class="btn btn-primary">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal hidden">
+    <div class="modal-content" style="max-width:420px;text-align:center;">
+        <span class="material-icons" style="font-size:3rem;color:#f87171;margin-bottom:0.75rem;">delete_forever</span>
+        <h2 style="margin-bottom:0.5rem;">Remove from Library?</h2>
+        <p id="deleteModalMsg" style="color:var(--text-muted);margin-bottom:1.75rem;font-size:0.95rem;">This item will
+            be removed from Arctic Media. Files on disk will NOT be deleted.</p>
+        <div style="display:flex;gap:0.75rem;justify-content:center;">
+            <button id="cancelDeleteBtn" class="btn btn-ghost">Cancel</button>
+            <button id="confirmDeleteBtn" class="btn btn-danger">
+                <span class="material-icons" style="font-size:1rem;">delete</span> Remove
+            </button>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="media-id" value="{{ item_id }}">
+{% endblock %}
+
+<!-- Cast Modal -->
+<div id="castModal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <h2 style="margin-bottom:1.5rem;">Cast to Roku</h2>
+        <div id="cast-device-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;">
+            Loading devices...
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:1rem;">
+            <button id="closeCastModal" class="btn btn-ghost"
+                onclick="document.getElementById('castModal').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="/static/js/details.js?v=PlyrV20"></script>
+{% endblock %}

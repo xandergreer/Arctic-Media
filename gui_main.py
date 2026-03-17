@@ -38,22 +38,20 @@ def resource_path(relative_path):
 
 def run_server_process(port=8085):
     """Logic to run uvicorn server"""
-    # Helper to fix uvicorn logging config in frozen state
-    sys.stdout = open(os.devnull, 'w') # Suppress stdout/stderr if needed or redirect
-    
-    # Needs to import app here to avoid pickling/import issues in main process
     try:
         from main import app
         import uvicorn
-        
-        # Restore stdout for logging if we want to see it
-        sys.stdout = sys.__stdout__
         print(f"Starting Server on {HOST}:{port}")
-        
-        uvicorn.run(app, host=HOST, port=port, workers=1, log_level="info")
+        # workers must NOT be set — uvicorn worker spawning re-launches sys.executable
+        # which in a frozen .app re-runs the GUI, not the server.
+        uvicorn.run(app, host=HOST, port=port, log_level="info")
     except Exception as e:
-        with open("server_crash.log", "w") as f:
-            f.write(str(e))
+        import traceback, tempfile
+        log_path = os.path.join(tempfile.gettempdir(), "arctic_media_crash.log")
+        with open(log_path, "w") as f:
+            traceback.print_exc(file=f)
+            f.write(f"\nException: {e}\n")
+        print(f"Server crashed. See {log_path}")
         sys.exit(1)
 
 class ServerManager:
@@ -62,15 +60,45 @@ class ServerManager:
         self.lock = threading.Lock()
         self.log_buffer = deque(maxlen=1000)
         
+    def _free_port(self, port):
+        """Kill any process listening on the port, then wait until it's actually free."""
+        import signal, socket, time
+        try:
+            result = subprocess.run(
+                ['lsof', '-ti', f':{port}'],
+                capture_output=True, text=True
+            )
+            pids = [p.strip() for p in result.stdout.strip().split('\n')
+                    if p.strip().isdigit()]
+            for pid_str in pids:
+                try:
+                    os.kill(int(pid_str), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            if pids:
+                # Wait up to 3 seconds for the OS to release the port
+                for _ in range(30):
+                    try:
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                            s.bind(('0.0.0.0', port))
+                        break  # port is free
+                    except OSError:
+                        time.sleep(0.1)
+        except Exception:
+            pass
+
     def start(self, port=8085):
         with self.lock:
             if self.proc and self.proc.poll() is None:
                 return
 
+            self._free_port(port)
+
             if getattr(sys, 'frozen', False):
                 # Run the EXE itself with --server argument
                 cmd = [sys.executable, "--server", "--port", str(port)]
-                creationflags = 0x08000000 # CREATE_NO_WINDOW
+                creationflags = 0x08000000 if os.name == 'nt' else 0  # CREATE_NO_WINDOW (Windows only)
             else:
                 # Dev mode
                 cmd = [sys.executable, "gui_main.py", "--server", "--port", str(port)]
@@ -197,10 +225,17 @@ class App:
 
     def start_server(self):
         try:
-            p = int(self.port_var.get())
+            port_str = self.port_var.get().strip()
+            if not port_str:
+                port_str = str(PORT)
+            p = int(port_str)
+            if p < 1 or p > 65535:
+                raise ValueError("Port out of range")
             self.manager.start(port=p)
-        except ValueError:
-            messagebox.showerror("Error", "Port must be a number")
+        except ValueError as e:
+            messagebox.showerror("Error", f"Port must be a number between 1-65535. Got: '{self.port_var.get()}'")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to start server: {e}")
         
     def stop_server(self):
         self.manager.stop()

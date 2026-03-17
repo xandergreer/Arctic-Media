@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ lib_type|title }} Library — Arctic Media{% endblock %}
+
+{% block full_content %}
+<!-- Cinematic library header -->
+<div class="lib-hero">
+    <div class="lib-hero-bg"></div>
+    <div class="lib-hero-overlay"></div>
+    <div class="lib-hero-content">
+        <h1 class="lib-hero-title" id="library-title">Loading…</h1>
+        <p class="lib-hero-count" id="library-count"></p>
+    </div>
+</div>
+
+<div class="section" style="padding-top:1.5rem;">
+    <!-- Sort chips -->
+    <div style="display:flex;gap:0.5rem;margin-bottom:1.75rem;flex-wrap:wrap;" id="sort-strip">
+        <span class="chip active" data-sort="added">Newly Added</span>
+        <span class="chip" data-sort="az">A → Z</span>
+        <span class="chip" data-sort="year">Year</span>
+    </div>
+
+    <div id="media-grid" class="media-grid">
+        <!-- skeleton placeholders -->
+        {% for i in range(12) %}
+        <div class="skeleton" style="aspect-ratio:2/3;border-radius:var(--radius);"></div>
+        {% endfor %}
+    </div>
+
+    <div id="loading" style="display:none;text-align:center;padding:2rem;color:var(--text-muted);">
+        Loading…
+    </div>
+
+    <div id="empty-state" class="hidden"
+        style="text-align:center;padding:4rem 2rem;background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);margin-top:1.5rem;">
+        <span class="material-icons"
+            style="font-size:3.5rem;color:var(--text-muted);margin-bottom:1rem;">video_library</span>
+        <h3 style="margin-bottom:0.5rem;">No content found</h3>
+        <p style="color:var(--text-muted);">Use the Scanner in <a href="/settings"
+                style="color:var(--primary);">Settings</a> to add media.</p>
+    </div>
+</div>
+
+<script>const LIBRARY_TYPE = "{{ lib_type }}";</script>
+<script src="/static/js/library.js?v=3"></script>
+<script>
+    // Sort chips
+    document.getElementById('sort-strip')?.addEventListener('click', e => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        if (typeof sortGrid === 'function') sortGrid(chip.dataset.sort);
+    });
+</script>
+{% endblock %}

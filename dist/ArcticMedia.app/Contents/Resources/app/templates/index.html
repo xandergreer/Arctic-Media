@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Home — Arctic Media{% endblock %}
+
+{% block full_content %}
+
+<!-- ── Content Sections ──────────────────────────────────────── -->
+<div id="content-sections" style="padding: 2.5rem var(--page-pad) 4rem;">
+
+    <div id="loading" style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+        <span style="font-size:2.5rem;">❄️</span>
+        <p style="margin-top:1rem;font-size:1rem;">Loading your library…</p>
+    </div>
+
+    <!-- Movies Row -->
+    <section class="section hidden" id="movies-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+            <div class="section-label">
+                <h2>Recently Added Movies</h2>
+            </div>
+            <a href="/libraries/movies"
+                style="color:var(--primary);font-weight:600;font-size:0.875rem;display:flex;align-items:center;gap:0.25rem;">
+                View All <span class="material-icons" style="font-size:16px;">chevron_right</span>
+            </a>
+        </div>
+        <div id="movies-row" class="h-scroll-container"><!-- JS --></div>
+    </section>
+
+    <!-- TV Shows Row -->
+    <section class="section hidden" id="tv-section" style="padding-top:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+            <div class="section-label">
+                <h2>Recently Added TV Shows</h2>
+            </div>
+            <a href="/libraries/shows"
+                style="color:var(--primary);font-weight:600;font-size:0.875rem;display:flex;align-items:center;gap:0.25rem;">
+                View All <span class="material-icons" style="font-size:16px;">chevron_right</span>
+            </a>
+        </div>
+        <div id="shows-row" class="h-scroll-container"><!-- JS --></div>
+    </section>
+
+    <!-- Empty state -->
+    <section class="section hidden" id="empty-state">
+        <div
+            style="text-align:center;padding:4rem 2rem;background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);">
+            <span class="material-icons"
+                style="font-size:4rem;color:var(--text-muted);display:block;margin-bottom:1rem;">video_library</span>
+            <h3 style="margin-bottom:0.5rem;">Your library is empty</h3>
+            <p style="color:var(--text-muted);margin-bottom:2rem;">Add folders in Settings to start scanning your media.
+            </p>
+            <a href="/settings" class="btn btn-primary">
+                <span class="material-icons">settings</span> Go to Settings
+            </a>
+        </div>
+    </section>
+
+</div>
+
+<script src="/static/js/home.js?v=2"></script>
+{% endblock %}

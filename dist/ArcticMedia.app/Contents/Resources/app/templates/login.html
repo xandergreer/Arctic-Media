@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Login — Arctic Media{% endblock %}
+
+{% block full_content %}
+<div class="auth-page" style="padding-top:0;">
+    <div class="auth-bg-glow"></div>
+    <div class="auth-bg-glow-2"></div>
+
+    <div class="auth-card">
+        <a href="/" class="auth-logo">
+            <div class="logo-icon">❄</div>
+            <span class="logo-text" style="font-size:1.3rem;font-weight:800;letter-spacing:-0.04em;">ARCTIC <span
+                    style="color:var(--blue-300);">MEDIA</span></span>
+        </a>
+
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-sub">Sign in to continue to your library</p>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input class="form-control" type="text" id="username" placeholder="your_username" required
+                    autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input class="form-control" type="password" id="password" placeholder="••••••••" required
+                    autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem;justify-content:center;">
+                Sign In
+            </button>
+        </form>
+
+        <div id="error-msg" style="color:#f87171;margin-top:1rem;text-align:center;font-size:0.9rem;display:none;">
+        </div>
+
+        <p style="margin-top:1.5rem;text-align:center;font-size:0.875rem;color:var(--text-muted);">
+            Don't have an account? <a href="/register" style="color:var(--primary);font-weight:600;">Create one</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

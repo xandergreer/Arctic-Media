@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="arctic-gradient" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#5bc0ff"/>
+      <stop offset="1" stop-color="#2a6bff"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(6,0)">
+    <path fill="url(#arctic-gradient)" fill-rule="evenodd"
+          d="M26 6 L52 58 H40 L34 44 L26 54 L18 44 L12 58 H0 Z
+             M26 26 L34 40 L18 40 Z"/>
+    <path d="M18 22 L26 6 L34 22 Z" fill="#EAF5FF" opacity=".95"/>
+  </g>
+</svg>

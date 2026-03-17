@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pair Device - Arctic Media</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-top: 0;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cccccc;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #262626;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #262626;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #333333;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .message.success {
+            background: #1a4d1a;
+            color: #4caf50;
+        }
+
+        .message.error {
+            background: #4d1a1a;
+            color: #f44336;
+        }
+
+        .message.info {
+            background: #1a1a4d;
+            color: #4a9eff;
+        }
+
+        .login-prompt {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: #262626;
+            border-radius: 4px;
+        }
+
+        .login-prompt a {
+            color: #4a9eff;
+            text-decoration: none;
+        }
+
+        .login-prompt a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Pair Device</h1>
+        <div id="login-prompt" class="login-prompt" style="display: none;">
+            <p>You must be logged in to pair a device.</p>
+            <a href="/login?return_url=/pair">Log in</a>
+        </div>
+        <div id="pair-form">
+            <div class="form-group">
+                <label for="user-code">Enter the code displayed on your device:</label>
+                <input type="text" id="user-code" placeholder="ABCD-1234" maxlength="9" autocomplete="off">
+            </div>
+            <button id="authorize-btn">Authorize Device</button>
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script nonce="{{ request.state.csp_nonce if request.state.csp_nonce else '' }}">
+        // Format code input (ABCD-1234)
+        const codeInput = document.getElementById('user-code');
+        const authBtn = document.getElementById('authorize-btn');
+        const messageDiv = document.getElementById('message');
+
+        function showMessage(text, type) {
+            messageDiv.className = 'message ' + type;
+            messageDiv.innerHTML = text;
+        }
+
+        authBtn.addEventListener('click', authorizeDevice);
+
+        codeInput.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            // Just basic clear, let them type
+            e.target.value = value;
+            if (value.length > 4 && !value.includes('-')) {
+                e.target.value = value.slice(0, 4) + '-' + value.slice(4, 8);
+            }
+        });
+
+        // Check login status
+        async function checkLogin() {
+            try {
+                // Try to get current user info
+                // If 401, not logged in
+                const response = await fetch('/api/v1/auth/me');
+                if (response.ok) {
+                    document.getElementById('login-prompt').style.display = 'none';
+                    document.getElementById('pair-form').style.display = 'block';
+                } else {
+                    document.getElementById('login-prompt').style.display = 'block';
+                    document.getElementById('pair-form').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                document.getElementById('login-prompt').style.display = 'block';
+                document.getElementById('pair-form').style.display = 'none';
+            }
+        }
+
+        async function authorizeDevice() {
+            const code = codeInput.value.trim().toUpperCase();
+            if (!code || code.length < 9) {
+                showMessage('Please enter a valid code (ABCD-1234)', 'error');
+                return;
+            }
+
+            authBtn.disabled = true;
+            messageDiv.innerHTML = '';
+
+            try {
+                // IMPORTANT: Use the full path /api/v1/pair/activate if mounted there, 
+                // OR just /pair/activate if mounted at root. 
+                // In remote.py we defined @router.post("/pair/activate").
+                // Main.py will include it.
+                // Assuming mounted without prefix or just check
+                const response = await fetch('/api/v1/pair/activate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user_code: code })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Device authorized successfully!', 'success');
+                    codeInput.value = '';
+                } else {
+                    if (response.status === 401) {
+                        showMessage('You must be logged in. <a href="/login?return_url=/pair">Log in</a>', 'error');
+                    } else if (response.status === 404) {
+                        showMessage('Invalid code. Please check the code on your device.', 'error');
+                    } else if (response.status === 400) {
+                        showMessage('Code expired or already used. Please request a new code on your device.', 'error');
+                    } else {
+                        showMessage('Failed to authorize device: ' + (data.detail || 'Unknown error'), 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Authorization failed:', error);
+                alert('Connection Error: ' + error);
+                showMessage('Network error. Please check your connection and try again.', 'error');
+            } finally {
+                authBtn.disabled = false;
+            }
+        }
+
+        // Check login on page load
+        checkLogin();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="PairingScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/source/api.brs" />
+  <script type="text/brightscript" uri="pkg:/source/pairing.brs" />
+  <children>
+    <Label id="title" 
+           translation="[160,100]" 
+           width="1600" 
+           height="100"
+           horizAlign="left" 
+           color="0xFFFFFFFF"
+           text="Arctic Media" />
+    <Label id="message" 
+           translation="[160,250]" 
+           width="1600" 
+           height="80"
+           horizAlign="left" 
+           color="0xFFFFFFFF"
+           text="Getting code..." />
+    <Label id="code" 
+           translation="[160,400]" 
+           width="1600" 
+           height="120"
+           horizAlign="left" 
+           color="0x00FF00FF"
+           text="---- ----" />
+    <Label id="hint" 
+           translation="[160,550]" 
+           width="1600" 
+           height="100"
+           horizAlign="left" 
+           color="0xCCCCCCFF"
+           text="Go to http://your-server/pair and enter the code" />
+  </children>
+</component>

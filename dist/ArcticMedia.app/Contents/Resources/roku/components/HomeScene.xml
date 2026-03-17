@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="HomeScene" extends="Scene">
+  <children>
+    <Label id="title" translation="[80,80]" text="Home (placeholder)" width="1600" horizAlign="center" font="Large" />
+  </children>
+</component>
