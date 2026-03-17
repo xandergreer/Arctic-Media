@@ -20,9 +20,19 @@
 	<string>1.0.0</string>
 	<key>LSBackgroundOnly</key>
 	<string>False</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Arctic Media needs access to your Desktop to stream media files stored there.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Arctic Media needs access to your Documents folder to stream media files stored there.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Arctic Media needs access to your Downloads folder to stream media files stored there.</string>
 	<key>NSHighResolutionCapable</key>
 	<string>True</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Arctic Media runs a local media server to stream video to your browser.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Arctic Media needs access to external drives to stream media files stored on them.</string>
 </dict>
 </plist>

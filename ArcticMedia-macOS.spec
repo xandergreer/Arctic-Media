@@ -113,5 +113,12 @@ app = BUNDLE(
         'NSPrincipalClass': 'NSApplication',
         'NSHighResolutionCapable': 'True',
         'LSBackgroundOnly': 'False',
+        # Privacy usage descriptions — shown in the one-time TCC permission dialog
+        # when the server first accesses files in protected locations.
+        'NSDesktopFolderUsageDescription': 'Arctic Media needs access to your Desktop to stream media files stored there.',
+        'NSDocumentsFolderUsageDescription': 'Arctic Media needs access to your Documents folder to stream media files stored there.',
+        'NSDownloadsFolderUsageDescription': 'Arctic Media needs access to your Downloads folder to stream media files stored there.',
+        'NSRemovableVolumesUsageDescription': 'Arctic Media needs access to external drives to stream media files stored on them.',
+        'NSLocalNetworkUsageDescription': 'Arctic Media runs a local media server to stream video to your browser.',
     },
 )

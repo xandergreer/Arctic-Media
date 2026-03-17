@@ -1,3 +1,6 @@
+import os
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +16,21 @@ router = APIRouter()
 
 from app.schemas.library import LibraryCreate
 
+
+def _probe_folder_access(path: str) -> None:
+    """
+    Attempt to read the folder. On macOS this triggers the TCC permission
+    dialog for protected locations (Desktop, Documents, Downloads, external
+    drives). Raises PermissionError if the user denies access, or
+    FileNotFoundError if the path does not exist.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+    # A single scandir call is enough to trigger — and confirm — TCC consent.
+    with os.scandir(path):
+        pass
+
+
 @router.post("")
 async def create_library(
     item: LibraryCreate,
@@ -23,7 +41,7 @@ async def create_library(
     Create a new Library.
     Accepts JSON.
     """
-    # 1. Validation
+    # 1. Validate library type
     try:
         lib_type = LibraryType(item.type)
     except ValueError:
@@ -31,29 +49,39 @@ async def create_library(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid library type"
         )
-    
-    # 2. Create Model
-    # Logic: If name is empty, use the Type as the name (e.g. "Movies")
-    final_name = item.name if item.name.strip() else lib_type.value.title()
 
-    new_library = Library(
-        name=final_name,
-        path=item.path,
-        type=lib_type
-    )
-    
+    # 2. Probe the folder — triggers macOS TCC consent dialog if needed
+    try:
+        await asyncio.to_thread(_probe_folder_access, item.path)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Folder not found: {item.path}"
+        )
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Access denied to '{item.path}'. "
+                "Please grant permission in System Settings → Privacy & Security → Files and Folders."
+            )
+        )
+
+    # 3. Save to DB
+    final_name = item.name if item.name.strip() else lib_type.value.title()
+    new_library = Library(name=final_name, path=item.path, type=lib_type)
+
     try:
         db.add(new_library)
         await db.commit()
         await db.refresh(new_library)
-    except Exception: # Catch IntegrityError (Unique constraint)
+    except Exception:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A library with this name or path already exists."
         )
-    
-    # 3. Redirect back to Settings
+
     return RedirectResponse(url="/settings", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.delete("/{library_id}")

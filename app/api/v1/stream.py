@@ -320,7 +320,8 @@ async def stream_video(
     range: str = Header(None) 
 ):
     try:
-        with open("backend_debug.txt", "a") as f:
+        import tempfile
+        with open(os.path.join(tempfile.gettempdir(), "arctic_debug.txt"), "a") as f:
             f.write(f"REQ: id={media_id} time={start_time} range={range}\n")
     except: pass
     
@@ -501,7 +502,8 @@ async def stream_video(
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
     # Redirect stderr to file to prevent PIPE deadlock
-    err_file = open("ffmpeg_error.log", "a")
+    import tempfile
+    err_file = open(os.path.join(tempfile.gettempdir(), "arctic_ffmpeg_error.log"), "a")
     
     # USE SYNCHRONOUS POPEN
     process = subprocess.Popen(
