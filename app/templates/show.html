@@ -112,6 +112,20 @@
 </div>
 {% endblock %}
 
+<!-- Cast Modal -->
+<div id="castModal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <h2 style="margin-bottom:1.5rem;">Cast to Roku</h2>
+        <div id="cast-device-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;">
+            Loading devices...
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:1rem;">
+            <button id="closeCastModal" class="btn btn-ghost"
+                onclick="document.getElementById('castModal').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+</div>
+
 {% block scripts %}
 <script src="/static/js/details.js?v=PlyrV20"></script>
 {% endblock %}

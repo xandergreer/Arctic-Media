@@ -35,6 +35,9 @@
             <button onclick="playMovie()" class="btn btn-primary btn-lg">
                 <span class="material-icons">play_arrow</span> Play
             </button>
+            <button onclick="openCastModal(mediaId)" class="btn btn-ghost btn-lg" title="Cast to Roku">
+                <span class="material-icons">cast</span>
+            </button>
             <!-- Edit (admin only, shown by JS) -->
             <button id="editBtn" class="btn btn-ghost hidden" title="Edit metadata">
                 <span class="material-icons">edit</span>
@@ -106,6 +109,20 @@
 
 <input type="hidden" id="media-id" value="{{ item_id }}">
 {% endblock %}
+
+<!-- Cast Modal -->
+<div id="castModal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <h2 style="margin-bottom:1.5rem;">Cast to Roku</h2>
+        <div id="cast-device-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;">
+            Loading devices...
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:1rem;">
+            <button id="closeCastModal" class="btn btn-ghost"
+                onclick="document.getElementById('castModal').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+</div>
 
 {% block scripts %}
 <script src="/static/js/details.js?v=PlyrV20"></script>

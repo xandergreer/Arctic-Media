@@ -329,6 +329,7 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
                     <img src="${still}" alt="" loading="lazy">
                     <div class="episode-num">E${ep.episode_number}</div>
                     <div class="episode-play-icon"><span class="material-icons">play_arrow</span></div>
+                    <div class="episode-cast-icon" onclick="openCastModal(${ep.id}, event)" title="Cast to Roku" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);border-radius:50%;padding:4px;display:flex;cursor:pointer;z-index:10;transition:background 0.2s;"><span class="material-icons" style="font-size:1.2rem;color:#fff;">cast</span></div>
                     ${delBtn}
                 </div>
                 <div class="episode-info">
@@ -337,6 +338,59 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
                 </div>
             </div>`;
         }).join('');
+    }
+}
+
+// --- Casting Logic ---
+let targetCastMediaId = null;
+
+window.openCastModal = async function (id, event) {
+    if (event) event.stopPropagation();
+    targetCastMediaId = id;
+    const modal = document.getElementById('castModal');
+    const list = document.getElementById('cast-device-list');
+
+    modal.classList.remove('hidden');
+    list.innerHTML = 'Scanning local network for Roku devices... <span class="material-icons" style="vertical-align:middle;font-size:16px;">search</span>';
+
+    try {
+        const res = await fetch('/api/v1/remote/devices', { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error("Failed to scan devices");
+        const devices = await res.json();
+
+        if (devices.length === 0) {
+            list.innerHTML = '<span style="color:var(--text-muted)">No Roku devices found. Ensure they are powered on and connected to the same Wi-Fi network.</span>';
+            return;
+        }
+
+        list.innerHTML = devices.map(d => `
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;padding:12px;display:flex;align-items:center;gap:12px;background:var(--surface-2);border-radius:var(--radius);width:100%;border:none;cursor:pointer;" onclick="castToDevice('${d.ip}')">
+                <span class="material-icons" style="color:var(--primary)">tv</span>
+                <div style="display:flex;flex-direction:column;">
+                    <span style="font-weight:600;font-size:1rem;color:var(--text-color)">${d.name}</span>
+                    <span style="font-size:0.8rem;color:var(--text-muted)">${d.ip}</span>
+                </div>
+            </button>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = `<span class="badge" style="background:var(--danger)">Error: ${e.message}</span>`;
+    }
+}
+
+window.castToDevice = async function (ip) {
+    if (!targetCastMediaId) return;
+    const list = document.getElementById('cast-device-list');
+    list.innerHTML = 'Sending Cast instruction to TV...';
+    try {
+        const res = await fetch('/api/v1/remote/cast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ device_ip: ip, media_id: targetCastMediaId })
+        });
+        if (!res.ok) throw new Error('Cast command rejected');
+        document.getElementById('castModal').classList.add('hidden');
+    } catch (e) {
+        list.innerHTML = `<span class="badge" style="background:var(--danger)">Failed to cast: ${e.message}</span>`;
     }
 }
 

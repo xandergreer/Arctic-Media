@@ -237,3 +237,41 @@ async def pair_page(request: Request, db: AsyncSession = Depends(get_db)):
         "pair.html",
         {"request": request, "server_url": server_url}
     )
+
+class CastRequestIn(BaseModel):
+    device_ip: str
+    media_id: int
+
+@router.get("/devices")
+async def get_cast_devices():
+    """Discover Roku devices on the local network using SSDP."""
+    from app.services.discovery import discover_rokus
+    devices = await discover_rokus(timeout=3)
+    return devices
+
+@router.post("/cast")
+async def cast_to_device(body: CastRequestIn, db: AsyncSession = Depends(get_db)):
+    """Triggers playback on a specific Roku device using ECP deep linking."""
+    import aiohttp
+    from app.models.media import MediaItem, MediaKind
+    
+    query = select(MediaItem).where(MediaItem.id == body.media_id)
+    result = await db.execute(query)
+    media = result.scalars().first()
+    if not media:
+        raise HTTPException(404, "Media item not found")
+
+    mtype = "movie" if media.kind == MediaKind.MOVIE else "episode"
+    
+    # ECP deep link directly into the dev channel (assuming the dev channel handles contentId)
+    ecp_url = f"http://{body.device_ip}:8060/launch/dev?contentId={body.media_id}&MediaType={mtype}"
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(ecp_url, timeout=3) as resp:
+                if resp.status == 200:
+                    return {"success": True}
+                else:
+                    return {"success": False, "status": resp.status}
+    except Exception as e:
+        raise HTTPException(500, f"Casting failed: {e}")
