@@ -1,53 +1,18 @@
-# Bytes
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-/MANIFEST
-
-# Virtual Environments
+# automatic python environment
 venv/
-env/
-ENV/
-env.bak/
-venv.bak/
 
-# Database
-*.db
-*.sqlite3
-*.db-shm
-*.db-wal
+# large executables that violate GitHub's 100MB push limit
+bin/
 
-# Logs
+# temporary compiled cache
+__pycache__/
+*.pyc
+
+# temporary logs
 *.log
-ffmpeg_error.log
 backend_debug.txt
-ffmpeg.exe
-ffprobe.exe
-bin/ffmpeg.exe
-bin/ffprobe.exe
+debug_clover.txt
 
-# OS
-.DS_Store
-Thumbs.db
+# exclude large executables to avoid pushing failures
+*.exe
+*.pkg
