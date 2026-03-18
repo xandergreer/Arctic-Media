@@ -36,12 +36,14 @@ from app.api.v1.stream import router as stream_router
 from app.api.v1.stream_hls import router as hls_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.remote import router as remote_router
+from app.api.v1.history import router as history_router
 
 # IMPORTS: These lines register the models with the 'Base' class
 from app.models.user import User
 from app.models.library import Library
 from app.models.media import MediaItem, MediaFile
 from app.models.settings import ServerSetting
+from app.models.history import WatchHistory
 
 # Setup Templates
 templates = Jinja2Templates(directory=resource_path("app/templates"))
@@ -87,6 +89,7 @@ app.include_router(media_router, prefix="/api/v1/media", tags=["Media"])
 app.include_router(stream_router, prefix="/api/v1/stream", tags=["Stream"])
 app.include_router(hls_router, prefix="/api/v1", tags=["Stream HLS"])
 app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
+app.include_router(history_router, prefix="/api/v1")
 app.include_router(remote_router) # /pair endpoints
 
 
