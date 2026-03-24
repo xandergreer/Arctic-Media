@@ -1,17 +1,13 @@
-//
-//  Arctic_MediaApp.swift
-//  Arctic Media
-//
-//  Created by Xander Greer on 3/17/26.
-//
-
 import SwiftUI
 
 @main
 struct Arctic_MediaApp: App {
+    @StateObject private var api = APIService.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(api)
         }
     }
 }

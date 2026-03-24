@@ -61,27 +61,9 @@ async def search_media(
     shows = [item for item in all_items if item.kind == MediaKind.SHOW][:limit]
 
     return {
-        "movies": [
-            {
-                "id": m.id,
-                "title": m.title,
-                "year": m.year,
-                "poster_url": m.poster_url,
-                "overview": m.overview,
-                "type": "movie"
-            } for m in movies
-        ],
-        "shows": [
-            {
-                "id": s.id,
-                "title": s.title,
-                "year": s.year,
-                "poster_url": s.poster_url,
-                "overview": s.overview,
-                "type": "tv"
-            } for s in shows
-        ],
-        "total": len(movies) + len(shows)
+        "movies": movies,
+        "shows":  shows,
+        "total":  len(movies) + len(shows)
     }
 
 @router.get("/movies")

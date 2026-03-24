@@ -1312,13 +1312,17 @@
 		<data>
 		JfOJFtHv5xRoYJN4Q9lRBitb96w=
 		</data>
+		<key>Resources/app/api/v1/history.py</key>
+		<data>
+		MMyKZgGwv+/d5HmaH76+MXLbAr0=
+		</data>
 		<key>Resources/app/api/v1/libraries.py</key>
 		<data>
 		E+SHYUt85SmL3K21X34t1036724=
 		</data>
 		<key>Resources/app/api/v1/media.py</key>
 		<data>
-		6/8rrUjxV5Jq0MqXz6Kt4f1Ps58=
+		yoNsWUoLGATan3fbMdOR/m/Ykck=
 		</data>
 		<key>Resources/app/api/v1/remote.py</key>
 		<data>
@@ -1338,7 +1342,7 @@
 		</data>
 		<key>Resources/app/api/v1/stream_hls.py</key>
 		<data>
-		5J0jCxOF8VN4DpmtaievEWXRJL0=
+		j2S+0pEZDDL90IkCldYyLaTIXRE=
 		</data>
 		<key>Resources/app/api/v1/system.py</key>
 		<data>
@@ -1370,7 +1374,7 @@
 		</data>
 		<key>Resources/app/core/security.py</key>
 		<data>
-		NmtgJQ9uqsK6iqZXsLzAkN1yGa8=
+		OjLyF/DO2I96GKOlxqf8QR1Ltlg=
 		</data>
 		<key>Resources/app/models/__pycache__/base.cpython-311.pyc</key>
 		<data>
@@ -1574,7 +1578,7 @@
 		</data>
 		<key>Resources/base_library.zip</key>
 		<data>
-		bSHL3Dd+QkNS1+/ouYr3qeg+YZI=
+		b7BlAT/0XlMOdOsYXAJCsyrLKGs=
 		</data>
 		<key>Resources/certifi/cacert.pem</key>
 		<data>
@@ -5468,6 +5472,13 @@
 			4ZN9na5w20fHmL2zJ/wsuZgF4FtuJToqIJZHLttnjPg=
 			</data>
 		</dict>
+		<key>Resources/app/api/v1/history.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			rLFf2XL63igPbo5l7QXBEs8Lw9DZD3fVSN8Wq+iRrXU=
+			</data>
+		</dict>
 		<key>Resources/app/api/v1/libraries.py</key>
 		<dict>
 			<key>hash2</key>
@@ -5479,7 +5490,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			CEgcg8f9vaYj5ZhiG1zvERXfmEOLC3fQv1mf/ufj4Tg=
+			nk7fzwaNIHD1DClRGlxv7QYBUcbcJvEb7SoS+RpBn+Q=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/remote.py</key>
@@ -5514,7 +5525,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			lDFRrn16F69hOZwpXCIejkXwYdrySfw9FmUWaBfY6zg=
+			DU7hVid0O9aXkYKhIXzca04YJtbdUUWYpAXruPHmxKI=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/system.py</key>
@@ -5570,7 +5581,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			hUQF+PDDzZelyb7m3rLnaRuoxmn2CulOww8IpWf3KPk=
+			4BWIvvnNmcGt5gQHrE7yIGEI7SDS+mhFA7KqM9uzx2k=
 			</data>
 		</dict>
 		<key>Resources/app/models/__pycache__/base.cpython-311.pyc</key>
@@ -5927,7 +5938,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			sgIO8VGhrc+Kc8sNMxRDeF7QajjWNKe6EUoHt5qDvZc=
+			TZPi0Sm7cafY/Ryub5H3R+pnnzFCatXSHZyXyKGtK3A=
 			</data>
 		</dict>
 		<key>Resources/bcrypt</key>

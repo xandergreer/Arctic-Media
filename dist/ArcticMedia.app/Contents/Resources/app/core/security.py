@@ -1,23 +1,26 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from passlib.context import CryptContext
 from jose import jwt
 from app.core.config import settings
 
-# Password Hashing Setup
-# argon2 is the primary scheme for new passwords.
-# bcrypt is kept as a deprecated fallback so that existing accounts
-# whose passwords were hashed with bcrypt can still log in.
-# passlib auto-detects which scheme a stored hash belongs to.
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Checks if the typed password matches the stored hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'), 
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        return False
 
 def get_password_hash(password: str) -> str:
     """Turns a plain password into a secure hash."""
-    return pwd_context.hash(password)
+    # bcrypt salt generation and hashing
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 # JWT Token Setup
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

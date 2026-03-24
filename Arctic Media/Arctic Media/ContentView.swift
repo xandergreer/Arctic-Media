@@ -1,24 +1,13 @@
-//
-//  ContentView.swift
-//  Arctic Media
-//
-//  Created by Xander Greer on 3/17/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @EnvironmentObject private var api: APIService
 
-#Preview {
-    ContentView()
+    var body: some View {
+        if api.isLoggedIn {
+            HomeView()
+        } else {
+            LoginView()
+        }
+    }
 }

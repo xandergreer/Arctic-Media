@@ -263,25 +263,41 @@ async def get_master_playlist(
     job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, sidx, stype)
     await start_or_warm_job(mf.path, job)
     
-    # Wait for manifest
+    # Wait for at least 3 complete segments before responding.
+    # AVPlayer requires a minimum buffer — returning an empty or 1-segment
+    # playlist causes it to stall at the live edge on ongoing transcodes.
     m3u8_path = job.workdir / "index.m3u8"
-    if not m3u8_path.exists():
-         # Wait a bit more??
-         await asyncio.sleep(2.0)
-         if not m3u8_path.exists():
-             raise HTTPException(500, "Transcoder failed to start")
+    for _ in range(120):   # up to 60s
+        if m3u8_path.exists():
+            ts_lines = [l for l in m3u8_path.read_text().splitlines() if l.endswith(".ts")]
+            if len(ts_lines) >= 3:
+                break
+        await asyncio.sleep(0.5)
+    else:
+        raise HTTPException(500, "Transcoder failed to produce segments")
              
-    # Rewrite Manifest with Token
+    # Rewrite Manifest with fully-qualified URLs (required by AVPlayer / Safari)
     content = m3u8_path.read_text()
-    
-    base_url = f"/api/v1/stream/hls/{media_id}/{job.job_id}"
+
+    # Build absolute base using the incoming request's scheme + host
+    server_base = f"{request.url.scheme}://{request.url.netloc}"
+    base_url = f"{server_base}/api/v1/stream/hls/{media_id}/{job.job_id}"
+
+    # Inject #EXT-X-PLAYLIST-TYPE:EVENT so players treat this as seekable VOD-in-progress
+    # rather than a live stream. When ffmpeg finishes it writes #EXT-X-ENDLIST, which
+    # signals the EVENT is complete and full seeking becomes available.
+    already_has_type = '#EXT-X-PLAYLIST-TYPE' in content
+
     new_lines = []
     for line in content.splitlines():
         if line.endswith(".ts"):
             new_lines.append(f"{base_url}/{line}?token={token}")
         else:
             new_lines.append(line)
-            
+        # Insert after #EXT-X-MEDIA-SEQUENCE (standard placement)
+        if line.startswith('#EXT-X-MEDIA-SEQUENCE') and not already_has_type:
+            new_lines.append('#EXT-X-PLAYLIST-TYPE:EVENT')
+
     return Response("\n".join(new_lines), media_type="application/vnd.apple.mpegurl")
 
 @router.get("/hls/{media_id}/{job_id}/{segment}")

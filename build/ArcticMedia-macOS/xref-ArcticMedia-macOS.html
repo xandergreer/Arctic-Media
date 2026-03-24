@@ -3716,7 +3716,6 @@ imported by:
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
  &#8226;   <a href="#packaging.utils">packaging.utils</a>
  &#8226;   <a href="#packaging.version">packaging.version</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.utils.binary">passlib.utils.binary</a>
@@ -8776,6 +8775,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -8799,6 +8799,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -8829,6 +8830,33 @@ imports:
  &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#fastapi">fastapi</a>
  &#8226;   <a href="#fastapi.security">fastapi.security</a>
+ &#8226;   <a href="#sqlalchemy.ext.asyncio">sqlalchemy.ext.asyncio</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="app.api.v1.history"></a>
+  <a target="code" href="/Users/arctic/Desktop/Arctic-Media/app/api/v1/history.py" type="text/plain"><tt>app.api.v1.history</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#app.api.deps">app.api.deps</a>
+ &#8226;   <a href="#app.api.v1">app.api.v1</a>
+ &#8226;   <a href="#app.core.database">app.core.database</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
+ &#8226;   <a href="#app.models.user">app.models.user</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#fastapi">fastapi</a>
+ &#8226;   <a href="#pydantic">pydantic</a>
+ &#8226;   <a href="#pydantic.BaseModel">pydantic.BaseModel</a>
+ &#8226;   <a href="#sqlalchemy">sqlalchemy</a>
  &#8226;   <a href="#sqlalchemy.ext.asyncio">sqlalchemy.ext.asyncio</a>
  &#8226;   <a href="#typing">typing</a>
 
@@ -9160,6 +9188,7 @@ imports:
 imported by:
     <a href="#app.api.deps">app.api.deps</a>
  &#8226;   <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -9167,6 +9196,7 @@ imported by:
  &#8226;   <a href="#app.api.v1.settings">app.api.v1.settings</a>
  &#8226;   <a href="#app.api.v1.stream">app.api.v1.stream</a>
  &#8226;   <a href="#app.api.v1.stream_hls">app.api.v1.stream_hls</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.library">app.models.library</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.settings">app.models.settings</a>
@@ -9207,10 +9237,10 @@ imported by:
 imports:
     <a href="#app.core">app.core</a>
  &#8226;   <a href="#app.core.config">app.core.config</a>
+ &#8226;   <a href="#bcrypt">bcrypt</a>
  &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#jose">jose</a>
  &#8226;   <a href="#jose.jwt">jose.jwt</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#typing">typing</a>
 
   </div>
@@ -9236,6 +9266,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#app.models.base">app.models.base</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.library">app.models.library</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.settings">app.models.settings</a>
@@ -9259,10 +9290,34 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#app.models.library">app.models.library</a>
+    <a href="#app.models.history">app.models.history</a>
+ &#8226;   <a href="#app.models.library">app.models.library</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.settings">app.models.settings</a>
  &#8226;   <a href="#app.models.user">app.models.user</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="app.models.history"></a>
+  <a target="code" href="/Users/arctic/Desktop/Arctic-Media/app/models/history.py" type="text/plain"><tt>app.models.history</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#app.core.database">app.core.database</a>
+ &#8226;   <a href="#app.models">app.models</a>
+ &#8226;   <a href="#app.models.base">app.models.base</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#sqlalchemy">sqlalchemy</a>
+ &#8226;   <a href="#sqlalchemy.orm">sqlalchemy.orm</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#app.api.v1.history">app.api.v1.history</a>
+ &#8226;   <a href="#main">main</a>
 
   </div>
 
@@ -9362,6 +9417,7 @@ imports:
 imported by:
     <a href="#app.api.deps">app.api.deps</a>
  &#8226;   <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -11215,7 +11271,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#bcrypt">bcrypt</a>
+    <a href="#app.core.security">app.core.security</a>
+ &#8226;   <a href="#bcrypt">bcrypt</a>
  &#8226;   <a href="#bcrypt.__about__">bcrypt.__about__</a>
  &#8226;   <a href="#bcrypt._bcrypt">bcrypt._bcrypt</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
@@ -15109,9 +15166,11 @@ imported by:
  &#8226;   <a href="#aiohttp.web_response">aiohttp.web_response</a>
  &#8226;   <a href="#annotated_types">annotated_types</a>
  &#8226;   <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
  &#8226;   <a href="#app.core.security">app.core.security</a>
  &#8226;   <a href="#app.models.base">app.models.base</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.user">app.models.user</a>
  &#8226;   <a href="#app.services.scanner">app.services.scanner</a>
@@ -23739,6 +23798,7 @@ imports:
 imported by:
     <a href="#app.api.deps">app.api.deps</a>
  &#8226;   <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -27948,7 +28008,6 @@ imports:
  &#8226;   <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib._bootstrap">importlib._bootstrap</a>
  &#8226;   <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
- &#8226;   <a href="#importlib.machinery">importlib.machinery</a>
  &#8226;   <a href="#sys">sys</a>
  &#8226;   <a href="#warnings">warnings</a>
 
@@ -28105,8 +28164,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#importlib">importlib</a>
- &#8226;   <a href="#importlib.abc">importlib.abc</a>
+    <a href="#importlib.abc">importlib.abc</a>
  &#8226;   <a href="#inspect">inspect</a>
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
  &#8226;   <a href="#pkgutil">pkgutil</a>
@@ -30360,7 +30418,6 @@ imported by:
  &#8226;   <a href="#markdown_it.rules_core.replacements">markdown_it.rules_core.replacements</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.handlers.digests">passlib.handlers.digests</a>
@@ -30519,6 +30576,7 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -30529,6 +30587,7 @@ imports:
  &#8226;   <a href="#app.api.v1.system">app.api.v1.system</a>
  &#8226;   <a href="#app.core.config">app.core.config</a>
  &#8226;   <a href="#app.core.database">app.core.database</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.library">app.models.library</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.settings">app.models.settings</a>
@@ -34453,7 +34512,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#gui_main.py">gui_main.py</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto">passlib.crypto</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.exc">passlib.exc</a>
@@ -34462,38 +34520,6 @@ imported by:
  &#8226;   <a href="#passlib.registry">passlib.registry</a>
  &#8226;   <a href="#passlib.utils">passlib.utils</a>
  &#8226;   <a href="#passlib.utils.binary">passlib.utils.binary</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="passlib.context"></a>
-  <a target="code" href="/Users/arctic/Desktop/Arctic-Media/venv/lib/python3.11/site-packages/passlib/context.py" type="text/plain"><tt>passlib.context</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#__future__">__future__</a>
- &#8226;   <a href="#logging">logging</a>
- &#8226;   <a href="#passlib">passlib</a>
- &#8226;   <a href="#passlib.exc">passlib.exc</a>
- &#8226;   <a href="#passlib.registry">passlib.registry</a>
- &#8226;   <a href="#passlib.utils">passlib.utils</a>
- &#8226;   <a href="#passlib.utils.binary">passlib.utils.binary</a>
- &#8226;   <a href="#passlib.utils.compat">passlib.utils.compat</a>
- &#8226;   <a href="#passlib.utils.compat.BytesIO">passlib.utils.compat.BytesIO</a>
- &#8226;   <a href="#passlib.utils.compat.NativeStringIO">passlib.utils.compat.NativeStringIO</a>
- &#8226;   <a href="#passlib.utils.compat.SafeConfigParser">passlib.utils.compat.SafeConfigParser</a>
- &#8226;   <a href="#passlib.utils.decor">passlib.utils.decor</a>
- &#8226;   <a href="#passlib.utils.handlers">passlib.utils.handlers</a>
- &#8226;   <a href="#re">re</a>
- &#8226;   <a href="#threading">threading</a>
- &#8226;   <a href="#time">time</a>
- &#8226;   <a href="#warnings">warnings</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#app.core.security">app.core.security</a>
 
   </div>
 
@@ -34641,7 +34667,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#passlib">passlib</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.registry">passlib.registry</a>
@@ -34769,8 +34794,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.utils.handlers">passlib.utils.handlers</a>
+    <a href="#passlib.utils.handlers">passlib.utils.handlers</a>
 
   </div>
 
@@ -34802,7 +34826,6 @@ imports:
  &#8226;   <a href="#passlib.utils.binary">passlib.utils.binary</a>
  &#8226;   <a href="#passlib.utils.compat">passlib.utils.compat</a>
  &#8226;   <a href="#passlib.utils.decor">passlib.utils.decor</a>
- &#8226;   <a href="#passlib.utils.handlers">passlib.utils.handlers</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#stringprep">stringprep</a>
@@ -34818,7 +34841,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#gui_main.py">gui_main.py</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
  &#8226;   <a href="#passlib.crypto._blowfish.base">passlib.crypto._blowfish.base</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
@@ -34853,8 +34875,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
+    <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.utils">passlib.utils</a>
  &#8226;   <a href="#passlib.utils.handlers">passlib.utils.handlers</a>
@@ -34875,16 +34896,13 @@ imports:
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#passlib.utils">passlib.utils</a>
  &#8226;   <a href="#passlib.utils.compat.BytesIO">passlib.utils.compat.BytesIO</a>
- &#8226;   <a href="#passlib.utils.compat.NativeStringIO">passlib.utils.compat.NativeStringIO</a>
- &#8226;   <a href="#passlib.utils.compat.SafeConfigParser">passlib.utils.compat.SafeConfigParser</a>
  &#8226;   <a href="#sys">sys</a>
  &#8226;   <a href="#types">types</a>
 
   </div>
   <div class="import">
 imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
+    <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
  &#8226;   <a href="#passlib.crypto._md4">passlib.crypto._md4</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
@@ -34905,32 +34923,7 @@ imported by:
   <a target="code" href="" type="text/plain"><tt>passlib.utils.compat.BytesIO</tt></a>
 <span class="moduletype">MissingModule</span>  <div class="import">
 imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
- &#8226;   <a href="#passlib.utils.compat">passlib.utils.compat</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="passlib.utils.compat.NativeStringIO"></a>
-  <a target="code" href="" type="text/plain"><tt>passlib.utils.compat.NativeStringIO</tt></a>
-<span class="moduletype">MissingModule</span>  <div class="import">
-imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.utils.compat">passlib.utils.compat</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="passlib.utils.compat.SafeConfigParser"></a>
-  <a target="code" href="" type="text/plain"><tt>passlib.utils.compat.SafeConfigParser</tt></a>
-<span class="moduletype">MissingModule</span>  <div class="import">
-imported by:
-    <a href="#passlib.context">passlib.context</a>
+    <a href="#passlib.crypto._blowfish">passlib.crypto._blowfish</a>
  &#8226;   <a href="#passlib.utils.compat">passlib.utils.compat</a>
 
   </div>
@@ -34953,8 +34946,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
+    <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.ifc">passlib.ifc</a>
  &#8226;   <a href="#passlib.registry">passlib.registry</a>
  &#8226;   <a href="#passlib.utils">passlib.utils</a>
@@ -34988,10 +34980,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#passlib.context">passlib.context</a>
- &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
+    <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.handlers.digests">passlib.handlers.digests</a>
- &#8226;   <a href="#passlib.utils">passlib.utils</a>
 
   </div>
 
@@ -36423,7 +36413,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#app.api.v1.remote">app.api.v1.remote</a>
+    <a href="#app.api.v1.history">app.api.v1.history</a>
+ &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
  &#8226;   <a href="#app.api.v1.settings">app.api.v1.settings</a>
  &#8226;   <a href="#app.api.v1.system">app.api.v1.system</a>
  &#8226;   <a href="#app.core.config">app.core.config</a>
@@ -36507,7 +36498,8 @@ imported by:
   <a target="code" href="" type="text/plain"><tt>pydantic.BaseModel</tt></a>
 <span class="moduletype">MissingModule</span>  <div class="import">
 imported by:
-    <a href="#app.api.v1.remote">app.api.v1.remote</a>
+    <a href="#app.api.v1.history">app.api.v1.history</a>
+ &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
  &#8226;   <a href="#app.api.v1.settings">app.api.v1.settings</a>
  &#8226;   <a href="#app.api.v1.system">app.api.v1.system</a>
  &#8226;   <a href="#app.schemas.library">app.schemas.library</a>
@@ -49175,7 +49167,6 @@ imported by:
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
  &#8226;   <a href="#packaging.utils">packaging.utils</a>
  &#8226;   <a href="#packaging.version">packaging.version</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.registry">passlib.registry</a>
@@ -57361,12 +57352,14 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#app.api.v1.media">app.api.v1.media</a>
+    <a href="#app.api.v1.history">app.api.v1.history</a>
+ &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
  &#8226;   <a href="#app.api.v1.settings">app.api.v1.settings</a>
  &#8226;   <a href="#app.api.v1.stream_hls">app.api.v1.stream_hls</a>
  &#8226;   <a href="#app.core.database">app.core.database</a>
  &#8226;   <a href="#app.models.base">app.models.base</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.library">app.models.library</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.settings">app.models.settings</a>
@@ -60685,6 +60678,7 @@ imports:
 imported by:
     <a href="#app.api.deps">app.api.deps</a>
  &#8226;   <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -61120,6 +61114,7 @@ imported by:
     <a href="#app.api.v1.stream">app.api.v1.stream</a>
  &#8226;   <a href="#app.core.database">app.core.database</a>
  &#8226;   <a href="#app.models.base">app.models.base</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.library">app.models.library</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.settings">app.models.settings</a>
@@ -67639,7 +67634,6 @@ imported by:
  &#8226;   <a href="#multiprocessing.resource_tracker">multiprocessing.resource_tracker</a>
  &#8226;   <a href="#multiprocessing.synchronize">multiprocessing.synchronize</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.utils">passlib.utils</a>
  &#8226;   <a href="#passlib.utils.handlers">passlib.utils.handlers</a>
@@ -67744,7 +67738,6 @@ imported by:
  &#8226;   <a href="#multiprocessing.pool">multiprocessing.pool</a>
  &#8226;   <a href="#multiprocessing.queues">multiprocessing.queues</a>
  &#8226;   <a href="#multiprocessing.synchronize">multiprocessing.synchronize</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.utils">passlib.utils</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#pydoc">pydoc</a>
@@ -68585,6 +68578,7 @@ imported by:
  &#8226;   <a href="#anyio.to_thread">anyio.to_thread</a>
  &#8226;   <a href="#app.api.deps">app.api.deps</a>
  &#8226;   <a href="#app.api.v1.auth">app.api.v1.auth</a>
+ &#8226;   <a href="#app.api.v1.history">app.api.v1.history</a>
  &#8226;   <a href="#app.api.v1.libraries">app.api.v1.libraries</a>
  &#8226;   <a href="#app.api.v1.media">app.api.v1.media</a>
  &#8226;   <a href="#app.api.v1.remote">app.api.v1.remote</a>
@@ -68595,6 +68589,7 @@ imported by:
  &#8226;   <a href="#app.api.v1.system">app.api.v1.system</a>
  &#8226;   <a href="#app.core.security">app.core.security</a>
  &#8226;   <a href="#app.models.base">app.models.base</a>
+ &#8226;   <a href="#app.models.history">app.models.history</a>
  &#8226;   <a href="#app.models.media">app.models.media</a>
  &#8226;   <a href="#app.models.user">app.models.user</a>
  &#8226;   <a href="#app.schemas.library">app.schemas.library</a>
@@ -71567,7 +71562,6 @@ imported by:
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#packaging._manylinux">packaging._manylinux</a>
  &#8226;   <a href="#packaging.version">packaging.version</a>
- &#8226;   <a href="#passlib.context">passlib.context</a>
  &#8226;   <a href="#passlib.crypto.digest">passlib.crypto.digest</a>
  &#8226;   <a href="#passlib.handlers.bcrypt">passlib.handlers.bcrypt</a>
  &#8226;   <a href="#passlib.registry">passlib.registry</a>
