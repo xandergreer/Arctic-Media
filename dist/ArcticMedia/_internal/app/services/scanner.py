@@ -492,11 +492,21 @@ async def _get_or_create_episode(db: AsyncSession, season: MediaItem, number: in
         MediaItem.episode_number == number
     ))
     item = res.scalars().first()
+
+    # Build a clean placeholder title from the filename stem (before SxxExx)
+    name_no_ext = os.path.splitext(filename)[0]
+    ep_match = EPISODE_REGEX.search(name_no_ext)
+    if ep_match:
+        before_ep = name_no_ext[:ep_match.start()].strip(" .-_")
+        ep_title = clean_title(before_ep) or f"Episode {number}"
+    else:
+        ep_title = f"Episode {number}"
+
     if not item:
         item = MediaItem(
             kind=MediaKind.EPISODE,
-            title=filename, # Placeholder title until TMDB
-            sort_title=filename,
+            title=ep_title,
+            sort_title=ep_title,
             parent_id=season.id,
             episode_number=number,
             library_id=library_id
@@ -504,4 +514,9 @@ async def _get_or_create_episode(db: AsyncSession, season: MediaItem, number: in
         db.add(item)
         await db.commit()
         await db.refresh(item)
+    elif item.title == filename or ("." in item.title and item.title.endswith(os.path.splitext(filename)[1])):
+        # Existing episode still has the raw filename as title — clean it up
+        item.title = ep_title
+        item.sort_title = ep_title
+        await db.commit()
     return item
