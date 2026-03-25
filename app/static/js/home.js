@@ -18,13 +18,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!recentRes.ok) throw new Error('Failed to load dashboard');
         const data = await recentRes.json();
-        const continueItems = continueRes.ok ? await continueRes.json() : [];
+        let continueItems = [];
+        if (continueRes.ok) {
+            const raw = await continueRes.json();
+            continueItems = Array.isArray(raw) ? raw : [];
+        }
 
         loading.classList.add('hidden');
 
         if (continueItems.length > 0) {
-            document.getElementById('continue-section').classList.remove('hidden');
             renderContinueRow('continue-row', continueItems);
+            document.getElementById('continue-section').classList.remove('hidden');
         }
 
         if (data.movies && data.movies.length > 0) {

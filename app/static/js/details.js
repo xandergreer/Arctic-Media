@@ -632,9 +632,11 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         }
         else if (playerElement.canPlayType('application/vnd.apple.mpegurl')) {
             playerElement.src = srcUrl;
-            playerElement.addEventListener('canplay', function () {
+            playerElement.addEventListener('canplay', function onCanPlay() {
+                playerElement.removeEventListener('canplay', onCanPlay);
                 if (startTime > 0) playerElement.currentTime = startTime;
                 playerElement.play();
+                _startProgressTracking(id);
             });
         }
 
