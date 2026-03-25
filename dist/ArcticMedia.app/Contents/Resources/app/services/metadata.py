@@ -162,6 +162,69 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
         log.error(f"Failed to refresh item {item.title}: {e}")
         return False
 
+async def refresh_show_episodes(session: AsyncSession, show: MediaItem) -> int:
+    """
+    Re-fetches episode titles, overviews, and thumbnails from TMDB for every
+    episode that belongs to `show`.  Returns the number of episodes updated.
+    """
+    api_key = settings.TMDB_API_KEY
+    if not api_key:
+        return 0
+
+    meta = dict(show.extra_json) if show.extra_json else {}
+    tmdb_id = meta.get("tmdb_id")
+    if not tmdb_id:
+        tmdb_id = await _search_tv(api_key, show.title)
+        if not tmdb_id:
+            print(f"  [META] Cannot refresh episodes: no TMDB match for '{show.title}'")
+            return 0
+
+    # Load all seasons → episodes for this show
+    seasons_res = await session.execute(
+        select(MediaItem).where(
+            MediaItem.kind == MediaKind.SEASON,
+            MediaItem.parent_id == show.id,
+        )
+    )
+    seasons = seasons_res.scalars().all()
+
+    updated = 0
+    for season in seasons:
+        if season.season_number is None:
+            continue
+        data = await _get(api_key, f"tv/{tmdb_id}/season/{season.season_number}", {})
+        if not data or "episodes" not in data:
+            continue
+        ep_map = {ep["episode_number"]: ep for ep in data["episodes"]}
+
+        eps_res = await session.execute(
+            select(MediaItem).where(
+                MediaItem.kind == MediaKind.EPISODE,
+                MediaItem.parent_id == season.id,
+            )
+        )
+        for ep in eps_res.scalars().all():
+            ep_data = ep_map.get(ep.episode_number)
+            if not ep_data:
+                continue
+            ep_name = (ep_data.get("name") or "").strip()
+            if ep_name:
+                ep.title = ep_name
+                ep.sort_title = ep_name
+            ep.overview = (ep_data.get("overview") or "").strip() or None
+            ep.poster_url = _img(ep_data.get("still_path"))
+            ep.extra_json = {
+                "tmdb_id": ep_data.get("id"),
+                "episode_number": ep_data.get("episode_number"),
+                "season_number": ep_data.get("season_number"),
+            }
+            updated += 1
+
+    await session.commit()
+    print(f"  [META] Refreshed {updated} episodes for '{show.title}'")
+    return updated
+
+
 # ---- Main Enrich Function ----
 
 async def enrich_library(session: AsyncSession, library_id: int):
@@ -226,10 +289,17 @@ async def enrich_library(session: AsyncSession, library_id: int):
             for item in batched_items:
                 ep_data = ep_lookup.get(item.episode_number)
                 if ep_data:
-                    item.title = ep_data.get("name") or item.title
-                    item.overview = ep_data.get("overview")
+                    ep_name = (ep_data.get("name") or "").strip()
+                    if ep_name:
+                        item.title = ep_name
+                        item.sort_title = ep_name
+                    item.overview = (ep_data.get("overview") or "").strip() or None
                     item.poster_url = _img(ep_data.get("still_path"))
-                    item.extra_json = ep_data
+                    item.extra_json = {
+                        "tmdb_id": ep_data.get("id"),
+                        "episode_number": ep_data.get("episode_number"),
+                        "season_number": ep_data.get("season_number"),
+                    }
         except Exception as e:
             log.error(f"Failed episode batch TMDB {tmdb_id} S{season_num}: {e}")
 

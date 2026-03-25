@@ -177,7 +177,8 @@ async def get_media_item(
     return item
 
 from app.schemas.media import MediaUpdate
-from app.services.metadata import refresh_item_metadata
+from app.services.metadata import refresh_item_metadata, refresh_show_episodes
+from app.models.media import MediaKind
 
 @router.patch("/{media_id}")
 async def update_media_item(
@@ -215,7 +216,10 @@ async def update_media_item(
     # Refresh from TMDB if requested
     if media_data.refresh_from_tmdb:
         await refresh_item_metadata(db, item)
-        
+        # For shows, also cascade refresh to all episodes
+        if item.kind == MediaKind.SHOW:
+            await refresh_show_episodes(db, item)
+
     await db.commit()
     await db.refresh(item)
     return item

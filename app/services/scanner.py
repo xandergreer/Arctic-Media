@@ -7,9 +7,9 @@ from typing import List, Optional
 
 from app.models.library import Library, LibraryType
 from app.models.media import MediaItem, MediaFile, MediaKind
-from app.models.media import MediaItem, MediaFile, MediaKind
-from app.services.metadata import enrich_library
+from app.services.metadata import enrich_library, _search_tv, _get
 from app.services.subtitles import SubtitleService
+from app.models.settings import Setting
 
 subs_service = SubtitleService()
 
@@ -130,6 +130,51 @@ def is_extra(filepath: str) -> bool:
         
     return False
 
+class _TMDBCache:
+    """
+    Per-scan TMDB cache.
+    - One search/tv lookup per unique show name.
+    - One season detail fetch per (tmdb_id, season_num) pair.
+    All subsequent episodes in the same season reuse the cached map.
+    """
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self._show_ids: dict = {}    # show_name -> tmdb_id | None
+        self._season_eps: dict = {}  # (tmdb_id, season_num) -> {ep_num: title}
+
+    async def episode_title(self, show_name: str, season_num: int, ep_num: int) -> Optional[str]:
+        """Return the TMDB episode title, or None if unavailable."""
+        if not self.api_key or not show_name:
+            return None
+
+        # 1. Resolve show → TMDB ID (cached per show name)
+        if show_name not in self._show_ids:
+            try:
+                self._show_ids[show_name] = await _search_tv(self.api_key, show_name)
+            except Exception:
+                self._show_ids[show_name] = None
+        tmdb_id = self._show_ids[show_name]
+        if not tmdb_id:
+            return None
+
+        # 2. Fetch season episode map (cached per season)
+        key = (tmdb_id, season_num)
+        if key not in self._season_eps:
+            try:
+                data = await _get(self.api_key, f"tv/{tmdb_id}/season/{season_num}", {})
+                if data and "episodes" in data:
+                    self._season_eps[key] = {
+                        ep["episode_number"]: (ep.get("name") or "").strip()
+                        for ep in data["episodes"]
+                    }
+                else:
+                    self._season_eps[key] = {}
+            except Exception:
+                self._season_eps[key] = {}
+
+        return self._season_eps.get(key, {}).get(ep_num) or None
+
+
 async def scan_library(db: AsyncSession, library_id: int):
     """
     Scans a single library and populates the database.
@@ -144,10 +189,16 @@ async def scan_library(db: AsyncSession, library_id: int):
 
     print(f"Scanning Library: {library.name} ({library.path})")
 
+    # Fetch TMDB API key from DB (same source enrich_library uses)
+    row = await db.execute(select(Setting).where(Setting.key == "tmdb_api_key"))
+    setting = row.scalar_one_or_none()
+    api_key = setting.value if setting else ""
+    tmdb_cache = _TMDBCache(api_key)
+
     if library.type == LibraryType.MOVIES:
         await _scan_movies(db, library)
     elif library.type == LibraryType.SHOWS:
-        await _scan_shows(db, library)
+        await _scan_shows(db, library, tmdb_cache)
     
     print(f"Finished Scanning: {library.name}")
     
@@ -258,7 +309,7 @@ async def _scan_movies(db: AsyncSession, library: Library):
     print(f"  [MOVIES] Done - {added} added, {skipped} skipped.")
 
 
-async def _scan_shows(db: AsyncSession, library: Library):
+async def _scan_shows(db: AsyncSession, library: Library, tmdb_cache: Optional[_TMDBCache] = None):
     """
     Scans a TV Show library.
     Assumes: Root/Show Name/Season X/Episode.mkv
@@ -351,8 +402,17 @@ async def _scan_shows(db: AsyncSession, library: Library):
             # 2. Find/Create Season
             season_item = await _get_or_create_season(db, show_item, season_num, library.id)
 
-            # 3. Find/Create Episode
-            episode_item = await _get_or_create_episode(db, season_item, episode_num, filename, library.id)
+            # 3. Find/Create Episode — cross-reference TMDB for real title at scan time
+            ep_title = f"Episode {episode_num}"
+            if tmdb_cache:
+                try:
+                    tmdb_title = await tmdb_cache.episode_title(show_name, season_num, episode_num)
+                    if tmdb_title:
+                        ep_title = tmdb_title
+                except Exception as e:
+                    print(f"      [TMDB] Title lookup failed for {show_name} S{season_num:02d}E{episode_num:02d}: {e}")
+
+            episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, library.id)
 
             # 4. Create File
             try:
@@ -485,7 +545,7 @@ async def _get_or_create_season(db: AsyncSession, show: MediaItem, number: int, 
         await db.refresh(item)
     return item
 
-async def _get_or_create_episode(db: AsyncSession, season: MediaItem, number: int, filename: str, library_id: int) -> MediaItem:
+async def _get_or_create_episode(db: AsyncSession, season: MediaItem, number: int, title: str, library_id: int) -> MediaItem:
     res = await db.execute(select(MediaItem).where(
         MediaItem.kind == MediaKind.EPISODE,
         MediaItem.parent_id == season.id,
@@ -493,20 +553,11 @@ async def _get_or_create_episode(db: AsyncSession, season: MediaItem, number: in
     ))
     item = res.scalars().first()
 
-    # Build a clean placeholder title from the filename stem (before SxxExx)
-    name_no_ext = os.path.splitext(filename)[0]
-    ep_match = EPISODE_REGEX.search(name_no_ext)
-    if ep_match:
-        before_ep = name_no_ext[:ep_match.start()].strip(" .-_")
-        ep_title = clean_title(before_ep) or f"Episode {number}"
-    else:
-        ep_title = f"Episode {number}"
-
     if not item:
         item = MediaItem(
             kind=MediaKind.EPISODE,
-            title=ep_title,
-            sort_title=ep_title,
+            title=title,
+            sort_title=title,
             parent_id=season.id,
             episode_number=number,
             library_id=library_id
@@ -514,9 +565,4 @@ async def _get_or_create_episode(db: AsyncSession, season: MediaItem, number: in
         db.add(item)
         await db.commit()
         await db.refresh(item)
-    elif item.title == filename or ("." in item.title and item.title.endswith(os.path.splitext(filename)[1])):
-        # Existing episode still has the raw filename as title — clean it up
-        item.title = ep_title
-        item.sort_title = ep_title
-        await db.commit()
     return item
