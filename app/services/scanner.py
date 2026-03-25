@@ -9,7 +9,7 @@ from app.models.library import Library, LibraryType
 from app.models.media import MediaItem, MediaFile, MediaKind
 from app.services.metadata import enrich_library, _search_tv, _get
 from app.services.subtitles import SubtitleService
-from app.models.settings import Setting
+from app.core.config import settings
 
 subs_service = SubtitleService()
 
@@ -189,11 +189,7 @@ async def scan_library(db: AsyncSession, library_id: int):
 
     print(f"Scanning Library: {library.name} ({library.path})")
 
-    # Fetch TMDB API key from DB (same source enrich_library uses)
-    row = await db.execute(select(Setting).where(Setting.key == "tmdb_api_key"))
-    setting = row.scalar_one_or_none()
-    api_key = setting.value if setting else ""
-    tmdb_cache = _TMDBCache(api_key)
+    tmdb_cache = _TMDBCache(settings.TMDB_API_KEY or "")
 
     if library.type == LibraryType.MOVIES:
         await _scan_movies(db, library)
