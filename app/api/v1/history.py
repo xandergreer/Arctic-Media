@@ -9,8 +9,13 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.history import WatchHistory
+from app.models.media import MediaItem
 
 router = APIRouter(prefix="/history", tags=["History"])
+
+
+class BatchProgressRequest(BaseModel):
+    media_ids: list[int]
 
 
 class ProgressUpdate(BaseModel):
@@ -79,3 +84,77 @@ async def update_progress(
 
     await db.commit()
     return {"ok": True}
+
+
+@router.get("")
+async def get_continue_watching(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: int = 20,
+):
+    """In-progress (not completed) items sorted by most recently watched."""
+    result = await db.execute(
+        select(WatchHistory, MediaItem)
+        .join(MediaItem, WatchHistory.media_item_id == MediaItem.id)
+        .where(
+            WatchHistory.user_id == current_user.id,
+            WatchHistory.completed == False,
+            WatchHistory.position_seconds > 5,
+        )
+        .order_by(WatchHistory.last_watched_at.desc())
+        .limit(limit)
+    )
+    rows = result.all()
+    out = []
+    for hist, item in rows:
+        pct = 0
+        if hist.duration_seconds and hist.duration_seconds > 0:
+            pct = min(100, round(hist.position_seconds / hist.duration_seconds * 100))
+        link = f"/movie/{item.id}" if item.kind.value == "movie" else f"/show/{item.id}"
+        # For episodes, link to the parent show
+        if item.kind.value == "episode" and item.parent_id:
+            # Walk up to find the show (parent of parent)
+            season_res = await db.execute(select(MediaItem).where(MediaItem.id == item.parent_id))
+            season = season_res.scalar_one_or_none()
+            if season and season.parent_id:
+                link = f"/show/{season.parent_id}"
+        out.append({
+            "media_id": item.id,
+            "title": item.title,
+            "poster_url": item.poster_url,
+            "backdrop_url": item.backdrop_url,
+            "kind": item.kind.value,
+            "episode_number": item.episode_number,
+            "season_number": None,
+            "position_seconds": hist.position_seconds,
+            "duration_seconds": hist.duration_seconds,
+            "progress_pct": pct,
+            "last_watched_at": hist.last_watched_at.isoformat() if hist.last_watched_at else None,
+            "link": link,
+        })
+    return out
+
+
+@router.post("/batch")
+async def get_batch_progress(
+    body: BatchProgressRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return progress for a list of media IDs in one query."""
+    if not body.media_ids:
+        return {}
+    result = await db.execute(
+        select(WatchHistory).where(
+            WatchHistory.user_id == current_user.id,
+            WatchHistory.media_item_id.in_(body.media_ids),
+        )
+    )
+    return {
+        str(row.media_item_id): {
+            "position_seconds": row.position_seconds,
+            "duration_seconds": row.duration_seconds,
+            "completed": row.completed,
+        }
+        for row in result.scalars().all()
+    }

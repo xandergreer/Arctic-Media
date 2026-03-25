@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         };
 
         await loadDetails();
+        _checkMovieResume();
         if (isShow) {
             await loadSeasons();
         }
@@ -324,12 +325,13 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
                    </button>`
                 : '';
             return `
-            <div class="episode-card" onclick="playEpisode(${ep.id})">
+            <div class="episode-card" id="ep-card-${ep.id}" onclick="playEpisode(${ep.id})">
                 <div class="episode-thumb">
                     <img src="${still}" alt="" loading="lazy">
                     <div class="episode-num">E${ep.episode_number}</div>
                     <div class="episode-play-icon"><span class="material-icons">play_arrow</span></div>
                     <div class="episode-cast-icon" onclick="openCastModal(${ep.id}, event)" title="Cast to Roku" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);border-radius:50%;padding:4px;display:flex;cursor:pointer;z-index:10;transition:background 0.2s;"><span class="material-icons" style="font-size:1.2rem;color:#fff;">cast</span></div>
+                    <div class="ep-progress-bar hidden" id="ep-prog-${ep.id}" style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.2);"><div class="ep-progress-fill" style="height:100%;background:var(--primary);width:0%;"></div></div>
                     ${delBtn}
                 </div>
                 <div class="episode-info">
@@ -338,6 +340,33 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
                 </div>
             </div>`;
         }).join('');
+
+        // Overlay progress bars for watched episodes
+        const epIds = episodes.map(ep => ep.id);
+        if (epIds.length > 0) {
+            try {
+                const progRes = await fetch('/api/v1/history/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({ media_ids: epIds })
+                });
+                if (progRes.ok) {
+                    const progMap = await progRes.json();
+                    for (const [idStr, prog] of Object.entries(progMap)) {
+                        const bar = document.getElementById(`ep-prog-${idStr}`);
+                        if (!bar) continue;
+                        if (prog.completed) {
+                            bar.querySelector('.ep-progress-fill').style.width = '100%';
+                            bar.querySelector('.ep-progress-fill').style.background = 'rgba(255,255,255,0.4)';
+                        } else if (prog.duration_seconds > 0) {
+                            const pct = Math.min(100, prog.position_seconds / prog.duration_seconds * 100);
+                            bar.querySelector('.ep-progress-fill').style.width = `${pct}%`;
+                        }
+                        bar.classList.remove('hidden');
+                    }
+                }
+            } catch (e) { /* progress bars are cosmetic, don't block */ }
+        }
     }
 }
 
@@ -411,19 +440,90 @@ window.deleteEpisode = async function (event, epId, epLabel, seasonId, seasonNum
     }
 }
 
+// --- Watch Progress Helpers ---
+
+let _progressInterval = null;
+let _progressMediaId = null;
+
+function _fmtTime(sec) {
+    sec = Math.floor(sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+async function _fetchProgress(id) {
+    try {
+        const res = await fetch(`/api/v1/history/${id}`, { headers: getAuthHeaders() });
+        if (res.ok) return await res.json();
+    } catch (e) { }
+    return null;
+}
+
+async function _saveProgress(id) {
+    if (!plyr || !id || plyr.currentTime < 2) return;
+    try {
+        await fetch(`/api/v1/history/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({
+                position_seconds: plyr.currentTime,
+                duration_seconds: plyr.duration > 0 ? plyr.duration : null,
+            })
+        });
+    } catch (e) { console.warn('Progress save failed', e); }
+}
+
+function _startProgressTracking(id) {
+    _stopProgressTracking();
+    _progressMediaId = id;
+    _progressInterval = setInterval(() => _saveProgress(id), 10000);
+}
+
+function _stopProgressTracking() {
+    if (_progressInterval) {
+        clearInterval(_progressInterval);
+        _progressInterval = null;
+    }
+}
+
+// On movie pages: show Resume button if there's saved progress
+async function _checkMovieResume() {
+    if (isShow) return;
+    const prog = await _fetchProgress(mediaId);
+    if (prog && !prog.completed && prog.position_seconds > 5) {
+        const btn = document.getElementById('resumeBtn');
+        const txt = document.getElementById('resumeBtnText');
+        if (btn && txt) {
+            txt.textContent = `Resume from ${_fmtTime(prog.position_seconds)}`;
+            btn.classList.remove('hidden');
+        }
+    }
+}
+
 // --- Video Player Logic ---
 
 let plyr;
 const playerElement = document.getElementById("video-player");
 const videoContainer = document.getElementById("video-container");
 
-window.playMovie = function () {
-    playStream(mediaId);
+window.playMovie = async function () {
+    playStream(mediaId, null, null, null, 0);
 }
 
-window.playEpisode = function (episodeId) {
+window.resumeMovie = async function () {
+    const prog = await _fetchProgress(mediaId);
+    const t = (prog && !prog.completed && prog.position_seconds > 5) ? prog.position_seconds : 0;
+    playStream(mediaId, null, null, null, t);
+}
+
+window.playEpisode = async function (episodeId) {
     if (event) event.stopPropagation();
-    playStream(episodeId);
+    const prog = await _fetchProgress(episodeId);
+    const t = (prog && !prog.completed && prog.position_seconds > 5) ? prog.position_seconds : 0;
+    playStream(episodeId, null, null, null, t);
 }
 
 // Global state to prevent infinite loops
@@ -509,6 +609,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
             hls.on(Hls.Events.MANIFEST_PARSED, function () {
                 if (startTime > 0) playerElement.currentTime = startTime;
                 playerElement.play().catch(e => console.log("Autoplay blocked/failed", e));
+                _startProgressTracking(id);
             });
 
             hls.on(Hls.Events.ERROR, function (event, data) {
@@ -662,6 +763,10 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
 }
 
 window.closePlayer = function () {
+    // Save final position before closing
+    _saveProgress(_progressMediaId);
+    _stopProgressTracking();
+
     // Reset Globals
     currentMediaId = null;
     currentQuality = 0;
