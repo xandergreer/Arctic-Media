@@ -48,7 +48,7 @@ async def register_user(
     username: str,
     password: str,
     invite_code: Optional[str] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # Check whether open registration is enabled
     setting = await db.execute(
