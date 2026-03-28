@@ -19,6 +19,7 @@ def resource_path(relative_path):
 
 # ... existing imports ...
 from typing import Annotated
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core.database import get_db

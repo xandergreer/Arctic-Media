@@ -489,6 +489,26 @@ function _stopProgressTracking() {
     }
 }
 
+// On movie pages: show Resume button if there's saved progress
+async function _checkMovieResume() {
+    if (isShow) return;
+    const prog = await _fetchProgress(mediaId);
+    if (prog && !prog.completed && prog.position_seconds > 5) {
+        const btn = document.getElementById('resumeBtn');
+        const txt = document.getElementById('resumeBtnText');
+        if (btn && txt) {
+            txt.textContent = `Resume from ${_fmtTime(prog.position_seconds)}`;
+            btn.classList.remove('hidden');
+        }
+    }
+}
+
+// --- Video Player Logic ---
+
+let plyr;
+const playerElement = document.getElementById("video-player");
+const videoContainer = document.getElementById("video-container");
+
 // Save progress when the video finishes playing
 if (playerElement) {
     playerElement.addEventListener('ended', () => {
@@ -510,26 +530,6 @@ window.addEventListener('beforeunload', () => {
         }),
     });
 });
-
-// On movie pages: show Resume button if there's saved progress
-async function _checkMovieResume() {
-    if (isShow) return;
-    const prog = await _fetchProgress(mediaId);
-    if (prog && !prog.completed && prog.position_seconds > 5) {
-        const btn = document.getElementById('resumeBtn');
-        const txt = document.getElementById('resumeBtnText');
-        if (btn && txt) {
-            txt.textContent = `Resume from ${_fmtTime(prog.position_seconds)}`;
-            btn.classList.remove('hidden');
-        }
-    }
-}
-
-// --- Video Player Logic ---
-
-let plyr;
-const playerElement = document.getElementById("video-player");
-const videoContainer = document.getElementById("video-container");
 
 window.playMovie = async function () {
     playStream(mediaId, null, null, null, 0);
