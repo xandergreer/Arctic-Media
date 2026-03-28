@@ -22,7 +22,7 @@ function getAuthHeaders() {
 
 function isAdmin() {
     try {
-        const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+        const token = getCookie('access_token'); // getCookie from main.js handles = in token correctly
         if (!token) return false;
         const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(decodeURIComponent(
