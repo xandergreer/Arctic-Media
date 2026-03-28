@@ -18,7 +18,12 @@
         <button class="admin-tab active" data-tab="live" onclick="switchTab('live')">
             <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">sensors</span>Live View
         </button>
-        <!-- Future tabs go here -->
+        <button class="admin-tab" data-tab="server" onclick="switchTab('server')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">dns</span>Server
+        </button>
+        <button class="admin-tab" data-tab="users" onclick="switchTab('users')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">group</span>Users
+        </button>
     </div>
 
     <!-- Tab: Live View -->
@@ -50,6 +55,26 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Tab: Users -->
+    <div id="tab-users" class="admin-tab-content">
+        <div id="users-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">group</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Server -->
+    <div id="tab-server" class="admin-tab-content">
+        <div id="server-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">dns</span>
+                <p>Loading…</p>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -87,10 +112,14 @@ function switchTab(name) {
     document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('visible'));
     document.querySelector(`[data-tab="${name}"]`).classList.add('active');
     document.getElementById(`tab-${name}`).classList.add('visible');
+    if (name === 'server' && typeof loadServer === 'function') loadServer();
+    if (name === 'users' && typeof loadUsers === 'function') loadUsers();
 }
 // Show default tab
 switchTab('live');
 </script>
 
 <script src="/static/js/admin_live.js?v=1"></script>
+<script src="/static/js/admin_server.js?v=1"></script>
+<script src="/static/js/admin_users.js?v=1"></script>
 {% endblock %}

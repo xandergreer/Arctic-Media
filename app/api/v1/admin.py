@@ -1,13 +1,16 @@
+import os
+import shutil
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import get_db, engine
 from app.api.deps import get_current_active_superuser
 from app.models.user import User
 from app.models.history import WatchHistory
-from app.models.media import MediaItem
+from app.models.media import MediaItem, MediaFile, MediaKind
+from app.models.library import Library
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -152,3 +155,182 @@ async def get_live_viewers(
         })
 
     return {"viewers": viewers, "active_window_seconds": ACTIVE_WINDOW_SECONDS}
+
+
+@router.get("/server")
+async def get_server_stats(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_active_superuser),
+):
+    """Returns library stats, file sizes, disk usage, and DB size. Superuser only."""
+
+    # --- Libraries ---
+    libs_result = await db.execute(select(Library))
+    libraries = libs_result.scalars().all()
+
+    lib_stats = []
+    total_movies = total_shows = total_episodes = total_files = 0
+    total_bytes = 0
+
+    for lib in libraries:
+        # Count media items by kind for this library
+        counts_result = await db.execute(
+            select(MediaItem.kind, func.count(MediaItem.id))
+            .where(MediaItem.library_id == lib.id)
+            .group_by(MediaItem.kind)
+        )
+        kind_counts = {row[0]: row[1] for row in counts_result.all()}
+
+        movies = kind_counts.get(MediaKind.MOVIE, 0)
+        shows = kind_counts.get(MediaKind.SHOW, 0)
+        episodes = kind_counts.get(MediaKind.EPISODE, 0)
+
+        # Sum file sizes for this library
+        size_result = await db.execute(
+            select(func.coalesce(func.sum(MediaFile.size_bytes), 0), func.count(MediaFile.id))
+            .join(MediaItem, MediaFile.media_item_id == MediaItem.id)
+            .where(MediaItem.library_id == lib.id)
+        )
+        lib_bytes, file_count = size_result.one()
+
+        total_movies += movies
+        total_shows += shows
+        total_episodes += episodes
+        total_files += file_count
+        total_bytes += lib_bytes
+
+        # Disk usage for the drive/mount containing this library
+        disk_info = None
+        try:
+            if os.path.exists(lib.path):
+                du = shutil.disk_usage(lib.path)
+                disk_info = {
+                    "total_bytes": du.total,
+                    "used_bytes": du.used,
+                    "free_bytes": du.free,
+                }
+        except Exception:
+            pass
+
+        lib_stats.append({
+            "id": lib.id,
+            "name": lib.name,
+            "type": lib.type.value,
+            "path": lib.path,
+            "movie_count": movies,
+            "show_count": shows,
+            "episode_count": episodes,
+            "file_count": file_count,
+            "total_bytes": lib_bytes,
+            "disk": disk_info,
+        })
+
+    # --- DB size ---
+    db_size_bytes = 0
+    try:
+        db_url = str(engine.url)
+        if db_url.startswith("sqlite"):
+            db_path = db_url.replace("sqlite+aiosqlite:///", "").replace("sqlite:///", "")
+            if os.path.isfile(db_path):
+                db_size_bytes = os.path.getsize(db_path)
+    except Exception:
+        pass
+
+    return {
+        "libraries": lib_stats,
+        "totals": {
+            "movies": total_movies,
+            "shows": total_shows,
+            "episodes": total_episodes,
+            "files": total_files,
+            "total_bytes": total_bytes,
+        },
+        "db_size_bytes": db_size_bytes,
+    }
+
+
+# ──────────────────────── Users ────────────────────────
+
+@router.get("/users")
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Return all users with basic watch stats. Superuser only."""
+    users_result = await db.execute(select(User).order_by(User.created_at))
+    users = users_result.scalars().all()
+
+    out = []
+    for u in users:
+        # Total watch time and item count from history
+        stats_result = await db.execute(
+            select(
+                func.count(WatchHistory.id),
+                func.coalesce(func.sum(WatchHistory.position_seconds), 0),
+            ).where(WatchHistory.user_id == u.id)
+        )
+        item_count, watch_seconds = stats_result.one()
+
+        # Last active (most recent watch history update)
+        last_result = await db.execute(
+            select(WatchHistory.last_watched_at)
+            .where(WatchHistory.user_id == u.id)
+            .order_by(WatchHistory.last_watched_at.desc())
+            .limit(1)
+        )
+        last_row = last_result.scalar_one_or_none()
+        last_active = last_row.isoformat() if last_row else None
+
+        out.append({
+            "id": u.id,
+            "username": u.username,
+            "is_superuser": u.is_superuser,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "last_active": last_active,
+            "items_watched": item_count,
+            "watch_seconds": int(watch_seconds),
+            "is_self": u.id == current_user.id,
+        })
+
+    return {"users": out}
+
+
+@router.patch("/users/{user_id}/superuser")
+async def toggle_superuser(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Promote or demote a user's superuser status. Cannot demote yourself."""
+    if user_id == current_user.id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Cannot change your own superuser status.")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found.")
+    user.is_superuser = not user.is_superuser
+    await db.commit()
+    return {"id": user.id, "username": user.username, "is_superuser": user.is_superuser}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Delete a user account and all their watch history. Cannot delete yourself."""
+    if user_id == current_user.id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Cannot delete your own account.")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found.")
+    await db.delete(user)
+    await db.commit()
+    return {"deleted": user_id}
