@@ -4,7 +4,7 @@
 {% block full_content %}
 
 <!-- ── Content Sections ──────────────────────────────────────── -->
-<div id="content-sections" style="padding: 2.5rem var(--page-pad) 4rem;">
+<div id="content-sections" style="padding-top: var(--nav-height); padding-bottom: 4rem;">
 
     <div id="loading" style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
         <span style="font-size:2.5rem;">❄️</span>
@@ -36,7 +36,7 @@
     </section>
 
     <!-- TV Shows Row -->
-    <section class="section hidden" id="tv-section" style="padding-top:0;">
+    <section class="section hidden" id="tv-section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
             <div class="section-label">
                 <h2>Recently Added TV Shows</h2>
@@ -66,5 +66,5 @@
 
 </div>
 
-<script src="/static/js/home.js?v=2"></script>
+<script src="/static/js/home.js?v=3"></script>
 {% endblock %}

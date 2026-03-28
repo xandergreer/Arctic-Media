@@ -489,6 +489,28 @@ function _stopProgressTracking() {
     }
 }
 
+// Save progress when the video finishes playing
+if (playerElement) {
+    playerElement.addEventListener('ended', () => {
+        if (_progressMediaId) _saveProgress(_progressMediaId);
+        _stopProgressTracking();
+    });
+}
+
+// Save progress when navigating away (keepalive ensures the request completes)
+window.addEventListener('beforeunload', () => {
+    if (!_progressMediaId || !plyr || plyr.currentTime < 2) return;
+    fetch(`/api/v1/history/${_progressMediaId}`, {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({
+            position_seconds: plyr.currentTime,
+            duration_seconds: plyr.duration > 0 ? plyr.duration : null,
+        }),
+    });
+});
+
 // On movie pages: show Resume button if there's saved progress
 async function _checkMovieResume() {
     if (isShow) return;
