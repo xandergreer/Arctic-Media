@@ -1,6 +1,5 @@
-// Arctic Media 2.0 - Settings Page Logic
+// Arctic Media – Settings Page
 
-// Helper: Get Cookie (Shared logic)
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -12,27 +11,142 @@ function getAuthHeaders() {
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
+
+// ─── Scan Progress Panel ───────────────────────────────────────────────────────
+
+let _pollTimer = null;
+
+const _STATUS = {
+    pending:  { icon: 'schedule',     color: 'var(--text-muted)', spin: false, label: 'Pending'  },
+    scanning: { icon: 'sync',         color: 'var(--primary)',    spin: true,  label: 'Scanning' },
+    done:     { icon: 'check_circle', color: '#4ade80',           spin: false, label: 'Done'     },
+    error:    { icon: 'error',        color: '#f87171',           spin: false, label: 'Error'    },
+};
+
+function _duration(startIso, endIso) {
+    if (!startIso || !endIso) return '';
+    const secs = Math.round((new Date(endIso) - new Date(startIso)) / 1000);
+    if (secs < 60) return `${secs}s`;
+    return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+}
+
+function _stopPoll() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+function _getScanPanel() {
+    return document.getElementById('scan-progress-panel');
+}
+
+function _insertPanel() {
+    let panel = _getScanPanel();
+    if (panel) return panel;
+
+    panel = document.createElement('div');
+    panel.id = 'scan-progress-panel';
+    panel.style.cssText = [
+        'background:var(--surface-2)',
+        'border:1px solid var(--border)',
+        'border-radius:var(--radius-lg)',
+        'margin-top:1rem',
+        'overflow:hidden',
+    ].join(';');
+
+    // Insert right after the scan-btn's row div
+    const scanBtn = document.getElementById('scan-btn');
+    if (scanBtn) {
+        const row = scanBtn.parentNode;
+        row.insertAdjacentElement('afterend', panel);
+    }
+
+    return panel;
+}
+
+function _renderPanel(libs, allDone) {
+    const panel = _insertPanel();
+
+    const headerIcon = allDone
+        ? `<span class="material-icons" style="font-size:16px;color:#4ade80;">check_circle</span>`
+        : `<span class="material-icons" style="font-size:16px;color:var(--primary);animation:spin 1s linear infinite;">sync</span>`;
+
+    const reloadLink = allDone
+        ? `<a href="" style="font-size:0.78rem;color:var(--primary);text-decoration:none;margin-right:0.75rem;">Reload page</a>`
+        : '';
+
+    const rows = libs.map(lib => {
+        const s = _STATUS[lib.status] || _STATUS.pending;
+        const dur = _duration(lib.started_at, lib.finished_at);
+        const spinCss = s.spin ? 'animation:spin 1s linear infinite;' : '';
+        const sublabel = lib.status === 'done' && dur ? `Done · ${dur}`
+                       : lib.status === 'error'       ? 'Error'
+                       : s.label;
+        const errLine = lib.error
+            ? `<div style="font-size:0.72rem;color:#f87171;margin-top:0.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${lib.error}">${lib.error}</div>`
+            : '';
+
+        return `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 1.1rem;border-top:1px solid var(--border);">
+            <span class="material-icons" style="font-size:18px;color:${s.color};${spinCss}flex-shrink:0;">${s.icon}</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:0.85rem;font-weight:500;">${lib.library_name}</div>
+                ${errLine}
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${sublabel}</div>
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1.1rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:600;">
+                ${headerIcon}
+                ${allDone ? 'Scan complete' : 'Scanning libraries…'}
+            </div>
+            <div style="display:flex;align-items:center;">
+                ${reloadLink}
+                <button onclick="dismissScanPanel()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.78rem;padding:0.2rem 0.5rem;border-radius:var(--radius-sm);">Dismiss</button>
+            </div>
+        </div>
+        ${rows}`;
+}
+
+function dismissScanPanel() {
+    _stopPoll();
+    const panel = _getScanPanel();
+    if (panel) panel.remove();
+}
+
+async function _poll() {
+    try {
+        const res = await fetch('/api/v1/scan/status', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const allDone = !data.scanning;
+        _renderPanel(data.libraries, allDone);
+        if (allDone) _stopPoll();
+    } catch (e) { /* ignore transient poll errors */ }
+}
+
+function _startPolling(initialLibs) {
+    _stopPoll();
+    _renderPanel(initialLibs, false);
+    _poll(); // immediate first fetch
+    _pollTimer = setInterval(_poll, 1500);
+}
+
+
+// ─── Page Init ─────────────────────────────────────────────────────────────────
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- GENERAL SETTINGS ---
     const generalForm = document.getElementById("general-settings-form");
     const customDomainInput = document.getElementById("custom-domain");
 
-    // Load initial settings
     if (customDomainInput) {
-        fetch("/api/v1/settings/custom_domain", {
-            headers: getAuthHeaders()
-        })
-            .then(res => {
-                if (res.ok) return res.json();
-                return { value: "" };
-            })
-            .then(data => {
-                if (data && data.value) {
-                    customDomainInput.value = data.value;
-                }
-            })
-            .catch(err => console.error("Failed to load settings", err));
+        fetch("/api/v1/settings/custom_domain", { headers: getAuthHeaders() })
+            .then(res => res.ok ? res.json() : { value: "" })
+            .then(data => { if (data && data.value) customDomainInput.value = data.value; })
+            .catch(() => {});
     }
 
     if (generalForm) {
@@ -41,37 +155,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const domain = customDomainInput.value.trim();
             const submitBtn = generalForm.querySelector("button[type='submit']");
             const originalText = submitBtn.textContent;
-
             submitBtn.disabled = true;
             submitBtn.textContent = "Saving...";
-
             try {
                 const res = await fetch("/api/v1/settings", {
                     method: "POST",
-                    headers: {
-                        ...getAuthHeaders(),
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        key: "custom_domain",
-                        value: domain
-                    })
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: "custom_domain", value: domain }),
                 });
-
                 if (res.ok) {
-                    // Visual feedback
                     submitBtn.textContent = "Saved!";
-                    setTimeout(() => {
-                        submitBtn.textContent = originalText;
-                        submitBtn.disabled = false;
-                    }, 2000);
+                    setTimeout(() => { submitBtn.textContent = originalText; submitBtn.disabled = false; }, 2000);
                 } else {
                     alert("Failed to save settings.");
                     submitBtn.textContent = originalText;
                     submitBtn.disabled = false;
                 }
-            } catch (err) {
-                console.error(err);
+            } catch {
                 alert("Error saving settings.");
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
@@ -84,43 +184,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (addLibForm) {
         addLibForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-
             const name = document.getElementById("lib-name").value.trim();
             const path = document.getElementById("folder-path-input").value.trim();
             const type = document.getElementById("lib-type").value;
-
-            if (!path) {
-                alert("Please enter a Path.");
-                return;
-            }
-
-            // Send JSON! Much more reliable than Form Data for APIs
-            const payload = {
-                name: name,
-                path: path,
-                type: type
-            };
-
+            if (!path) { alert("Please enter a Path."); return; }
             try {
                 const res = await fetch("/api/v1/libraries", {
                     method: "POST",
-                    headers: {
-                        ...getAuthHeaders(),
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, path, type }),
                 });
-
                 if (res.ok) {
-                    window.location.reload(); // Refresh to see new library
+                    window.location.reload();
                 } else {
                     const err = await res.json();
                     alert("Error: " + (err.detail || "Failed to add library"));
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Connection failed.");
-            }
+            } catch { alert("Connection failed."); }
         });
     }
 
@@ -130,14 +210,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const libId = e.currentTarget.getAttribute('data-id');
             if (!confirm('Are you sure? This removes it from the database.')) return;
             try {
-                const res = await fetch(`/api/v1/libraries/${libId}`, {
-                    method: 'DELETE',
-                    headers: getAuthHeaders()
-                });
+                const res = await fetch(`/api/v1/libraries/${libId}`, { method: 'DELETE', headers: getAuthHeaders() });
                 if (res.ok) window.location.reload();
-            } catch (err) {
-                alert('Failed to delete.');
-            }
+            } catch { alert('Failed to delete.'); }
         });
     });
 
@@ -145,68 +220,86 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.rescan-lib-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const libId = e.currentTarget.getAttribute('data-id');
-            const icon = e.currentTarget.querySelector('.material-icons');
-            const orig = icon.textContent;
-            icon.style.animation = 'spin 1s linear infinite';
             e.currentTarget.disabled = true;
             try {
                 const res = await fetch(`/api/v1/scan/library/${libId}`, {
                     method: 'POST',
-                    headers: getAuthHeaders()
+                    headers: getAuthHeaders(),
                 });
                 const data = await res.json();
-                if (res.ok) {
-                    alert(`Rescan complete: ${data.library}`);
-                    window.location.reload();
+
+                if (data.status === 'already_running') {
+                    // Just attach to the running scan
+                    _startPolling(_getScanPanel()
+                        ? [] // panel already showing, poll will fill it
+                        : [{ library_id: parseInt(libId), library_name: data.library || `Library ${libId}`, status: 'scanning', started_at: null, finished_at: null, error: null }]
+                    );
                 } else {
-                    alert(`Rescan failed: ${data.detail || 'Unknown error'}`);
+                    _startPolling([{
+                        library_id: data.library_id || parseInt(libId),
+                        library_name: data.library || `Library ${libId}`,
+                        status: 'pending',
+                        started_at: null,
+                        finished_at: null,
+                        error: null,
+                    }]);
                 }
-            } catch (err) {
-                alert('Rescan request failed.');
-                console.error(err);
-            }
-            icon.style.animation = '';
-            icon.textContent = orig;
+            } catch { alert('Failed to start rescan.'); }
             e.currentTarget.disabled = false;
         });
     });
 
-
-
-    // --- SCAN NOW ---
+    // --- SCAN ALL ---
     const scanBtn = document.getElementById('scan-btn');
     if (scanBtn) {
         scanBtn.addEventListener('click', async () => {
-            const orig = scanBtn.innerHTML;
-            scanBtn.innerHTML = '<span class="material-icons" style="font-size:0.95rem;animation:spin 1s linear infinite;">sync</span> Scanning…';
             scanBtn.disabled = true;
             try {
                 const res = await fetch('/api/v1/scan/run', {
                     method: 'POST',
-                    headers: getAuthHeaders()
+                    headers: getAuthHeaders(),
                 });
                 const data = await res.json();
 
                 if (data.status === 'no_libraries') {
                     alert('No libraries configured. Add a library below first.');
-                } else if (data.status === 'partial') {
-                    const errors = data.results.filter(r => r.status === 'error');
-                    const ok = data.results.filter(r => r.status === 'ok');
-                    alert(`Scan finished with errors.\n\nCompleted: ${ok.map(r => r.library).join(', ') || 'none'}\n\nFailed:\n${errors.map(r => `• ${r.library}: ${r.detail}`).join('\n')}`);
-                    window.location.reload();
-                } else if (data.status === 'ok') {
-                    alert(`Scan complete! ${data.results.length} library(s) scanned successfully.`);
-                    window.location.reload();
+                    scanBtn.disabled = false;
+                    return;
+                }
+
+                if (data.status === 'already_running') {
+                    // Attach to in-progress scan — poll will populate the panel
+                    _startPolling([]);
                 } else {
-                    alert('Scan returned an unexpected response.');
+                    // data.libraries is [{id, name}, ...]
+                    const libs = (data.libraries || []).map(l => ({
+                        library_id: l.id,
+                        library_name: l.name,
+                        status: 'pending',
+                        started_at: null,
+                        finished_at: null,
+                        error: null,
+                    }));
+                    _startPolling(libs);
                 }
             } catch (err) {
-                alert('Scan request failed — check server connection.');
                 console.error(err);
+                alert('Failed to start scan — check server connection.');
             }
-            scanBtn.innerHTML = orig;
             scanBtn.disabled = false;
         });
     }
+
+    // Resume polling if a scan is already running (page was reloaded mid-scan)
+    (async () => {
+        try {
+            const res = await fetch('/api/v1/scan/status', { headers: getAuthHeaders() });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.scanning && data.libraries.length) {
+                _startPolling(data.libraries);
+            }
+        } catch { /* not critical */ }
+    })();
 
 });
