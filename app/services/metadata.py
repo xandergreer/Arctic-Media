@@ -1,10 +1,9 @@
 from __future__ import annotations
 import re
-import time
-import logging
 import asyncio
+import logging
 import httpx
-from typing import Any, Dict, List, Optional, Awaitable, Callable
+from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,13 +11,16 @@ from app.models.library import Library
 from app.models.media import MediaItem, MediaKind
 from app.core.config import settings
 
-# Setup Logger
 log = logging.getLogger("scanner")
 
 TMDB_API = "https://api.themoviedb.org/3"
 IMG_BASE = "https://image.tmdb.org/t/p"
 
-# ---- Utils ----
+# Max concurrent TMDB requests — stays well within the 40 req/10s rate limit
+_TMDB_SEM = asyncio.Semaphore(8)
+
+
+# ── Utils ──────────────────────────────────────────────────────────────────────
 
 def _img(url_part: Optional[str], size: str = "w500") -> Optional[str]:
     if not url_part:
@@ -33,29 +35,29 @@ def _params(api_key: str) -> Dict[str, str]:
     if not api_key: return {}
     return {} if len(api_key) > 40 else {"api_key": api_key}
 
-async def _get(api_key: str, path: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Non-blocking HTTP GET helper using httpx AsyncClient."""
-    await asyncio.sleep(0.05)
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            p = {**_params(api_key), **params}
-            h = _headers(api_key)
-            r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
-            if r.status_code == 429:
-                await asyncio.sleep(1.0)
-                r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
-            r.raise_for_status()
-            return r.json()
-    except Exception as e:
-        log.warning("TMDB GET %s failed: %s", path, e)
-        return None
-
-# ---- Cleaners ----
-
 def normalize_sort(title: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (title or "").lower())
 
-# ---- Packers ----
+async def _get(api_key: str, path: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Rate-limited async TMDB GET."""
+    async with _TMDB_SEM:
+        await asyncio.sleep(0.05)
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                p = {**_params(api_key), **params}
+                h = _headers(api_key)
+                r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
+                if r.status_code == 429:
+                    await asyncio.sleep(2.0)
+                    r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
+                r.raise_for_status()
+                return r.json()
+        except Exception as e:
+            log.warning("TMDB GET %s failed: %s", path, e)
+            return None
+
+
+# ── Packers ───────────────────────────────────────────────────────────────────
 
 def _pack_common(d: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -72,119 +74,156 @@ def _pack_common(d: Dict[str, Any]) -> Dict[str, Any]:
         "release_date": d.get("release_date") or d.get("first_air_date"),
     }
 
-# ---- Search Logic ----
+
+# ── Search ────────────────────────────────────────────────────────────────────
 
 async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Optional[int]:
-    if not title: return None
-    res = await _get(api_key, "search/movie", {"query": title, "year": year} if year else {"query": title})
-    results = res.get("results", []) if res else []
-    if not results and year:
-        res = await _get(api_key, "search/movie", {"query": title})
-        results = res.get("results", []) if res else []
-    if results:
-        return results[0]["id"]
+    """
+    Search TMDB for a movie. If the full title fails, progressively strips
+    trailing words (up to 3) — catches cases like 'Zootopia 2 It' where a
+    language code or release tag survived filename cleaning.
+    """
+    if not title:
+        return None
+
+    async def _try(q: str, y: Optional[int]) -> Optional[int]:
+        res = await _get(api_key, "search/movie", {"query": q, **({"year": y} if y else {})})
+        results = (res or {}).get("results", [])
+        if not results and y:
+            res = await _get(api_key, "search/movie", {"query": q})
+            results = (res or {}).get("results", [])
+        return results[0]["id"] if results else None
+
+    result = await _try(title, year)
+    if result:
+        return result
+
+    # Smart fallback: strip trailing words one at a time (max 3 attempts)
+    words = title.split()
+    for n in range(len(words) - 1, max(0, len(words) - 4), -1):
+        shorter = " ".join(words[:n])
+        if len(shorter) < 2:
+            break
+        result = await _try(shorter, year)
+        if result:
+            log.info("Smart title match: '%s' -> '%s' (stripped %d word(s))", title, shorter, len(words) - n)
+            print(f"  [META] Smart match: '{title}' -> searched as '{shorter}'")
+            return result
+
     return None
+
 
 async def _search_tv(api_key: str, title: str) -> Optional[int]:
-    if not title: return None
+    if not title:
+        return None
     res = await _get(api_key, "search/tv", {"query": title})
-    results = res.get("results", []) if res else []
+    results = (res or {}).get("results", [])
     if results:
         return results[0]["id"]
     return None
 
-# ---- Details Logic ----
+
+# ── Details ───────────────────────────────────────────────────────────────────
 
 async def _movie_details(api_key: str, tmdb_id: int) -> Dict[str, Any]:
     data = await _get(api_key, f"movie/{tmdb_id}", {})
-    if not data: return {}
-    return _pack_common(data)
+    if not data:
+        return {}
+    info = _pack_common(data)
+    # Include canonical TMDB title so we can correct dirty filenames
+    info["title"] = (data.get("title") or "").strip() or None
+    return info
+
 
 async def _tv_details(api_key: str, tmdb_id: int) -> Dict[str, Any]:
     data = await _get(api_key, f"tv/{tmdb_id}", {})
-    if not data: return {}
+    if not data:
+        return {}
     info = _pack_common(data)
-    info["title"] = data.get("name")
+    info["title"] = (data.get("name") or "").strip() or None
     return info
 
-# ---- Single Item Refresh ----
+
+# ── Single-item refresh ───────────────────────────────────────────────────────
 
 async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
     """
-    Refreshes metadata for a single media item from TMDB.
-    Returns True if an update occurred.
+    Refresh metadata for one movie or show from TMDB.
+    Also corrects the stored title to the TMDB canonical name.
+    Returns True if updated.
     """
     api_key = settings.TMDB_API_KEY
     if not api_key:
         return False
 
     try:
-        updated = False
         meta = dict(item.extra_json) if item.extra_json else {}
 
         if item.kind == MediaKind.MOVIE:
-            tmdb_id = meta.get("tmdb_id")
+            tmdb_id = meta.get("tmdb_id") or await _search_movie(api_key, item.title, item.year)
             if not tmdb_id:
-                tmdb_id = await _search_movie(api_key, item.title, item.year)
-            if tmdb_id:
-                details = await _movie_details(api_key, tmdb_id)
-                if details:
-                    item.poster_url = details.get("poster")
-                    item.backdrop_url = details.get("backdrop")
-                    item.overview = details.get("overview")
-                    meta.update(details)
-                    item.extra_json = meta
-                    log.info(f"Refreshed Movie: {item.title} -> {tmdb_id}")
-                    print(f"  [META] Movie: {item.title} -> TMDB {tmdb_id}")
-                    updated = True
+                return False
+            details = await _movie_details(api_key, tmdb_id)
+            if not details:
+                return False
+
+            # Correct dirty filename title with TMDB canonical title
+            tmdb_title = details.get("title")
+            if tmdb_title and tmdb_title != item.title:
+                print(f"  [META] Title corrected: '{item.title}' → '{tmdb_title}'")
+                item.title = tmdb_title
+                item.sort_title = normalize_sort(tmdb_title)
+
+            item.poster_url = details.get("poster")
+            item.backdrop_url = details.get("backdrop")
+            item.overview = details.get("overview")
+            meta.update(details)
+            item.extra_json = meta
+            print(f"  [META] Movie: {item.title} → TMDB {tmdb_id}")
+            return True
 
         elif item.kind == MediaKind.SHOW:
-            tmdb_id = meta.get("tmdb_id")
+            tmdb_id = meta.get("tmdb_id") or await _search_tv(api_key, item.title)
             if not tmdb_id:
-                tmdb_id = await _search_tv(api_key, item.title)
-            if tmdb_id:
-                details = await _tv_details(api_key, tmdb_id)
-                if details:
-                    item.poster_url = details.get("poster")
-                    item.backdrop_url = details.get("backdrop")
-                    item.overview = details.get("overview")
-                    meta.update(details)
-                    item.extra_json = meta
-                    log.info(f"Refreshed Show: {item.title} -> {tmdb_id}")
-                    print(f"  [META] Show: {item.title} -> TMDB {tmdb_id}")
-                    updated = True
-            else:
-                log.warning(f"No TMDB match for Show: {item.title}")
-                print(f"  [META] No match for show: {item.title}")
+                print(f"  [META] No TMDB match for show: {item.title}")
+                return False
+            details = await _tv_details(api_key, tmdb_id)
+            if not details:
+                return False
 
-        return updated
+            tmdb_title = details.get("title")
+            if tmdb_title and tmdb_title != item.title:
+                print(f"  [META] Title corrected: '{item.title}' → '{tmdb_title}'")
+                item.title = tmdb_title
+                item.sort_title = normalize_sort(tmdb_title)
+
+            item.poster_url = details.get("poster")
+            item.backdrop_url = details.get("backdrop")
+            item.overview = details.get("overview")
+            meta.update(details)
+            item.extra_json = meta
+            print(f"  [META] Show: {item.title} → TMDB {tmdb_id}")
+            return True
+
     except Exception as e:
-        log.error(f"Failed to refresh item {item.title}: {e}")
-        return False
+        log.error("Failed to refresh %s: %s", item.title, e)
+
+    return False
+
 
 async def refresh_show_episodes(session: AsyncSession, show: MediaItem) -> int:
-    """
-    Re-fetches episode titles, overviews, and thumbnails from TMDB for every
-    episode that belongs to `show`.  Returns the number of episodes updated.
-    """
     api_key = settings.TMDB_API_KEY
     if not api_key:
         return 0
 
     meta = dict(show.extra_json) if show.extra_json else {}
-    tmdb_id = meta.get("tmdb_id")
+    tmdb_id = meta.get("tmdb_id") or await _search_tv(api_key, show.title)
     if not tmdb_id:
-        tmdb_id = await _search_tv(api_key, show.title)
-        if not tmdb_id:
-            print(f"  [META] Cannot refresh episodes: no TMDB match for '{show.title}'")
-            return 0
+        print(f"  [META] Cannot refresh episodes: no TMDB match for '{show.title}'")
+        return 0
 
-    # Load all seasons → episodes for this show
     seasons_res = await session.execute(
-        select(MediaItem).where(
-            MediaItem.kind == MediaKind.SEASON,
-            MediaItem.parent_id == show.id,
-        )
+        select(MediaItem).where(MediaItem.kind == MediaKind.SEASON, MediaItem.parent_id == show.id)
     )
     seasons = seasons_res.scalars().all()
 
@@ -198,10 +237,7 @@ async def refresh_show_episodes(session: AsyncSession, show: MediaItem) -> int:
         ep_map = {ep["episode_number"]: ep for ep in data["episodes"]}
 
         eps_res = await session.execute(
-            select(MediaItem).where(
-                MediaItem.kind == MediaKind.EPISODE,
-                MediaItem.parent_id == season.id,
-            )
+            select(MediaItem).where(MediaItem.kind == MediaKind.EPISODE, MediaItem.parent_id == season.id)
         )
         for ep in eps_res.scalars().all():
             ep_data = ep_map.get(ep.episode_number)
@@ -225,36 +261,35 @@ async def refresh_show_episodes(session: AsyncSession, show: MediaItem) -> int:
     return updated
 
 
-# ---- Main Enrich Function ----
+# ── Library enrichment ────────────────────────────────────────────────────────
 
 async def enrich_library(session: AsyncSession, library_id: int):
     """
-    Iterates over MediaItems in the library and fetches metadata for movies,
-    shows, and episodes.
+    Fetches TMDB metadata for all unenriched movies and shows in a library.
+    Phase 1 (movies + shows) runs concurrently via asyncio.gather.
+    Phase 4 (season episode batches) also runs concurrently.
     """
     api_key = settings.TMDB_API_KEY
     if not api_key:
-        log.warning("No TMDB API key configured — skipping metadata enrichment.")
-        print("  [META] Skipping enrichment: no TMDB API key configured.")
+        print("  [META] Skipping enrichment: no TMDB API key.")
         return
 
-    stmt = select(MediaItem).where(MediaItem.library_id == library_id)
-    result = await session.execute(stmt)
+    result = await session.execute(select(MediaItem).where(MediaItem.library_id == library_id))
     items = result.scalars().all()
+    print(f"  [META] Enriching {len(items)} items for library {library_id}…")
 
-    log.info(f"Enriching Library {library_id} with {len(items)} items...")
-    print(f"  [META] Enriching {len(items)} items for library {library_id}...")
-
-    # Phase 1: Enrich movies and shows (episodes handled in batch phase)
-    for item in items:
-        if item.kind not in (MediaKind.MOVIE, MediaKind.SHOW):
-            continue
+    # Phase 1: Concurrently enrich movies and shows that haven't been enriched yet
+    async def _enrich_one(item: MediaItem):
         meta = dict(item.extra_json) if item.extra_json else {}
         if meta.get("tmdb_id") and item.poster_url:
-            continue  # already enriched
+            return  # already done
         await refresh_item_metadata(session, item)
 
-    # Phase 2: Build tv_cache from freshly-enriched shows
+    targets = [item for item in items if item.kind in (MediaKind.MOVIE, MediaKind.SHOW)]
+    await asyncio.gather(*[_enrich_one(item) for item in targets])
+    await session.commit()
+
+    # Phase 2: Build tv_cache from freshly enriched shows
     tv_cache: dict = {}
     for item in items:
         if item.kind == MediaKind.SHOW and item.extra_json:
@@ -267,41 +302,42 @@ async def enrich_library(session: AsyncSession, library_id: int):
     for item in items:
         if item.kind != MediaKind.EPISODE or not item.parent_id:
             continue
-        # Find parent Season
         season = next((x for x in items if x.id == item.parent_id), None)
         if not season or not season.parent_id:
             continue
-        show_id = season.parent_id
-        tmdb_id = tv_cache.get(show_id)
+        tmdb_id = tv_cache.get(season.parent_id)
         if tmdb_id and item.episode_number is not None and season.season_number is not None:
-            key = (tmdb_id, season.season_number)
-            season_batches.setdefault(key, []).append(item)
+            season_batches.setdefault((tmdb_id, season.season_number), []).append(item)
 
-    # Phase 4: Fetch episode metadata per season
-    for (tmdb_id, season_num), batched_items in season_batches.items():
+    # Phase 4: Concurrently fetch episode metadata per season
+    async def _enrich_season(tmdb_id: int, season_num: int, batch: list):
         try:
-            print(f"  [META] Fetching episodes: TMDB Show {tmdb_id}, Season {season_num} ({len(batched_items)} eps)")
+            print(f"  [META] Episodes: TMDB show {tmdb_id} S{season_num} ({len(batch)} eps)")
             season_data = await _get(api_key, f"tv/{tmdb_id}/season/{season_num}", {})
             if not season_data or "episodes" not in season_data:
-                log.warning(f"No season data for TMDB {tmdb_id} S{season_num}")
-                continue
+                return
             ep_lookup = {ep["episode_number"]: ep for ep in season_data["episodes"]}
-            for item in batched_items:
+            for item in batch:
                 ep_data = ep_lookup.get(item.episode_number)
-                if ep_data:
-                    ep_name = (ep_data.get("name") or "").strip()
-                    if ep_name:
-                        item.title = ep_name
-                        item.sort_title = ep_name
-                    item.overview = (ep_data.get("overview") or "").strip() or None
-                    item.poster_url = _img(ep_data.get("still_path"))
-                    item.extra_json = {
-                        "tmdb_id": ep_data.get("id"),
-                        "episode_number": ep_data.get("episode_number"),
-                        "season_number": ep_data.get("season_number"),
-                    }
+                if not ep_data:
+                    continue
+                ep_name = (ep_data.get("name") or "").strip()
+                if ep_name:
+                    item.title = ep_name
+                    item.sort_title = ep_name
+                item.overview = (ep_data.get("overview") or "").strip() or None
+                item.poster_url = _img(ep_data.get("still_path"))
+                item.extra_json = {
+                    "tmdb_id": ep_data.get("id"),
+                    "episode_number": ep_data.get("episode_number"),
+                    "season_number": ep_data.get("season_number"),
+                }
         except Exception as e:
-            log.error(f"Failed episode batch TMDB {tmdb_id} S{season_num}: {e}")
+            log.error("Episode batch failed TMDB %s S%s: %s", tmdb_id, season_num, e)
 
+    await asyncio.gather(*[
+        _enrich_season(tmdb_id, season_num, batch)
+        for (tmdb_id, season_num), batch in season_batches.items()
+    ])
     await session.commit()
     print(f"  [META] Enrichment complete for library {library_id}.")

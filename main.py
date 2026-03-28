@@ -46,6 +46,7 @@ from app.models.library import Library
 from app.models.media import MediaItem, MediaFile
 from app.models.settings import ServerSetting
 from app.models.history import WatchHistory
+from app.models.invite import InviteCode
 
 # Setup Templates
 templates = Jinja2Templates(directory=resource_path("app/templates"))
@@ -66,6 +67,13 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text(col_sql))
             except Exception:
                 pass  # Column already exists
+
+        # Seed default settings if missing
+        from app.models.settings import ServerSetting
+        from sqlalchemy import insert
+        await conn.execute(
+            text("INSERT OR IGNORE INTO server_settings (key, value, created_at) VALUES ('open_registration', 'true', datetime('now'))")
+        )
 
     print("Database tables verified/created.")
     

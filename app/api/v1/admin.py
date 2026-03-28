@@ -1,7 +1,8 @@
 import os
+import secrets
 import shutil
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +12,8 @@ from app.models.user import User
 from app.models.history import WatchHistory
 from app.models.media import MediaItem, MediaFile, MediaKind
 from app.models.library import Library
+from app.models.invite import InviteCode
+from app.models.settings import ServerSetting
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -334,3 +337,102 @@ async def delete_user(
     await db.delete(user)
     await db.commit()
     return {"deleted": user_id}
+
+
+# ──────────────────────── Invites ────────────────────────
+
+@router.get("/invites")
+async def list_invites(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Return all invite codes and the current open_registration setting."""
+    setting = await db.execute(
+        select(ServerSetting).where(ServerSetting.key == "open_registration")
+    )
+    setting_row = setting.scalar_one_or_none()
+    open_reg = (setting_row is None) or (setting_row.value == "true")
+
+    result = await db.execute(
+        select(InviteCode).order_by(InviteCode.created_at.desc())
+    )
+    codes = result.scalars().all()
+
+    out = []
+    for c in codes:
+        created_by_name = None
+        if c.created_by_id:
+            u = await db.execute(select(User).where(User.id == c.created_by_id))
+            u_row = u.scalar_one_or_none()
+            if u_row:
+                created_by_name = u_row.username
+
+        used_by_name = None
+        if c.used_by_id:
+            u2 = await db.execute(select(User).where(User.id == c.used_by_id))
+            u2_row = u2.scalar_one_or_none()
+            if u2_row:
+                used_by_name = u2_row.username
+
+        expired = c.expires_at is not None and c.expires_at < datetime.utcnow()
+        out.append({
+            "id": c.id,
+            "code": c.code,
+            "created_by": created_by_name,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "used_by": used_by_name,
+            "used_at": c.used_at.isoformat() if c.used_at else None,
+            "expires_at": c.expires_at.isoformat() if c.expires_at else None,
+            "expired": expired,
+        })
+
+    return {"open_registration": open_reg, "invites": out}
+
+
+@router.post("/invites")
+async def create_invite(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Generate a new invite code."""
+    code = secrets.token_urlsafe(16)
+    invite = InviteCode(code=code, created_by_id=current_user.id)
+    db.add(invite)
+    await db.commit()
+    await db.refresh(invite)
+    return {"id": invite.id, "code": invite.code, "created_at": invite.created_at.isoformat()}
+
+
+@router.delete("/invites/{invite_id}")
+async def delete_invite(
+    invite_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_active_superuser),
+):
+    """Delete an invite code."""
+    result = await db.execute(select(InviteCode).where(InviteCode.id == invite_id))
+    invite = result.scalar_one_or_none()
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found.")
+    await db.delete(invite)
+    await db.commit()
+    return {"deleted": invite_id}
+
+
+@router.patch("/invites/settings")
+async def update_invite_settings(
+    open_registration: bool,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_active_superuser),
+):
+    """Toggle whether open registration is allowed."""
+    result = await db.execute(
+        select(ServerSetting).where(ServerSetting.key == "open_registration")
+    )
+    row = result.scalar_one_or_none()
+    if row:
+        row.value = "true" if open_registration else "false"
+    else:
+        db.add(ServerSetting(key="open_registration", value="true" if open_registration else "false"))
+    await db.commit()
+    return {"open_registration": open_registration}

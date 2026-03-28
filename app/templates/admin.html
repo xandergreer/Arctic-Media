@@ -24,6 +24,9 @@
         <button class="admin-tab" data-tab="users" onclick="switchTab('users')">
             <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">group</span>Users
         </button>
+        <button class="admin-tab" data-tab="invites" onclick="switchTab('invites')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">mail</span>Invites
+        </button>
     </div>
 
     <!-- Tab: Live View -->
@@ -55,6 +58,16 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Tab: Invites -->
+    <div id="tab-invites" class="admin-tab-content">
+        <div id="invites-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">mail</span>
+                <p>Loading…</p>
+            </div>
+        </div>
     </div>
 
     <!-- Tab: Users -->
@@ -114,6 +127,7 @@ function switchTab(name) {
     document.getElementById(`tab-${name}`).classList.add('visible');
     if (name === 'server' && typeof loadServer === 'function') loadServer();
     if (name === 'users' && typeof loadUsers === 'function') loadUsers();
+    if (name === 'invites' && typeof loadInvites === 'function') loadInvites();
 }
 // Show default tab
 switchTab('live');
@@ -122,4 +136,5 @@ switchTab('live');
 <script src="/static/js/admin_live.js?v=1"></script>
 <script src="/static/js/admin_server.js?v=1"></script>
 <script src="/static/js/admin_users.js?v=1"></script>
+<script src="/static/js/admin_invites.js?v=1"></script>
 {% endblock %}

@@ -109,6 +109,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- REGISTER FORM ---
     const registerForm = document.getElementById("registerForm");
     if (registerForm) {
+        // Pre-fill invite code from URL param and show the field
+        const urlCode = new URLSearchParams(window.location.search).get('code');
+        const inviteGroup = document.getElementById('invite-group');
+        const inviteInput = document.getElementById('invite_code');
+        if (urlCode && inviteInput) {
+            inviteInput.value = urlCode;
+            if (inviteGroup) inviteGroup.style.display = 'block';
+        }
+
         registerForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const msgBox = document.getElementById("msg-box");
@@ -117,21 +126,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const username = document.getElementById("username").value;
             const password = document.getElementById("password").value;
+            const inviteCode = inviteInput ? inviteInput.value.trim() : '';
+
+            let url = `/api/v1/auth/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+            if (inviteCode) url += `&invite_code=${encodeURIComponent(inviteCode)}`;
 
             try {
-                const response = await fetch(`/api/v1/auth/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-                    method: "POST"
-                });
+                const response = await fetch(url, { method: "POST" });
 
                 if (response.ok) {
-                    msgBox.style.color = "#22c55e"; // Green
+                    msgBox.style.color = "#22c55e";
                     msgBox.innerHTML = 'Account created! Redirecting to login...';
                     msgBox.style.display = "block";
                     setTimeout(() => window.location.href = "/login", 2000);
                 } else {
                     const data = await response.json();
-                    msgBox.innerText = data.detail || "Registration failed";
+                    const detail = data.detail || "Registration failed";
+                    msgBox.innerText = detail;
                     msgBox.style.display = "block";
+                    // Show invite field if server says it's required
+                    if (detail.toLowerCase().includes('invite') && inviteGroup) {
+                        inviteGroup.style.display = 'block';
+                    }
                 }
             } catch (err) {
                 msgBox.innerText = "Server connection failure";

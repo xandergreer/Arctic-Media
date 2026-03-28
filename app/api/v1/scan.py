@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated
+import asyncio
 import traceback
 
 from app.core.database import get_db
@@ -16,24 +17,25 @@ async def trigger_scan(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user = Depends(get_current_active_superuser)
 ):
-    """Trigger a full scan of all libraries."""
+    """Trigger a full scan of all libraries (parallel)."""
     result = await db.execute(select(Library))
     libraries = result.scalars().all()
 
     if not libraries:
         return {"status": "no_libraries", "message": "No libraries configured.", "results": []}
 
-    results = []
-    for lib in libraries:
+    async def _scan_one(lib: Library):
         try:
             print(f"[SCAN] Starting library: {lib.name} ({lib.type.value}) at {lib.path}")
-            await scanner.scan_library(db, lib.id)
-            results.append({"library": lib.name, "status": "ok"})
+            await scanner.scan_library(lib.id)
             print(f"[SCAN] Finished library: {lib.name}")
+            return {"library": lib.name, "status": "ok"}
         except Exception as e:
             tb = traceback.format_exc()
             print(f"[SCAN] ERROR in library {lib.name}: {e}\n{tb}")
-            results.append({"library": lib.name, "status": "error", "detail": str(e)})
+            return {"library": lib.name, "status": "error", "detail": str(e)}
+
+    results = await asyncio.gather(*[_scan_one(lib) for lib in libraries])
 
     errors = [r for r in results if r["status"] == "error"]
     if errors:
@@ -47,7 +49,7 @@ async def rescan_library(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user = Depends(get_current_active_superuser)
 ):
-    """Rescan a single library by ID. Merges duplicate shows automatically."""
+    """Rescan a single library by ID."""
     result = await db.execute(select(Library).where(Library.id == library_id))
     lib = result.scalar_one_or_none()
     if not lib:
@@ -55,11 +57,10 @@ async def rescan_library(
 
     try:
         print(f"[SCAN] Rescanning library: {lib.name} ({lib.type.value}) at {lib.path}")
-        await scanner.scan_library(db, lib.id)
+        await scanner.scan_library(lib.id)
         print(f"[SCAN] Rescan complete: {lib.name}")
         return {"status": "ok", "library": lib.name}
     except Exception as e:
         tb = traceback.format_exc()
         print(f"[SCAN] ERROR rescanning {lib.name}: {e}\n{tb}")
         raise HTTPException(status_code=500, detail=str(e))
-

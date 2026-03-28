@@ -1,13 +1,16 @@
-from datetime import timedelta
-from typing import Annotated
+from datetime import datetime, timedelta
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core import security
 from app.core.database import get_db
 from app.models.user import User
+from app.models.settings import ServerSetting
+from app.models.invite import InviteCode
 from app.services import auth as auth_service
 from app.api.deps import get_current_user
 
@@ -40,24 +43,46 @@ async def login_for_access_token(
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Temporary endpoint to help you create your first user!
 @router.post("/register", response_model=dict)
 async def register_user(
-    username: str, 
-    password: str, 
-    db: Annotated[AsyncSession, Depends(get_db)]
+    username: str,
+    password: str,
+    invite_code: Optional[str] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = Depends(get_db),
 ):
-    """
-    Quick helper to register a user since we don't have a frontend yet.
-    """
+    # Check whether open registration is enabled
+    setting = await db.execute(
+        select(ServerSetting).where(ServerSetting.key == "open_registration")
+    )
+    setting_row = setting.scalar_one_or_none()
+    open_reg = (setting_row is None) or (setting_row.value == "true")
+
+    if not open_reg:
+        if not invite_code:
+            raise HTTPException(status_code=403, detail="Registration is invite-only. An invite code is required.")
+        invite = await db.execute(
+            select(InviteCode).where(InviteCode.code == invite_code)
+        )
+        invite_row = invite.scalar_one_or_none()
+        if not invite_row:
+            raise HTTPException(status_code=400, detail="Invalid invite code.")
+        if invite_row.used_at is not None:
+            raise HTTPException(status_code=400, detail="Invite code has already been used.")
+        if invite_row.expires_at and invite_row.expires_at < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="Invite code has expired.")
+
     existing_user = await auth_service.get_user_by_username(db, username)
     if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Username already registered"
-        )
-    
+        raise HTTPException(status_code=400, detail="Username already registered")
+
     new_user = await auth_service.create_user(db, username, password)
+
+    # Mark invite as used
+    if not open_reg and invite_code:
+        invite_row.used_by_id = new_user.id
+        invite_row.used_at = datetime.utcnow()
+        await db.commit()
+
     return {"username": new_user.username, "status": "User created"}
 
 @router.get("/me", response_model=dict)
