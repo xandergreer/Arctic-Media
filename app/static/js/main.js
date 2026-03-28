@@ -46,7 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Show Live View link for admins
         try {
-            const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            let b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            b64 += '='.repeat((4 - b64.length % 4) % 4);
             const payload = JSON.parse(decodeURIComponent(
                 atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
             ));
