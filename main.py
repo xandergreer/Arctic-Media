@@ -37,6 +37,7 @@ from app.api.v1.stream_hls import router as hls_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.remote import router as remote_router
 from app.api.v1.history import router as history_router
+from app.api.v1.admin import router as admin_router
 
 # IMPORTS: These lines register the models with the 'Base' class
 from app.models.user import User
@@ -55,7 +56,16 @@ async def lifespan(app: FastAPI):
     # 1. Create Tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+        # Migrate: add columns introduced after initial schema (SQLite ALTER TABLE is additive-only)
+        for col_sql in [
+            "ALTER TABLE watch_history ADD COLUMN last_ip VARCHAR(64)",
+            "ALTER TABLE watch_history ADD COLUMN last_user_agent VARCHAR(512)",
+        ]:
+            try:
+                await conn.execute(text(col_sql))
+            except Exception:
+                pass  # Column already exists
+
     print("Database tables verified/created.")
     
     yield
@@ -90,6 +100,7 @@ app.include_router(stream_router, prefix="/api/v1/stream", tags=["Stream"])
 app.include_router(hls_router, prefix="/api/v1", tags=["Stream HLS"])
 app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
 app.include_router(history_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 app.include_router(remote_router) # /pair endpoints
 
 
@@ -136,3 +147,7 @@ async def movie_page(request: Request, item_id: int):
 @app.get("/show/{item_id}")
 async def show_page(request: Request, item_id: int):
     return templates.TemplateResponse("show.html", {"request": request, "item_id": item_id})
+
+@app.get("/admin")
+async def admin_page(request: Request):
+    return templates.TemplateResponse("admin.html", {"request": request})

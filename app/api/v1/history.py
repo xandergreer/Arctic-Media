@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,6 +132,7 @@ async def get_progress(
 async def update_progress(
     media_id: int,
     body: ProgressUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -147,12 +148,19 @@ async def update_progress(
     if body.duration_seconds and body.duration_seconds > 0:
         completed = (body.position_seconds / body.duration_seconds) >= 0.9
 
+    # Capture client context for Live View
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() \
+                or (request.client.host if request.client else None)
+    user_agent = request.headers.get("user-agent")
+
     if row:
         row.position_seconds = body.position_seconds
         if body.duration_seconds:
             row.duration_seconds = body.duration_seconds
         row.completed = completed
         row.last_watched_at = datetime.now(timezone.utc)
+        row.last_ip = client_ip
+        row.last_user_agent = user_agent
     else:
         row = WatchHistory(
             user_id=current_user.id,
@@ -161,6 +169,8 @@ async def update_progress(
             duration_seconds=body.duration_seconds,
             completed=completed,
             last_watched_at=datetime.now(timezone.utc),
+            last_ip=client_ip,
+            last_user_agent=user_agent,
         )
         db.add(row)
 

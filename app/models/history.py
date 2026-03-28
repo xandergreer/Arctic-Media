@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Integer, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy import Integer, Float, Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.base import IDMixin
@@ -50,6 +50,10 @@ class WatchHistory(Base, IDMixin):
         nullable=False,
         default=datetime.utcnow
     )
+
+    # Client context captured on each progress save (for Live View)
+    last_ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    last_user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
 
     # Relationships (lazy by default — fine for history lookups)
     user: Mapped["User"] = relationship("User")                         # type: ignore[name-defined]

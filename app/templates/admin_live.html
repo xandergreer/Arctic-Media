@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Live View — Arctic Media{% endblock %}
+
+{% block full_content %}
+<div style="padding-top: calc(var(--nav-height) + 2rem); padding-bottom: 4rem;">
+
+    <div class="section" style="max-width:1200px;">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <div class="section-label" style="margin-bottom:0;">
+                    <h2 style="margin:0;">Live View</h2>
+                </div>
+                <div id="viewer-count-badge"
+                    style="background:var(--blue-glow);border:1px solid var(--border-bright);color:var(--blue-300);padding:0.2rem 0.75rem;border-radius:var(--radius-pill);font-size:0.8rem;font-weight:600;">
+                    Loading…
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div id="refresh-indicator"
+                    style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);">
+                    <span class="material-icons" style="font-size:14px;">sync</span>
+                    <span id="refresh-countdown">10s</span>
+                </div>
+                <button onclick="loadLive()" class="btn btn-ghost" style="padding:0.4rem 0.9rem;font-size:0.85rem;">
+                    <span class="material-icons" style="font-size:15px;vertical-align:middle;">refresh</span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Viewer grid -->
+        <div id="viewer-grid">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span style="font-size:2.5rem;">❄️</span>
+                <p style="margin-top:1rem;">Loading…</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="/static/js/admin_live.js?v=1"></script>
+{% endblock %}

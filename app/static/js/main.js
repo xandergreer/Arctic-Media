@@ -43,6 +43,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.location.href = "/login";
             });
         }
+
+        // Show Live View link for admins
+        try {
+            const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(decodeURIComponent(
+                atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+            ));
+            if (payload.is_superuser) {
+                const adminLink = document.getElementById('nav-admin');
+                if (adminLink) adminLink.style.display = 'inline-block';
+            }
+        } catch (_) {}
     } else {
         // Redirect logic if on protected pages could go here
         // For now, we just rely on API 401s

@@ -27,6 +27,7 @@
                 <a href="/" id="nav-home">Home</a>
                 <a href="/libraries/movies" id="nav-movies">Movies</a>
                 <a href="/libraries/shows" id="nav-shows">TV Shows</a>
+                <a href="/admin" id="nav-admin" style="display:none;">Admin</a>
                 <a href="/settings" id="nav-settings">Settings</a>
             </div>
 
@@ -90,7 +91,8 @@
                 '/': 'nav-home',
                 '/libraries/movies': 'nav-movies',
                 '/libraries/shows': 'nav-shows',
-                '/settings': 'nav-settings'
+                '/settings': 'nav-settings',
+                '/admin': 'nav-admin',
             };
             let best = '', bestId = '';
             for (const [p, id] of Object.entries(map)) {
