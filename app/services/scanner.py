@@ -229,6 +229,61 @@ class _TMDBCache:
         return self._season_eps.get(key, {}).get(ep_num) or None
 
 
+async def _retitle_stale_items(db: AsyncSession, library_id: int):
+    """
+    For every MediaItem in this library that has no poster_url (enrichment previously failed),
+    re-derives the title from the stored file path using the current clean_title() logic
+    (which now uses guessit).  If the title changes, the stale tmdb_id is cleared so that
+    the enrichment pass that follows will do a fresh TMDB search.
+    """
+    result = await db.execute(
+        select(MediaItem, MediaFile.path)
+        .join(MediaFile, MediaFile.media_item_id == MediaItem.id)
+        .where(
+            MediaItem.library_id == library_id,
+            MediaItem.kind.in_([MediaKind.MOVIE, MediaKind.SHOW]),
+            MediaItem.poster_url.is_(None),
+        )
+    )
+    rows = result.all()
+
+    # Deduplicate: one representative file path per item
+    seen: set[int] = set()
+    updated = 0
+    for item, path in rows:
+        if item.id in seen:
+            continue
+        seen.add(item.id)
+
+        filename = os.path.splitext(os.path.basename(path))[0]
+        # Try folder name first (matches how _scan_movies works)
+        folder_name = os.path.basename(os.path.dirname(path))
+        m = MOVIE_REGEX.match(folder_name) or MOVIE_REGEX.match(filename)
+        if m:
+            raw = m.group(1).replace(".", " ").strip()
+        else:
+            raw = filename.replace(".", " ").strip()
+
+        new_title = clean_title(raw)
+        if not new_title or new_title == item.title:
+            continue
+
+        print(f"  [RETITLE] '{item.title}' → '{new_title}'  ({os.path.basename(path)})")
+        item.title = new_title
+        item.sort_title = new_title
+        # Clear stale TMDB data so enrichment retries the search
+        if item.extra_json:
+            meta = dict(item.extra_json)
+            meta.pop("tmdb_id", None)
+            item.extra_json = meta
+
+        updated += 1
+
+    if updated:
+        await db.commit()
+        print(f"  [RETITLE] Updated {updated} stale title(s).")
+
+
 async def scan_library(library_id: int):
     """
     Scans a single library in its own DB session.
@@ -264,7 +319,10 @@ async def scan_library(library_id: int):
         library.last_scanned_at = datetime.datetime.utcnow()
         await db.commit()
 
-        print(f"[SCAN] Finished: {library.name} — running enrichment")
+        print(f"[SCAN] Finished: {library.name} — re-titling stale items")
+        await _retitle_stale_items(db, library.id)
+
+        print(f"[SCAN] Running enrichment for {library.name}")
         try:
             await enrich_library(db, library.id)
         except Exception as e:
