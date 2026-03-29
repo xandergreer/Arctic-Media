@@ -1,9 +1,12 @@
 import os
 import secrets
 import shutil
+import time
+import asyncio
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
+from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db, engine
@@ -158,6 +161,35 @@ async def get_live_viewers(
         })
 
     return {"viewers": viewers, "active_window_seconds": ACTIVE_WINDOW_SECONDS}
+
+
+@router.get("/server/metrics")
+async def get_server_metrics(_: User = Depends(get_current_active_superuser)):
+    """Live CPU, RAM, network, and uptime stats via psutil."""
+    try:
+        import psutil
+
+        # cpu_percent with interval blocks briefly — run in thread
+        cpu_pct = await asyncio.to_thread(psutil.cpu_percent, 0.2)
+        mem = psutil.virtual_memory()
+        net = psutil.net_io_counters()
+        uptime_secs = int(time.time() - psutil.boot_time())
+
+        return {
+            "available": True,
+            "cpu_pct": round(cpu_pct, 1),
+            "cpu_cores_logical": psutil.cpu_count(logical=True),
+            "cpu_cores_physical": psutil.cpu_count(logical=False),
+            "mem_total": mem.total,
+            "mem_used": mem.used,
+            "mem_available": mem.available,
+            "mem_pct": round(mem.percent, 1),
+            "net_bytes_sent": net.bytes_sent,
+            "net_bytes_recv": net.bytes_recv,
+            "uptime_seconds": uptime_secs,
+        }
+    except ImportError:
+        return {"available": False}
 
 
 @router.get("/server")
@@ -417,6 +449,153 @@ async def delete_invite(
     await db.delete(invite)
     await db.commit()
     return {"deleted": invite_id}
+
+
+# ──────────────────────── History ────────────────────────
+
+@router.get("/history")
+async def get_history_stats(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_active_superuser),
+):
+    """Global watch history stats: totals, most-watched, and per-user history."""
+
+    # ── Totals ──────────────────────────────────────────────────────────────────
+    totals_result = await db.execute(
+        select(
+            func.count(WatchHistory.id),
+            func.coalesce(func.sum(WatchHistory.position_seconds), 0),
+            func.count(func.distinct(WatchHistory.user_id)),
+        )
+    )
+    total_plays, total_seconds, unique_watchers = totals_result.one()
+
+    completed_result = await db.execute(
+        select(func.count(WatchHistory.id)).where(WatchHistory.completed == True)
+    )
+    total_completed = completed_result.scalar_one()
+
+    # ── Most watched movies ──────────────────────────────────────────────────────
+    movie_result = await db.execute(
+        select(
+            MediaItem.id,
+            MediaItem.title,
+            MediaItem.poster_url,
+            func.count(WatchHistory.id).label("play_count"),
+            func.coalesce(func.sum(WatchHistory.position_seconds), 0).label("total_seconds"),
+        )
+        .join(WatchHistory, WatchHistory.media_item_id == MediaItem.id)
+        .where(MediaItem.kind == MediaKind.MOVIE)
+        .group_by(MediaItem.id)
+        .order_by(desc("play_count"))
+        .limit(10)
+    )
+    most_watched_movies = [
+        {"media_id": r.id, "title": r.title, "poster_url": r.poster_url,
+         "play_count": r.play_count, "total_seconds": int(r.total_seconds)}
+        for r in movie_result.all()
+    ]
+
+    # ── Most watched shows (via episode history) ─────────────────────────────────
+    ep_alias = aliased(MediaItem)
+    season_alias = aliased(MediaItem)
+    show_alias = aliased(MediaItem)
+
+    show_result = await db.execute(
+        select(
+            show_alias.id,
+            show_alias.title,
+            show_alias.poster_url,
+            func.count(WatchHistory.id).label("ep_count"),
+            func.coalesce(func.sum(WatchHistory.position_seconds), 0).label("total_seconds"),
+        )
+        .join(ep_alias, WatchHistory.media_item_id == ep_alias.id)
+        .join(season_alias, ep_alias.parent_id == season_alias.id)
+        .join(show_alias, season_alias.parent_id == show_alias.id)
+        .where(ep_alias.kind == MediaKind.EPISODE)
+        .where(show_alias.kind == MediaKind.SHOW)
+        .group_by(show_alias.id)
+        .order_by(desc("ep_count"))
+        .limit(10)
+    )
+    most_watched_shows = [
+        {"media_id": r.id, "title": r.title, "poster_url": r.poster_url,
+         "ep_count": r.ep_count, "total_seconds": int(r.total_seconds)}
+        for r in show_result.all()
+    ]
+
+    # ── Per-user history ─────────────────────────────────────────────────────────
+    users_result = await db.execute(select(User).order_by(User.created_at))
+    users = users_result.scalars().all()
+
+    user_histories = []
+    for u in users:
+        hist_result = await db.execute(
+            select(WatchHistory, MediaItem)
+            .join(MediaItem, WatchHistory.media_item_id == MediaItem.id)
+            .where(WatchHistory.user_id == u.id)
+            .order_by(WatchHistory.last_watched_at.desc())
+            .limit(25)
+        )
+        rows = hist_result.all()
+
+        items = []
+        for hist, item in rows:
+            pct = 0
+            if hist.duration_seconds and hist.duration_seconds > 0:
+                pct = min(100, round(hist.position_seconds / hist.duration_seconds * 100))
+
+            display_title = item.title
+            ep_label = None
+            if item.kind == MediaKind.EPISODE and item.parent_id:
+                season_res = await db.execute(
+                    select(MediaItem).where(MediaItem.id == item.parent_id)
+                )
+                season_item = season_res.scalar_one_or_none()
+                if season_item:
+                    if season_item.season_number and item.episode_number:
+                        ep_label = f"S{season_item.season_number}E{item.episode_number:02d}"
+                    if season_item.parent_id:
+                        show_res = await db.execute(
+                            select(MediaItem).where(MediaItem.id == season_item.parent_id)
+                        )
+                        show_item = show_res.scalar_one_or_none()
+                        if show_item:
+                            display_title = show_item.title
+
+            items.append({
+                "media_id": item.id,
+                "title": display_title,
+                "ep_label": ep_label,
+                "kind": item.kind.value,
+                "poster_url": item.poster_url,
+                "progress_pct": pct,
+                "completed": hist.completed,
+                "position_seconds": int(hist.position_seconds),
+                "duration_seconds": int(hist.duration_seconds) if hist.duration_seconds else None,
+                "last_watched_at": hist.last_watched_at.isoformat() if hist.last_watched_at else None,
+            })
+
+        user_total_seconds = sum(it["position_seconds"] for it in items)
+        user_histories.append({
+            "user_id": u.id,
+            "username": u.username,
+            "total_seconds": user_total_seconds,
+            "item_count": len(items),
+            "history": items,
+        })
+
+    return {
+        "totals": {
+            "total_plays": int(total_plays),
+            "total_seconds": int(total_seconds),
+            "total_completed": int(total_completed),
+            "unique_watchers": int(unique_watchers),
+        },
+        "most_watched_movies": most_watched_movies,
+        "most_watched_shows": most_watched_shows,
+        "users": user_histories,
+    }
 
 
 @router.patch("/invites/settings")
