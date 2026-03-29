@@ -77,7 +77,8 @@ async def trigger_scan(
         }
 
     async def _run_all():
-        await asyncio.gather(*[_run_scan(lib.id, lib.name) for lib in libraries])
+        for lib in libraries:
+            await _run_scan(lib.id, lib.name)
 
     asyncio.create_task(_run_all())
 
