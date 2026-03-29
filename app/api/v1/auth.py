@@ -47,8 +47,8 @@ async def login_for_access_token(
 async def register_user(
     username: str,
     password: str,
-    invite_code: Optional[str] = None,
     db: Annotated[AsyncSession, Depends(get_db)],
+    invite_code: Optional[str] = None,
 ):
     # Check whether open registration is enabled
     setting = await db.execute(
