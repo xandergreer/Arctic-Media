@@ -104,8 +104,7 @@ TOKEN_RE = re.compile(r"[.\-_\[\](){}/\\]+|\s+")
 def _show_name_from_filename(filename_no_ext: str, episode_match_start: int) -> str:
     if episode_match_start <= 0:
         return ""
-    before = filename_no_ext[:episode_match_start].strip()
-    before = before.replace(".", " ")
+    before = filename_no_ext[:episode_match_start].strip().rstrip(".-_ ")
     if " - " in before:
         before = before.split(" - ")[0].strip()
     return clean_title(before) if before else ""
@@ -177,6 +176,30 @@ def clean_title(title: str) -> str:
         parts.pop()
 
     return _title_case(" ".join(parts)).strip()
+
+
+def _walk_and_stat(root_path: str) -> list:
+    """
+    Single-threaded walk that collects folder mtime and file sizes in one pass.
+    Eliminates the per-folder/per-file asyncio.to_thread overhead that was the
+    main latency source on large already-indexed libraries.
+
+    Returns list of (root, dirs, files, folder_mtime, {filename: size_bytes}).
+    """
+    results = []
+    for root, dirs, files in os.walk(root_path):
+        try:
+            folder_mtime = os.path.getmtime(root)
+        except OSError:
+            folder_mtime = 0.0
+        file_sizes: dict = {}
+        for fname in files:
+            try:
+                file_sizes[fname] = os.path.getsize(os.path.join(root, fname))
+            except OSError:
+                pass
+        results.append((root, dirs, files, folder_mtime, file_sizes))
+    return results
 
 
 def is_extra(filepath: str) -> bool:
@@ -262,7 +285,8 @@ async def _retitle_stale_items(db: AsyncSession, library_id: int):
         if m:
             raw = m.group(1).replace(".", " ").strip()
         else:
-            raw = filename.replace(".", " ").strip()
+            # Pass original filename with dots intact — guessit works better with them
+            raw = filename
 
         new_title = clean_title(raw)
         if not new_title or new_title == item.title:
@@ -332,31 +356,27 @@ async def scan_library(library_id: int):
 async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]):
     """
     Scans a movie library.
-    - known_paths: pre-loaded set of all already-indexed file paths (O(1) lookup)
-    - mtime skip: folders unchanged since last scan are skipped entirely
-    - flush() per new item, commit() per folder batch
+    - _walk_and_stat: one thread collects all folder mtimes + file sizes (no per-file threads)
+    - known_paths: pre-loaded set for O(1) duplicate checks
+    - mtime skip: unchanged folders skipped entirely
+    - commit() per folder batch
     """
     added = skipped = skipped_folders = 0
 
     last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
 
-    walk_results: list = await asyncio.to_thread(lambda: list(os.walk(library.path)))
+    walk_results: list = await asyncio.to_thread(_walk_and_stat, library.path)
 
-    for root, _dirs, files in walk_results:
+    for root, _dirs, files, folder_mtime, file_sizes in walk_results:
         video_files = [f for f in files if os.path.splitext(f)[1].lower() in VIDEO_EXTENSIONS]
         if not video_files:
             continue
 
         # mtime check: skip folder if it hasn't changed since last scan
-        if last_scan_ts:
-            try:
-                folder_mtime = await asyncio.to_thread(os.path.getmtime, root)
-                if folder_mtime <= last_scan_ts:
-                    skipped += len(video_files)
-                    skipped_folders += 1
-                    continue
-            except Exception:
-                pass  # can't stat → process it anyway
+        if last_scan_ts and folder_mtime and folder_mtime <= last_scan_ts:
+            skipped += len(video_files)
+            skipped_folders += 1
+            continue
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
@@ -374,14 +394,17 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 skipped += 1
                 continue
 
-            # Parse title/year — prefer folder name
+            # Parse title/year — prefer folder name.
+            # When MOVIE_REGEX matches (year in parens), the captured group is already
+            # just the title — replace dots and clean.  When it doesn't match, pass the
+            # original filename with dots intact so guessit can use them as separators.
             folder_name = os.path.basename(root)
             match = MOVIE_REGEX.match(folder_name) or MOVIE_REGEX.match(name)
             if match:
                 title_raw = match.group(1).replace(".", " ").strip()
                 year = int(match.group(2))
             else:
-                title_raw = name.replace(".", " ").strip()
+                title_raw = name  # keep dots — guessit needs them
                 year = None
 
             title = clean_title(title_raw)
@@ -402,17 +425,15 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                     library_id=library.id,
                 )
                 db.add(media_item)
-                await db.flush()  # get ID without committing
+                await db.flush()
 
-            try:
-                stat_path = full_path
-                if os.name == 'nt' and len(full_path) > 250 and not full_path.startswith('\\\\?\\'):
-                    stat_path = u"\\\\?\\" + full_path
-                size = await asyncio.to_thread(os.path.getsize, stat_path)
-            except Exception as e:
-                print(f"    [ERROR] Could not stat {filename}: {e}")
+            # Size already collected by _walk_and_stat — no extra syscall needed
+            size = file_sizes.get(filename)
+            if size is None:
+                print(f"    [ERROR] Could not stat {filename}")
                 continue
 
+            # Windows long-path safety (size was already obtained above via normal path)
             db.add(MediaFile(
                 media_item_id=media_item.id,
                 path=full_path,
@@ -439,9 +460,11 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
 async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str], tmdb_cache: Optional[_TMDBCache] = None):
     """
     Scans a TV show library.
+    - _walk_and_stat: one thread for the entire walk + all mtimes + file sizes
     - known_paths: pre-loaded set for O(1) duplicate checks
-    - mtime skip: unchanged folders are skipped
-    - flush() + per-folder batch commits
+    - mtime skip: unchanged folders skipped entirely
+    - In-memory show/season/episode caches: eliminate repeated DB lookups for the
+      same show/season across thousands of episode files
     """
     await _deduplicate_shows(db)
 
@@ -449,23 +472,23 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
 
     last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
 
-    walk_results: list = await asyncio.to_thread(lambda: list(os.walk(library.path)))
+    walk_results: list = await asyncio.to_thread(_walk_and_stat, library.path)
 
-    for root, _dirs, files in walk_results:
+    # In-memory caches — avoids a DB query every time we see the same show/season/episode
+    show_cache:    dict = {}   # title → MediaItem
+    season_cache:  dict = {}   # (show_id, season_num) → MediaItem
+    episode_cache: dict = {}   # (season_id, ep_num) → MediaItem
+
+    for root, _dirs, files, folder_mtime, file_sizes in walk_results:
         video_files = [f for f in files if os.path.splitext(f)[1].lower() in VIDEO_EXTENSIONS]
         if not video_files:
             continue
 
         # mtime skip
-        if last_scan_ts:
-            try:
-                folder_mtime = await asyncio.to_thread(os.path.getmtime, root)
-                if folder_mtime <= last_scan_ts:
-                    skipped += len(video_files)
-                    skipped_folders += 1
-                    continue
-            except Exception:
-                pass
+        if last_scan_ts and folder_mtime and folder_mtime <= last_scan_ts:
+            skipped += len(video_files)
+            skipped_folders += 1
+            continue
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
@@ -522,8 +545,19 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             else:
                 show_name = show_name_from_folder or "Unknown Show"
 
-            show_item = await _get_or_create_show(db, show_name, library.id)
-            season_item = await _get_or_create_season(db, show_item, season_num, library.id)
+            # --- cached lookups ---
+            if show_name in show_cache:
+                show_item = show_cache[show_name]
+            else:
+                show_item = await _get_or_create_show(db, show_name, library.id)
+                show_cache[show_name] = show_item
+
+            season_key = (show_item.id, season_num)
+            if season_key in season_cache:
+                season_item = season_cache[season_key]
+            else:
+                season_item = await _get_or_create_season(db, show_item, season_num, library.id)
+                season_cache[season_key] = season_item
 
             ep_title = f"Episode {episode_num}"
             if tmdb_cache:
@@ -534,14 +568,16 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 except Exception as e:
                     print(f"      [TMDB] Lookup failed for {show_name} S{season_num:02d}E{episode_num:02d}: {e}")
 
-            episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, library.id)
+            ep_key = (season_item.id, episode_num)
+            if ep_key in episode_cache:
+                episode_item = episode_cache[ep_key]
+            else:
+                episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, library.id)
+                episode_cache[ep_key] = episode_item
 
-            try:
-                stat_path = full_path
-                if os.name == 'nt' and len(full_path) > 250 and not full_path.startswith('\\\\?\\'):
-                    stat_path = u"\\\\?\\" + full_path
-                size = await asyncio.to_thread(os.path.getsize, stat_path)
-            except Exception:
+            # Size already collected by _walk_and_stat — no extra syscall needed
+            size = file_sizes.get(filename)
+            if size is None:
                 continue
 
             db.add(MediaFile(

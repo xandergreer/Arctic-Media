@@ -16,8 +16,8 @@ log = logging.getLogger("scanner")
 TMDB_API = "https://api.themoviedb.org/3"
 IMG_BASE = "https://image.tmdb.org/t/p"
 
-# Max concurrent TMDB requests — stays well within the 40 req/10s rate limit
-_TMDB_SEM = asyncio.Semaphore(8)
+# Max concurrent TMDB requests — 40 req/10s limit, 16 in-flight stays comfortable
+_TMDB_SEM = asyncio.Semaphore(16)
 
 
 # ── Utils ──────────────────────────────────────────────────────────────────────
