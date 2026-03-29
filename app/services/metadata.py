@@ -16,7 +16,7 @@ log = logging.getLogger("scanner")
 TMDB_API = "https://api.themoviedb.org/3"
 IMG_BASE = "https://image.tmdb.org/t/p"
 
-# Max concurrent TMDB requests — 40 req/10s limit, 16 in-flight stays comfortable
+# Max concurrent TMDB requests - 40 req/10s limit, 16 in-flight stays comfortable
 _TMDB_SEM = asyncio.Semaphore(16)
 
 
@@ -52,9 +52,9 @@ async def _get(api_key: str, path: str, params: Dict[str, Any]) -> Optional[Dict
                     r = await client.get(url, headers=h, params=p)
                     if r.status_code != 429:
                         break
-                    log.warning("TMDB 429 on %s — retrying in %.0fs (attempt %d)", path, backoff, attempt + 1)
+                    log.warning("TMDB 429 on %s - retrying in %.0fs (attempt %d)", path, backoff, attempt + 1)
                     await asyncio.sleep(backoff)
-                    backoff *= 2  # 2s → 4s → 8s → 16s
+                    backoff *= 2  # 2s -> 4s -> 8s -> 16s
                 r.raise_for_status()
                 return r.json()
         except Exception as e:
@@ -85,7 +85,7 @@ def _pack_common(d: Dict[str, Any]) -> Dict[str, Any]:
 async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Optional[int]:
     """
     Search TMDB for a movie. If the full title fails, progressively strips
-    trailing words down to a 2-word minimum — catches dirty suffixes like
+    trailing words down to a 2-word minimum - catches dirty suffixes like
     'Zootopia 2 It' and subtitle structures like 'Chainsaw Man The Movie Reze Arc'
     where stripping down to 'Chainsaw Man' is needed to match TMDB.
     """
@@ -117,8 +117,8 @@ async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Option
             print(f"  [META] Smart match: '{title}' -> searched as '{shorter}'")
             return result
 
-    # Apostrophe restoration: filenames often drop apostrophes ("Porkys" → "Porky's",
-    # "Its A Wonderful Life" → "It's A Wonderful Life").
+    # Apostrophe restoration: filenames often drop apostrophes ("Porkys" -> "Porky's",
+    # "Its A Wonderful Life" -> "It's A Wonderful Life").
     # Only tried as a last resort after all other strategies have failed.
     restored = re.sub(r"([a-zA-Z])s\b", r"\1's", title)
     if restored != title:
@@ -188,7 +188,7 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
             # Correct dirty filename title with TMDB canonical title
             tmdb_title = details.get("title")
             if tmdb_title and tmdb_title != item.title:
-                print(f"  [META] Title corrected: '{item.title}' → '{tmdb_title}'")
+                print(f"  [META] Title corrected: '{item.title}' -> '{tmdb_title}'")
                 item.title = tmdb_title
                 item.sort_title = normalize_sort(tmdb_title)
 
@@ -197,7 +197,7 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
             item.overview = details.get("overview")
             meta.update(details)
             item.extra_json = meta
-            print(f"  [META] Movie: {item.title} → TMDB {tmdb_id}")
+            print(f"  [META] Movie: {item.title} -> TMDB {tmdb_id}")
             return True
 
         elif item.kind == MediaKind.SHOW:
@@ -211,7 +211,7 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
 
             tmdb_title = details.get("title")
             if tmdb_title and tmdb_title != item.title:
-                print(f"  [META] Title corrected: '{item.title}' → '{tmdb_title}'")
+                print(f"  [META] Title corrected: '{item.title}' -> '{tmdb_title}'")
                 item.title = tmdb_title
                 item.sort_title = normalize_sort(tmdb_title)
 
@@ -220,7 +220,7 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
             item.overview = details.get("overview")
             meta.update(details)
             item.extra_json = meta
-            print(f"  [META] Show: {item.title} → TMDB {tmdb_id}")
+            print(f"  [META] Show: {item.title} -> TMDB {tmdb_id}")
             return True
 
     except Exception as e:
@@ -294,7 +294,7 @@ async def enrich_library(session: AsyncSession, library_id: int):
 
     result = await session.execute(select(MediaItem).where(MediaItem.library_id == library_id))
     items = result.scalars().all()
-    print(f"  [META] Enriching {len(items)} items for library {library_id}…")
+    print(f"  [META] Enriching {len(items)} items for library {library_id}...")
 
     # Phase 1: Concurrently enrich movies and shows that haven't been enriched yet
     async def _enrich_one(item: MediaItem):

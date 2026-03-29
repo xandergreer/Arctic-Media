@@ -113,7 +113,7 @@ def _show_name_from_filename(filename_no_ext: str, episode_match_start: int) -> 
 def _title_case(s: str) -> str:
     """
     Title-case that doesn't capitalize the letter after an apostrophe.
-    Python's str.title() turns "ender's game" into "Ender'S Game" — this fixes that.
+    Python's str.title() turns "ender's game" into "Ender'S Game" - this fixes that.
     """
     result = []
     cap_next = True
@@ -157,13 +157,18 @@ def clean_title(title: str) -> str:
             extracted = str(guess.get("title") or "").strip()
             if extracted:
                 parts = [p for p in extracted.split() if p.lower() not in STOPWORDS]
-                # Strip trailing standalone language/region codes — but never the only word
+                # Strip trailing standalone language/region codes - but never the only word
                 while len(parts) > 1 and parts[-1].lower() in LANG_CODE_TAGS:
                     parts.pop()
                 if parts:
-                    return _title_case(" ".join(parts)).strip()
-        except Exception:
-            pass
+                    result = _title_case(" ".join(parts)).strip()
+                    if result.lower() != title.lower():
+                        print(f"  [CLEAN] '{title[:60]}' -> guessit='{extracted}' -> '{result}'")
+                    return result
+            else:
+                print(f"  [CLEAN] WARNING guessit returned empty for '{title[:60]}' - using fallback")
+        except Exception as e:
+            print(f"  [CLEAN] guessit error on '{title[:60]}': {e} - using fallback")
 
     # Fallback: original regex + STOPWORDS approach
     s = JUNK_REGEX.sub(" ", title)
@@ -171,7 +176,7 @@ def clean_title(title: str) -> str:
 
     parts = [p for p in s.split() if p and p not in STOPWORDS]
 
-    # Strip trailing standalone language/region codes — but never the only word
+    # Strip trailing standalone language/region codes - but never the only word
     while len(parts) > 1 and parts[-1].lower() in LANG_CODE_TAGS:
         parts.pop()
 
@@ -218,7 +223,7 @@ def is_extra(filepath: str) -> bool:
 
 
 class _TMDBCache:
-    """Per-scan TMDB cache — one search per show, one season fetch per (tmdb_id, season)."""
+    """Per-scan TMDB cache - one search per show, one season fetch per (tmdb_id, season)."""
 
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -285,14 +290,14 @@ async def _retitle_stale_items(db: AsyncSession, library_id: int):
         if m:
             raw = m.group(1).replace(".", " ").strip()
         else:
-            # Pass original filename with dots intact — guessit works better with them
+            # Pass original filename with dots intact - guessit works better with them
             raw = filename
 
         new_title = clean_title(raw)
         if not new_title or new_title == item.title:
             continue
 
-        print(f"  [RETITLE] '{item.title}' → '{new_title}'  ({os.path.basename(path)})")
+        print(f"  [RETITLE] '{item.title}' -> '{new_title}'  ({os.path.basename(path)})")
         item.title = new_title
         item.sort_title = new_title
         # Clear stale TMDB data so enrichment retries the search
@@ -323,14 +328,14 @@ async def scan_library(library_id: int):
             return
 
         # One query to load ALL known file paths for this library into memory.
-        # Replaces the per-file SELECT inside the scan loop — massive speedup on large libraries.
+        # Replaces the per-file SELECT inside the scan loop - massive speedup on large libraries.
         paths_result = await db.execute(
             select(MediaFile.path)
             .join(MediaItem, MediaFile.media_item_id == MediaItem.id)
             .where(MediaItem.library_id == library_id)
         )
         known_paths: set[str] = {row[0] for row in paths_result.all()}
-        print(f"[SCAN] Starting: {library.name} ({library.path}) — {len(known_paths)} files already known")
+        print(f"[SCAN] Starting: {library.name} ({library.path}) - {len(known_paths)} files already known")
 
         tmdb_cache = _TMDBCache(settings.TMDB_API_KEY or "")
 
@@ -343,7 +348,7 @@ async def scan_library(library_id: int):
         library.last_scanned_at = datetime.datetime.utcnow()
         await db.commit()
 
-        print(f"[SCAN] Finished: {library.name} — re-titling stale items")
+        print(f"[SCAN] Finished: {library.name} - re-titling stale items")
         await _retitle_stale_items(db, library.id)
 
         print(f"[SCAN] Running enrichment for {library.name}")
@@ -394,9 +399,9 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 skipped += 1
                 continue
 
-            # Parse title/year — prefer folder name.
+            # Parse title/year - prefer folder name.
             # When MOVIE_REGEX matches (year in parens), the captured group is already
-            # just the title — replace dots and clean.  When it doesn't match, pass the
+            # just the title - replace dots and clean.  When it doesn't match, pass the
             # original filename with dots intact so guessit can use them as separators.
             folder_name = os.path.basename(root)
             match = MOVIE_REGEX.match(folder_name) or MOVIE_REGEX.match(name)
@@ -404,7 +409,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 title_raw = match.group(1).replace(".", " ").strip()
                 year = int(match.group(2))
             else:
-                title_raw = name  # keep dots — guessit needs them
+                title_raw = name  # keep dots - guessit needs them
                 year = None
 
             title = clean_title(title_raw)
@@ -427,7 +432,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 db.add(media_item)
                 await db.flush()
 
-            # Size already collected by _walk_and_stat — no extra syscall needed
+            # Size already collected by _walk_and_stat - no extra syscall needed
             size = file_sizes.get(filename)
             if size is None:
                 print(f"    [ERROR] Could not stat {filename}")
@@ -454,7 +459,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
 
     if skipped_folders:
         print(f"  [MOVIES] Skipped {skipped_folders} unchanged folder(s) via mtime.")
-    print(f"  [MOVIES] Done — {added} added, {skipped} skipped.")
+    print(f"  [MOVIES] Done - {added} added, {skipped} skipped.")
 
 
 async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str], tmdb_cache: Optional[_TMDBCache] = None):
@@ -474,7 +479,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
 
     walk_results: list = await asyncio.to_thread(_walk_and_stat, library.path)
 
-    # In-memory caches — avoids a DB query every time we see the same show/season/episode
+    # In-memory caches - avoids a DB query every time we see the same show/season/episode
     show_cache:    dict = {}   # title → MediaItem
     season_cache:  dict = {}   # (show_id, season_num) → MediaItem
     episode_cache: dict = {}   # (season_id, ep_num) → MediaItem
@@ -575,7 +580,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, library.id)
                 episode_cache[ep_key] = episode_item
 
-            # Size already collected by _walk_and_stat — no extra syscall needed
+            # Size already collected by _walk_and_stat - no extra syscall needed
             size = file_sizes.get(filename)
             if size is None:
                 continue
@@ -600,7 +605,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
 
     if skipped_folders:
         print(f"  [SHOWS] Skipped {skipped_folders} unchanged folder(s) via mtime.")
-    print(f"  [SHOWS] Done — {added} added, {skipped} skipped, {no_match} unrecognised.")
+    print(f"  [SHOWS] Done - {added} added, {skipped} skipped, {no_match} unrecognised.")
 
 
 async def _deduplicate_shows(db: AsyncSession):

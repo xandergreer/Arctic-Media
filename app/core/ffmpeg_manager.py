@@ -39,7 +39,7 @@ def _download(binary: str) -> str:
     zip_path = _BIN_DIR / f"{binary}.zip"
     dest = _BIN_DIR / binary
 
-    print(f"[ffmpeg] Downloading {binary} …")
+    print(f"[ffmpeg] Downloading {binary} ...")
     try:
         urllib.request.urlretrieve(url, str(zip_path))
         with zipfile.ZipFile(str(zip_path), "r") as z:
@@ -47,7 +47,7 @@ def _download(binary: str) -> str:
         zip_path.unlink(missing_ok=True)
         if dest.exists():
             dest.chmod(dest.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
-            print(f"[ffmpeg] {binary} installed → {dest}")
+            print(f"[ffmpeg] {binary} installed -> {dest}")
             return str(dest)
     except Exception as e:
         print(f"[ffmpeg] Download failed for {binary}: {e}")
