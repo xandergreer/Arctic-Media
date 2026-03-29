@@ -39,17 +39,22 @@ def normalize_sort(title: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (title or "").lower())
 
 async def _get(api_key: str, path: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Rate-limited async TMDB GET."""
+    """Rate-limited async TMDB GET with exponential backoff on 429s."""
     async with _TMDB_SEM:
         await asyncio.sleep(0.05)
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 p = {**_params(api_key), **params}
                 h = _headers(api_key)
-                r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
-                if r.status_code == 429:
-                    await asyncio.sleep(2.0)
-                    r = await client.get(f"{TMDB_API}/{path}", headers=h, params=p)
+                url = f"{TMDB_API}/{path}"
+                backoff = 2.0
+                for attempt in range(4):
+                    r = await client.get(url, headers=h, params=p)
+                    if r.status_code != 429:
+                        break
+                    log.warning("TMDB 429 on %s — retrying in %.0fs (attempt %d)", path, backoff, attempt + 1)
+                    await asyncio.sleep(backoff)
+                    backoff *= 2  # 2s → 4s → 8s → 16s
                 r.raise_for_status()
                 return r.json()
         except Exception as e:
@@ -80,8 +85,9 @@ def _pack_common(d: Dict[str, Any]) -> Dict[str, Any]:
 async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Optional[int]:
     """
     Search TMDB for a movie. If the full title fails, progressively strips
-    trailing words (up to 3) — catches cases like 'Zootopia 2 It' where a
-    language code or release tag survived filename cleaning.
+    trailing words down to a 2-word minimum — catches dirty suffixes like
+    'Zootopia 2 It' and subtitle structures like 'Chainsaw Man The Movie Reze Arc'
+    where stripping down to 'Chainsaw Man' is needed to match TMDB.
     """
     if not title:
         return None
@@ -98,16 +104,28 @@ async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Option
     if result:
         return result
 
-    # Smart fallback: strip trailing words one at a time (max 3 attempts)
+    # Smart fallback: strip trailing words down to 2-word minimum.
+    # Stops early if the query drops below 4 characters (too vague to be useful).
     words = title.split()
-    for n in range(len(words) - 1, max(0, len(words) - 4), -1):
+    for n in range(len(words) - 1, 1, -1):
         shorter = " ".join(words[:n])
-        if len(shorter) < 2:
+        if len(shorter) < 4:
             break
         result = await _try(shorter, year)
         if result:
             log.info("Smart title match: '%s' -> '%s' (stripped %d word(s))", title, shorter, len(words) - n)
             print(f"  [META] Smart match: '{title}' -> searched as '{shorter}'")
+            return result
+
+    # Apostrophe restoration: filenames often drop apostrophes ("Porkys" → "Porky's",
+    # "Its A Wonderful Life" → "It's A Wonderful Life").
+    # Only tried as a last resort after all other strategies have failed.
+    restored = re.sub(r"([a-zA-Z])s\b", r"\1's", title)
+    if restored != title:
+        result = await _try(restored, year)
+        if result:
+            log.info("Apostrophe restore match: '%s' -> '%s'", title, restored)
+            print(f"  [META] Apostrophe match: '{title}' -> searched as '{restored}'")
             return result
 
     return None

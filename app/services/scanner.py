@@ -3,6 +3,12 @@ import os
 import re
 import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+
+try:
+    from guessit import guessit as _guessit
+    _GUESSIT_AVAILABLE = True
+except ImportError:
+    _GUESSIT_AVAILABLE = False
 from sqlalchemy.future import select
 from typing import List, Optional
 
@@ -35,9 +41,27 @@ STOPWORDS = {
     "megusta", "syncopy", "darkflix", "dcp", "real", "d3fil3r", "ralphy", "poke", "stz",
     "eng", "sub", "ita", "aac", "sdr", "darq", "hone", "elite", "batv", "bae", "spweb", "br", "dh", "atvp",
     "english", "vitriol", "dooky", "badkat", "lazycunts", "bioma", "qoq", "sigma", "stieblitzki", "dual", "yawntic",
-    # tech
+    # release groups (common one-word names that appear after quality tags)
+    "majestic","fgt","ion10","mkvcage","tigole","framestor","deflate","cakes","topkek",
+    "nitro","geckos","sector7","queens","rovers","frith","cinefile","gbz","ggez",
+    "accent","cm8","anoxxe","avid","bludv","cfilm","cinematic","cmrg",
+    "drones","ethos","flame","gaz","ggwp","grym","heat","hive","honest",
+    "kingtv","lecter","legolas","loki","maga","memento","mgb","mojo","morituri",
+    "nhanc3","ninja","nogrp","norlsk","orion","phr0stys","pines","pinky","qman","r4rbt",
+    "reavers","rocky","scream","sentry","sinners","sinopse","smooth","snoop",
+    "sofa","splendid","stormy","strife","taoe","tbs","tempo","terminus","tf","throne",
+    "tommy","tpz","turbo","tvchaos","ulti","unh","vain","void","vyndros","webhead","wiz",
+    # additional confirmed groups
+    "read","dirtyburger","jyk","kogi","vlam","pcm","chd","cbfm","dxva","bia","ipt",
+    "larceny","publichd","fxg","demand","cbfm","cocain","hdetg","rovers","scene",
+    "ift","bmf","deflate","poe","troll","ntb","playweb","cakes","psychd","lol",
+    "diamond","sector","kings","fleet","kat","kings","vxt","wrd","mkv","anoxxe",
+    # tech / encode tags
+    "hdrip","dvdrip","dvdscr","dvdcam","hdcam","hdts","ts","cam","telesync","r5",
+    "xvid","xvid-fgt","divx","x264","x265","h264","h265","hevc","avc","vp9","av1",
+    "10bit","8bit","dts","ac3","mp3","flac","aac2","opus","trueaudio",
     "web","webrip","webdl","web-dl","hdtv","bdrip","brrip","bluray","blu-ray","remux","uhd",
-    "1080p","2160p","480p","4k","8k",
+    "1080p","2160p","480p","720p","4k","8k",
     "hdr","dv","dovi","dolby","vision",
     "ctrlhd", "criterion", "roccat", "ttl", "nfo",
     "ddpa", "6ch", "he", "ma",
@@ -67,7 +91,10 @@ JUNK_REGEX = re.compile(
         \b(CtrlHD|TTL|Criterion|Roccat|NFO)\b|
         \b(PROPER|REPACK|EXTENDED|INTERNAL|UNCENSORED|RERIP|UNRATED|REMASTERED|DIRECTOR'?S?[\s\.]?CUT|MULTI[\s\.]?(AUDIO)?)\b|
         \b(10[\s\.]?K?bit)\b|
-        \b(ATMOS|TRUEHD|TELESYNC|CAM|TS|SAMPLE)\b
+        \b(ATMOS|TRUEHD|TELESYNC|CAM|TS|SAMPLE)\b|
+        \b(XviD?|DivX?|xvid|divx)\b|
+        \b(HDRip|DVDRip|DVDScr|DVDCam|HDCam|HDTS|BRRip|BDRip)\b|
+        \b(10bit|8bit|Hi10P|Hi10)\b
     """
 )
 
@@ -84,16 +111,62 @@ def _show_name_from_filename(filename_no_ext: str, episode_match_start: int) -> 
     return clean_title(before) if before else ""
 
 
+def _title_case(s: str) -> str:
+    """
+    Title-case that doesn't capitalize the letter after an apostrophe.
+    Python's str.title() turns "ender's game" into "Ender'S Game" — this fixes that.
+    """
+    result = []
+    cap_next = True
+    for ch in s:
+        if ch in (" ", "-"):
+            result.append(ch)
+            cap_next = True
+        elif ch == "'":
+            result.append(ch)
+            cap_next = False  # never capitalize after apostrophe
+        elif cap_next and ch.isalpha():
+            result.append(ch.upper())
+            cap_next = False
+        else:
+            result.append(ch.lower())
+    return "".join(result)
+
+
 def clean_title(title: str) -> str:
     """
     Cleans a filename into a search-friendly title.
-    1. Regex strip (codecs, quality tags, years, etc.)
-    2. Stopword filter (release groups, vendors)
-    3. Trailing language-code strip ("Zootopia 2 It" -> "Zootopia 2")
+
+    Primary path (guessit available):
+      1. guessit extracts the title field, handling codecs/quality/release-group tokens
+      2. STOPWORDS safety net strips any residual tokens guessit missed
+      3. Trailing language-code strip
+      4. Smart title-case
+
+    Fallback path (guessit unavailable or raises):
+      1. JUNK_REGEX strips known codec/quality patterns
+      2. STOPWORDS filter
+      3. Trailing language-code strip
+      4. Smart title-case
     """
     if not title:
         return ""
 
+    if _GUESSIT_AVAILABLE:
+        try:
+            guess = _guessit(title)
+            extracted = str(guess.get("title") or "").strip()
+            if extracted:
+                parts = [p for p in extracted.split() if p.lower() not in STOPWORDS]
+                # Strip trailing standalone language/region codes — but never the only word
+                while len(parts) > 1 and parts[-1].lower() in LANG_CODE_TAGS:
+                    parts.pop()
+                if parts:
+                    return _title_case(" ".join(parts)).strip()
+        except Exception:
+            pass
+
+    # Fallback: original regex + STOPWORDS approach
     s = JUNK_REGEX.sub(" ", title)
     s = TOKEN_RE.sub(" ", s).lower()
 
@@ -103,7 +176,7 @@ def clean_title(title: str) -> str:
     while len(parts) > 1 and parts[-1].lower() in LANG_CODE_TAGS:
         parts.pop()
 
-    return " ".join(parts).title().strip()
+    return _title_case(" ".join(parts)).strip()
 
 
 def is_extra(filepath: str) -> bool:
@@ -159,7 +232,9 @@ class _TMDBCache:
 async def scan_library(library_id: int):
     """
     Scans a single library in its own DB session.
-    Uses asyncio.to_thread for filesystem walks and batches commits per folder.
+    - Batch path lookup: one SELECT loads all known paths into a set (O(1) per-file check)
+    - mtime skip: folders not modified since last scan are skipped entirely
+    - Updates library.last_scanned_at on completion
     """
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Library).where(Library.id == library_id))
@@ -168,13 +243,26 @@ async def scan_library(library_id: int):
             print(f"Library {library_id} not found.")
             return
 
-        print(f"[SCAN] Starting: {library.name} ({library.path})")
+        # One query to load ALL known file paths for this library into memory.
+        # Replaces the per-file SELECT inside the scan loop — massive speedup on large libraries.
+        paths_result = await db.execute(
+            select(MediaFile.path)
+            .join(MediaItem, MediaFile.media_item_id == MediaItem.id)
+            .where(MediaItem.library_id == library_id)
+        )
+        known_paths: set[str] = {row[0] for row in paths_result.all()}
+        print(f"[SCAN] Starting: {library.name} ({library.path}) — {len(known_paths)} files already known")
+
         tmdb_cache = _TMDBCache(settings.TMDB_API_KEY or "")
 
         if library.type == LibraryType.MOVIES:
-            await _scan_movies(db, library)
+            await _scan_movies(db, library, known_paths)
         elif library.type == LibraryType.SHOWS:
-            await _scan_shows(db, library, tmdb_cache)
+            await _scan_shows(db, library, known_paths, tmdb_cache)
+
+        # Record scan completion time for mtime-based incremental skipping next run
+        library.last_scanned_at = datetime.datetime.utcnow()
+        await db.commit()
 
         print(f"[SCAN] Finished: {library.name} — running enrichment")
         try:
@@ -183,21 +271,34 @@ async def scan_library(library_id: int):
             print(f"[SCAN] Enrichment failed for {library.name}: {e}")
 
 
-async def _scan_movies(db: AsyncSession, library: Library):
+async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]):
     """
     Scans a movie library.
-    - Filesystem walk runs in a thread (non-blocking).
-    - Uses flush() to get IDs, commits once per folder batch.
+    - known_paths: pre-loaded set of all already-indexed file paths (O(1) lookup)
+    - mtime skip: folders unchanged since last scan are skipped entirely
+    - flush() per new item, commit() per folder batch
     """
-    added = skipped = 0
+    added = skipped = skipped_folders = 0
 
-    # Walk the filesystem in a thread so we don't block the event loop
+    last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
+
     walk_results: list = await asyncio.to_thread(lambda: list(os.walk(library.path)))
 
     for root, _dirs, files in walk_results:
         video_files = [f for f in files if os.path.splitext(f)[1].lower() in VIDEO_EXTENSIONS]
         if not video_files:
             continue
+
+        # mtime check: skip folder if it hasn't changed since last scan
+        if last_scan_ts:
+            try:
+                folder_mtime = await asyncio.to_thread(os.path.getmtime, root)
+                if folder_mtime <= last_scan_ts:
+                    skipped += len(video_files)
+                    skipped_folders += 1
+                    continue
+            except Exception:
+                pass  # can't stat → process it anyway
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
@@ -210,8 +311,8 @@ async def _scan_movies(db: AsyncSession, library: Library):
                 skipped += 1
                 continue
 
-            existing = await db.execute(select(MediaFile).where(MediaFile.path == full_path))
-            if existing.scalar_one_or_none():
+            # O(1) set lookup instead of a DB query per file
+            if full_path in known_paths:
                 skipped += 1
                 continue
 
@@ -272,18 +373,23 @@ async def _scan_movies(db: AsyncSession, library: Library):
                 except Exception as e:
                     print(f"    [SUBS] Failed: {e}")
 
+    if skipped_folders:
+        print(f"  [MOVIES] Skipped {skipped_folders} unchanged folder(s) via mtime.")
     print(f"  [MOVIES] Done — {added} added, {skipped} skipped.")
 
 
-async def _scan_shows(db: AsyncSession, library: Library, tmdb_cache: Optional[_TMDBCache] = None):
+async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str], tmdb_cache: Optional[_TMDBCache] = None):
     """
     Scans a TV show library.
-    - Filesystem walk runs in a thread (non-blocking).
-    - Uses flush() + per-folder batch commits.
+    - known_paths: pre-loaded set for O(1) duplicate checks
+    - mtime skip: unchanged folders are skipped
+    - flush() + per-folder batch commits
     """
     await _deduplicate_shows(db)
 
-    added = skipped = no_match = 0
+    added = skipped = no_match = skipped_folders = 0
+
+    last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
 
     walk_results: list = await asyncio.to_thread(lambda: list(os.walk(library.path)))
 
@@ -291,6 +397,17 @@ async def _scan_shows(db: AsyncSession, library: Library, tmdb_cache: Optional[_
         video_files = [f for f in files if os.path.splitext(f)[1].lower() in VIDEO_EXTENSIONS]
         if not video_files:
             continue
+
+        # mtime skip
+        if last_scan_ts:
+            try:
+                folder_mtime = await asyncio.to_thread(os.path.getmtime, root)
+                if folder_mtime <= last_scan_ts:
+                    skipped += len(video_files)
+                    skipped_folders += 1
+                    continue
+            except Exception:
+                pass
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
@@ -303,8 +420,8 @@ async def _scan_shows(db: AsyncSession, library: Library, tmdb_cache: Optional[_
                 skipped += 1
                 continue
 
-            existing = await db.execute(select(MediaFile).where(MediaFile.path == full_path))
-            if existing.scalar_one_or_none():
+            # O(1) set lookup
+            if full_path in known_paths:
                 skipped += 1
                 continue
 
@@ -387,6 +504,8 @@ async def _scan_shows(db: AsyncSession, library: Library, tmdb_cache: Optional[_
                 except Exception as e:
                     print(f"    [SUBS] Failed: {e}")
 
+    if skipped_folders:
+        print(f"  [SHOWS] Skipped {skipped_folders} unchanged folder(s) via mtime.")
     print(f"  [SHOWS] Done — {added} added, {skipped} skipped, {no_match} unrecognised.")
 
 

@@ -70,6 +70,8 @@ struct HomeView: View {
             }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.arcticBg, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("ARCTIC MEDIA")

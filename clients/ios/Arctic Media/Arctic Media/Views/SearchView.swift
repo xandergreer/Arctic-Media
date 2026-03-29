@@ -49,7 +49,7 @@ struct SearchView: View {
             }
         }
         .navigationTitle("Search")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.arcticBg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .searchable(text: $query, prompt: "Movies, shows…")

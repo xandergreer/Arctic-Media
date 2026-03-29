@@ -64,7 +64,7 @@ struct LibraryView: View {
             }
         }
         .navigationTitle(kind == .movie ? "Movies" : "TV Shows")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.arcticBg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {

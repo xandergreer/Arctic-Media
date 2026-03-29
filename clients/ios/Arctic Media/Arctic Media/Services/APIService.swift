@@ -113,6 +113,106 @@ class APIService {
         URL(string: "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)&aidx=\(audioIndex)")
     }
 
+    // MARK: - Media Edit
+
+    func updateMedia(serverURL: String, token: String, mediaId: Int, update: MediaUpdate) async throws -> MediaItem {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/media/\(mediaId)", method: "PATCH")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try? JSONEncoder().encode(update)
+        return try await send(req)
+    }
+
+    // MARK: - Admin: Live Viewers
+
+    func liveViewers(serverURL: String, token: String) async throws -> LiveViewerResponse {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/live")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    // MARK: - Admin: Server
+
+    func serverMetrics(serverURL: String, token: String) async throws -> ServerMetrics {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/server/metrics")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func serverStats(serverURL: String, token: String) async throws -> ServerStatsResponse {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/server")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    // MARK: - Admin: Scan
+
+    func scanStatus(serverURL: String, token: String) async throws -> ScanStatusResponse {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/scan/status")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func scanAll(serverURL: String, token: String) async throws {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/scan/run", method: "POST")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try await session.data(for: req)
+    }
+
+    // MARK: - Admin: Users
+
+    func adminUsers(serverURL: String, token: String) async throws -> AdminUsersResponse {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/users")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func toggleSuperuser(serverURL: String, token: String, userId: Int) async throws -> AdminUser {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/users/\(userId)/superuser", method: "PATCH")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func deleteUser(serverURL: String, token: String, userId: Int) async throws {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/users/\(userId)", method: "DELETE")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try await session.data(for: req)
+    }
+
+    // MARK: - Admin: Invites
+
+    func adminInvites(serverURL: String, token: String) async throws -> InvitesResponse {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/invites")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func createInvite(serverURL: String, token: String) async throws -> InviteCode {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/invites", method: "POST")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func deleteInvite(serverURL: String, token: String, inviteId: Int) async throws {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/invites/\(inviteId)", method: "DELETE")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try await session.data(for: req)
+    }
+
+    func setOpenRegistration(serverURL: String, token: String, enabled: Bool) async throws {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/invites/settings?open_registration=\(enabled)", method: "PATCH")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try await session.data(for: req)
+    }
+
+    // MARK: - Admin: History
+
+    func adminHistory(serverURL: String, token: String) async throws -> HistoryStats {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/history")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
     // MARK: - Internals
 
     private func makeRequest(serverURL: String, path: String, method: String = "GET") throws -> URLRequest {

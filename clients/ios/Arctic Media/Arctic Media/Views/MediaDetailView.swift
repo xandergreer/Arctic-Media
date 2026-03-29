@@ -21,6 +21,13 @@ struct MediaDetailView: View {
     @State private var loadingEpisodes = false
     @State private var playRequest: PlayRequest?
     @State private var progress: WatchProgress?
+    @State private var showEdit = false
+    @State private var currentItem: MediaItem
+
+    init(item: MediaItem) {
+        self.item = item
+        _currentItem = State(initialValue: item)
+    }
 
     var body: some View {
         ZStack {
@@ -32,23 +39,23 @@ struct MediaDetailView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         // Title row
                         HStack(alignment: .bottom, spacing: 16) {
-                            PosterImageView(url: item.posterUrl, serverURL: appState.serverURL)
+                            PosterImageView(url: currentItem.posterUrl, serverURL: appState.serverURL)
                                 .frame(width: 90, height: 135)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .shadow(radius: 12)
                                 .offset(y: -20)
 
                             VStack(alignment: .leading, spacing: 6) {
-                                if let year = item.year {
+                                if let year = currentItem.year {
                                     Text(year)
                                         .font(.caption)
                                         .foregroundColor(.arcticMuted)
                                 }
-                                Text(item.title)
+                                Text(currentItem.title)
                                     .font(.title2.bold())
                                     .foregroundColor(.arcticText)
                                     .fixedSize(horizontal: false, vertical: true)
-                                Text(item.kind == .movie ? "MOVIE" : "SERIES")
+                                Text(currentItem.kind == .movie ? "MOVIE" : "SERIES")
                                     .font(.system(size: 10, weight: .bold))
                                     .padding(.horizontal, 8).padding(.vertical, 3)
                                     .background(Color.arcticPrimary.opacity(0.2))
@@ -59,12 +66,12 @@ struct MediaDetailView: View {
                         }
                         .padding(.horizontal)
 
-                        if item.kind == .movie {
-                            playButtons(mediaId: item.id, title: item.title)
+                        if currentItem.kind == .movie {
+                            playButtons(mediaId: currentItem.id, title: currentItem.title)
                                 .padding(.horizontal)
                         }
 
-                        if let overview = item.overview, !overview.isEmpty {
+                        if let overview = currentItem.overview, !overview.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Overview")
                                     .font(.caption.weight(.semibold))
@@ -78,7 +85,7 @@ struct MediaDetailView: View {
                             .padding(.horizontal)
                         }
 
-                        if item.kind == .show && !seasons.isEmpty {
+                        if currentItem.kind == .show && !seasons.isEmpty {
                             showContent
                         }
 
@@ -90,6 +97,20 @@ struct MediaDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            if appState.currentUser?.isSuperuser == true {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showEdit = true }) {
+                        Image(systemName: "pencil")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showEdit) {
+            EditMediaView(item: currentItem) { updated in
+                currentItem = updated
+            }
+        }
         .fullScreenCover(item: $playRequest) { req in
             VideoPlayerView(
                 url: req.url,
@@ -110,7 +131,7 @@ struct MediaDetailView: View {
 
     private var backdrop: some View {
         ZStack(alignment: .bottom) {
-            if let backdropUrl = item.backdropUrl {
+            if let backdropUrl = currentItem.backdropUrl {
                 PosterImageView(url: backdropUrl, serverURL: appState.serverURL)
                     .frame(maxWidth: .infinity).frame(height: 220).clipped()
                     .overlay(
@@ -123,7 +144,7 @@ struct MediaDetailView: View {
                 Rectangle()
                     .fill(Color.arcticSurface).frame(height: 220)
                     .overlay(
-                        Image(systemName: item.kind == .movie ? "film" : "tv")
+                        Image(systemName: currentItem.kind == .movie ? "film" : "tv")
                             .font(.largeTitle).foregroundColor(.arcticMuted)
                     )
             }

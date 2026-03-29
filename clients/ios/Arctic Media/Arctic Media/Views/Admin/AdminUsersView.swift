@@ -1,0 +1,169 @@
+import SwiftUI
+
+struct AdminUsersView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var users: [AdminUser] = []
+    @State private var loading = true
+    @State private var confirmDelete: AdminUser?
+    @State private var errorMsg: String?
+
+    var body: some View {
+        ZStack {
+            Color.arcticBg.ignoresSafeArea()
+            if loading {
+                ProgressView().tint(.arcticPrimary)
+            } else {
+                userList
+            }
+        }
+        .navigationTitle("Users")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .task { await load() }
+        .alert("Delete User", isPresented: Binding(
+            get: { confirmDelete != nil },
+            set: { if !$0 { confirmDelete = nil } }
+        )) {
+            Button("Delete", role: .destructive) {
+                if let u = confirmDelete { Task { await deleteUser(u) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let u = confirmDelete {
+                Text("Delete \"\(u.username)\"? This cannot be undone.")
+            }
+        }
+    }
+
+    private var userList: some View {
+        List {
+            if let err = errorMsg {
+                Text(err).foregroundColor(.red).font(.subheadline)
+            }
+            ForEach(users) { user in
+                UserRowView(user: user) {
+                    Task { await toggleSuperuser(user) }
+                } onDelete: {
+                    confirmDelete = user
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+    }
+
+    private func load() async {
+        guard let token = appState.token else { return }
+        do {
+            let res = try await APIService.shared.adminUsers(serverURL: appState.serverURL, token: token)
+            users = res.users
+        } catch {
+            errorMsg = error.localizedDescription
+        }
+        loading = false
+    }
+
+    private func toggleSuperuser(_ user: AdminUser) async {
+        guard let token = appState.token else { return }
+        do {
+            let updated = try await APIService.shared.toggleSuperuser(
+                serverURL: appState.serverURL, token: token, userId: user.id)
+            if let idx = users.firstIndex(where: { $0.id == user.id }) {
+                users[idx] = AdminUser(
+                    id: updated.id, username: updated.username,
+                    isSuperuser: updated.isSuperuser, isActive: users[idx].isActive,
+                    createdAt: users[idx].createdAt, lastActive: users[idx].lastActive,
+                    itemsWatched: users[idx].itemsWatched, watchSeconds: users[idx].watchSeconds,
+                    isSelf: users[idx].isSelf
+                )
+            }
+        } catch {
+            errorMsg = error.localizedDescription
+        }
+    }
+
+    private func deleteUser(_ user: AdminUser) async {
+        guard let token = appState.token else { return }
+        do {
+            try await APIService.shared.deleteUser(serverURL: appState.serverURL, token: token, userId: user.id)
+            users.removeAll { $0.id == user.id }
+        } catch {
+            errorMsg = error.localizedDescription
+        }
+    }
+}
+
+private struct UserRowView: View {
+    let user: AdminUser
+    let onToggleSuperuser: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(user.isSuperuser ? Color.arcticPrimary : Color.arcticSurface)
+                    .frame(width: 44, height: 44)
+                Text(String(user.username.prefix(1)).uppercased())
+                    .font(.headline.bold())
+                    .foregroundColor(user.isSuperuser ? .white : .arcticText)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(user.username)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.arcticText)
+                    if user.isSuperuser {
+                        Text("Admin")
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.arcticPrimary.opacity(0.2))
+                            .foregroundColor(.arcticPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                }
+                Text("\(user.itemsWatched) items · \(formatWatchTime(user.watchSeconds))")
+                    .font(.caption).foregroundColor(.arcticMuted)
+                if let last = user.lastActive {
+                    Text("Last active \(timeAgo(last))")
+                        .font(.caption2).foregroundColor(.arcticMuted)
+                }
+            }
+
+            Spacer()
+
+            if !user.isSelf {
+                Menu {
+                    Button(user.isSuperuser ? "Revoke Admin" : "Make Admin", action: onToggleSuperuser)
+                    Button("Delete User", role: .destructive, action: onDelete)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .foregroundColor(.arcticMuted)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func formatWatchTime(_ secs: Int) -> String {
+        let h = secs / 3600
+        if h == 0 { return "\((secs % 3600) / 60)m" }
+        return "\(h)h"
+    }
+
+    private func timeAgo(_ iso: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: iso) ?? ISO8601DateFormatter().date(from: iso) else {
+            return iso
+        }
+        let secs = Int(-date.timeIntervalSinceNow)
+        if secs < 60 { return "just now" }
+        if secs < 3600 { return "\(secs / 60)m ago" }
+        if secs < 86400 { return "\(secs / 3600)h ago" }
+        return "\(secs / 86400)d ago"
+    }
+}

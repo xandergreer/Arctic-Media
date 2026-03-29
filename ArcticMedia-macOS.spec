@@ -61,6 +61,10 @@ a = Analysis(
         'jose.backends',
         # System tray
         'pystray',
+        # Media filename parsing
+        'guessit',
+        'rebulk',
+        'babelstone',
     ],
     hookspath=[],
     hooksconfig={},

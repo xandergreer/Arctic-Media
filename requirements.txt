@@ -34,6 +34,7 @@ mdurl==0.1.2
 multidict==6.7.1
 orjson==3.11.5
 passlib==1.7.4
+guessit>=3.0.0
 psutil>=6.0.0
 propcache==0.4.1
 pyasn1==0.6.2

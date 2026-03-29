@@ -4,55 +4,62 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.arcticBg.ignoresSafeArea()
+        ZStack {
+            Color.arcticBg.ignoresSafeArea()
 
-                List {
+            List {
+                Section {
+                    infoRow(label: "Server", value: appState.serverURL)
+                    infoRow(label: "User", value: appState.currentUser?.username ?? "—")
+                } header: {
+                    Text("Connection").foregroundColor(.arcticMuted)
+                }
+                .listRowBackground(Color.arcticSurface)
+
+                if appState.currentUser?.isSuperuser == true {
                     Section {
-                        infoRow(label: "Server", value: appState.serverURL)
-                        infoRow(label: "User", value: appState.currentUser?.username ?? "—")
-                    } header: {
-                        Text("Connection")
-                            .foregroundColor(.arcticMuted)
-                    }
-                    .listRowBackground(Color.arcticSurface)
-
-                    Section {
-                        Button(role: .destructive) {
-                            appState.logout()
-                        } label: {
-                            Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-
-                        Button {
-                            appState.setServer("")
-                            appState.logout()
-                        } label: {
-                            Label("Change Server", systemImage: "server.rack")
-                                .foregroundColor(.arcticSub)
+                        NavigationLink(destination: AdminView()) {
+                            Label("Admin Panel", systemImage: "shield.fill")
+                                .foregroundColor(.arcticPrimary)
                         }
                     } header: {
-                        Text("Account")
-                            .foregroundColor(.arcticMuted)
-                    }
-                    .listRowBackground(Color.arcticSurface)
-
-                    Section {
-                        infoRow(label: "Version", value: "1.0.0")
-                    } header: {
-                        Text("About")
-                            .foregroundColor(.arcticMuted)
+                        Text("Administration").foregroundColor(.arcticMuted)
                     }
                     .listRowBackground(Color.arcticSurface)
                 }
-                .scrollContentBackground(.hidden)
+
+                Section {
+                    Button(role: .destructive) {
+                        appState.logout()
+                    } label: {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+
+                    Button {
+                        appState.setServer("")
+                        appState.logout()
+                    } label: {
+                        Label("Change Server", systemImage: "server.rack")
+                            .foregroundColor(.arcticSub)
+                    }
+                } header: {
+                    Text("Account").foregroundColor(.arcticMuted)
+                }
+                .listRowBackground(Color.arcticSurface)
+
+                Section {
+                    infoRow(label: "Version", value: "1.0.0")
+                } header: {
+                    Text("About").foregroundColor(.arcticMuted)
+                }
+                .listRowBackground(Color.arcticSurface)
             }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(Color.arcticBg, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .scrollContentBackground(.hidden)
         }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.arcticBg, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .task {
             guard let token = appState.token else { return }
             do {
