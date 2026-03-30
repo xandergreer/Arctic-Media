@@ -45,9 +45,21 @@ async function _refreshMetrics() {
 
     try {
         const res = await fetch('/api/v1/admin/server/metrics', { headers: getAuthHeaders() });
-        if (!res.ok) return;
+        if (!res.ok) {
+            panel.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">
+                <span class="material-icons" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;color:#f87171;">error_outline</span>
+                Metrics endpoint returned ${res.status}
+            </div>`;
+            stopServerMetrics(); return;
+        }
         const d = await res.json();
-        if (!d.available) return;
+        if (!d.available) {
+            panel.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">
+                <span class="material-icons" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;">info_outline</span>
+                Live metrics unavailable — psutil not found in this build.
+            </div>`;
+            stopServerMetrics(); return;
+        }
 
         // Compute network rate (bytes/sec)
         const now = Date.now();
