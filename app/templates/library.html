@@ -84,53 +84,7 @@
     Request sent!
 </div>
 
-<script>
-function getCookieLib(name) {
-    const v = `; ${document.cookie}`;
-    const p = v.split(`; ${name}=`);
-    if (p.length === 2) return p.pop().split(';').shift();
-}
-function openRequestModal() {
-    const label = LIBRARY_TYPE === 'movies' ? 'movie' : 'TV show';
-    document.getElementById('req-kind-label').textContent = label;
-    document.getElementById('request-message').value = '';
-    document.getElementById('request-error').style.display = 'none';
-    const modal = document.getElementById('request-modal');
-    modal.style.display = 'flex';
-    setTimeout(() => document.getElementById('request-message').focus(), 50);
-}
-function closeRequestModal() {
-    document.getElementById('request-modal').style.display = 'none';
-}
-document.getElementById('request-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('request-modal')) closeRequestModal();
-});
-async function submitRequest() {
-    const msg = document.getElementById('request-message').value.trim();
-    const errEl = document.getElementById('request-error');
-    if (!msg) { errEl.textContent = "Please describe what you'd like."; errEl.style.display = 'block'; return; }
-    const btn = document.getElementById('request-send-btn');
-    btn.disabled = true; btn.textContent = 'Sending…';
-    errEl.style.display = 'none';
-    try {
-        const token = getCookieLib('access_token');
-        const res = await fetch('/api/v1/requests', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ message: msg })
-        });
-        if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
-        closeRequestModal();
-        const toast = document.getElementById('request-toast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 3000);
-    } catch (e) {
-        errEl.textContent = e.message || 'Something went wrong.';
-        errEl.style.display = 'block';
-    }
-    btn.disabled = false; btn.textContent = 'Send';
-}
-</script>
+<script src="/static/js/request_modal.js?v=1"></script>
 <script>
     // Sort chips
     document.getElementById('sort-strip')?.addEventListener('click', e => {
