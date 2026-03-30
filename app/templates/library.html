@@ -108,7 +108,7 @@ document.getElementById('request-modal').addEventListener('click', e => {
 async function submitRequest() {
     const msg = document.getElementById('request-message').value.trim();
     const errEl = document.getElementById('request-error');
-    if (!msg) { errEl.textContent = 'Please describe what you'd like.'; errEl.style.display = 'block'; return; }
+    if (!msg) { errEl.textContent = "Please describe what you'd like."; errEl.style.display = 'block'; return; }
     const btn = document.getElementById('request-send-btn');
     btn.disabled = true; btn.textContent = 'Sending…';
     errEl.style.display = 'none';
