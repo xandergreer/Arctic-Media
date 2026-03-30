@@ -16,10 +16,13 @@
 - Automatic metadata fetching from TMDB — posters, overviews, ratings, and episode titles
 - Fast library scanning with smart title cleaning and TMDB canonical title correction
 - Continue watching — progress is saved automatically and syncs across devices
+- Per-episode progress bars and resume support on iOS
+- Auto-play next episode with a toggleable setting
 - Admin panel with live viewer monitoring, server metrics, user management, and watch history
+- Media request system — users can request content, admins can acknowledge and fulfill requests
 - Invite-only or open registration — you control who gets access
 - HLS adaptive streaming via FFmpeg for broad device compatibility
-- Native iOS app for watching on the go
+- Native iOS app with liquid glass navigation (iOS 26) for watching on the go
 - Roku app in development
 - Self-contained executable for Windows and macOS — no Python or dependencies required on the host machine
 
@@ -61,6 +64,7 @@ Once running, open your browser to `http://localhost:8000`.
 - **Users** — promote, demote, or delete accounts
 - **Invites** — generate invite codes or toggle open registration
 - **History** — total watch time, most-watched titles, and per-user playback history
+- **Requests** — view, acknowledge, and fulfill content requests submitted by users
 
 
 ## ⬇️ Installation
