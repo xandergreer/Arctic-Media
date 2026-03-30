@@ -25,6 +25,9 @@ struct AdminView: View {
                     NavigationLink(destination: AdminInvitesView()) {
                         Label("Invites", systemImage: "envelope.badge.fill")
                     }
+                    NavigationLink(destination: AdminRequestsView()) {
+                        Label("Media Requests", systemImage: "film.stack.fill")
+                    }
                 } header: {
                     Text("Management")
                 }

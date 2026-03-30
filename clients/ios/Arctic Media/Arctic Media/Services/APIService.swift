@@ -107,6 +107,30 @@ class APIService {
         _ = try? await session.data(for: req)
     }
 
+    // MARK: - Media Requests
+
+    func submitRequest(serverURL: String, token: String, message: String) async throws {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/requests", method: "POST")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["message": message])
+        _ = try await session.data(for: req)
+    }
+
+    func adminRequests(serverURL: String, token: String) async throws -> [MediaRequest] {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/requests")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
+    func updateRequestStatus(serverURL: String, token: String, requestId: Int, status: String) async throws -> MediaRequest {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/requests/\(requestId)", method: "PATCH")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["status": status])
+        return try await send(req)
+    }
+
     // MARK: - Stream URL (not a network call — just constructs the URL)
 
     func hlsURL(serverURL: String, token: String, mediaId: Int, audioIndex: Int = 0) -> URL? {

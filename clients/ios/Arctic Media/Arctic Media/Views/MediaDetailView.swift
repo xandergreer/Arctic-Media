@@ -9,6 +9,7 @@ private struct PlayRequest: Identifiable {
     let title: String
     let mediaId: Int
     let startAt: Double?
+    var onFinished: (() -> Void)? = nil
 }
 
 struct MediaDetailView: View {
@@ -20,7 +21,9 @@ struct MediaDetailView: View {
     @State private var episodes: [MediaItem] = []
     @State private var loadingEpisodes = false
     @State private var playRequest: PlayRequest?
+    @State private var pendingAutoPlay: PlayRequest? = nil
     @State private var progress: WatchProgress?
+    @State private var episodeProgress: [Int: WatchProgress] = [:]
     @State private var showEdit = false
     @State private var currentItem: MediaItem
 
@@ -111,14 +114,22 @@ struct MediaDetailView: View {
                 currentItem = updated
             }
         }
-        .fullScreenCover(item: $playRequest) { req in
+        .fullScreenCover(item: $playRequest, onDismiss: {
+            guard let pending = pendingAutoPlay else { return }
+            pendingAutoPlay = nil
+            Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                await MainActor.run { playRequest = pending }
+            }
+        }) { req in
             VideoPlayerView(
                 url: req.url,
                 title: req.title,
                 mediaId: req.mediaId,
                 serverURL: appState.serverURL,
                 token: appState.token ?? "",
-                startAt: req.startAt
+                startAt: req.startAt,
+                onFinished: req.onFinished
             )
         }
         .task {
@@ -238,8 +249,15 @@ struct MediaDetailView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(episodes) { ep in
-                        EpisodeRowView(episode: ep, serverURL: appState.serverURL) {
-                            play(mediaId: ep.id, title: ep.title)
+                        EpisodeRowView(
+                            episode: ep,
+                            serverURL: appState.serverURL,
+                            progress: episodeProgress[ep.id]
+                        ) {
+                            let p = episodeProgress[ep.id]
+                            let resumeAt: Double? = (p?.completed == false && (p?.positionSeconds ?? 0) > 30)
+                                ? p?.positionSeconds : nil
+                            playEpisode(ep, startAt: resumeAt)
                         }
                         Divider().background(Color.arcticBorder)
                     }
@@ -257,6 +275,30 @@ struct MediaDetailView: View {
             return
         }
         playRequest = PlayRequest(url: url, title: title, mediaId: mediaId, startAt: startAt)
+    }
+
+    private func playEpisode(_ ep: MediaItem, startAt: Double? = nil) {
+        guard let token = appState.token,
+              let url = APIService.shared.hlsURL(serverURL: appState.serverURL, token: token, mediaId: ep.id) else { return }
+        playRequest = PlayRequest(url: url, title: ep.title, mediaId: ep.id, startAt: startAt,
+                                  onFinished: makeFinishedHandler(for: ep))
+    }
+
+    private func makeFinishedHandler(for ep: MediaItem) -> (() -> Void)? {
+        guard appState.autoPlayEnabled else { return nil }
+        return {
+            guard let next = nextEpisode(after: ep),
+                  let token = appState.token,
+                  let url = APIService.shared.hlsURL(serverURL: appState.serverURL, token: token, mediaId: next.id) else { return }
+            pendingAutoPlay = PlayRequest(url: url, title: next.title, mediaId: next.id, startAt: nil,
+                                         onFinished: makeFinishedHandler(for: next))
+        }
+    }
+
+    private func nextEpisode(after ep: MediaItem) -> MediaItem? {
+        guard let idx = episodes.firstIndex(where: { $0.id == ep.id }),
+              idx + 1 < episodes.count else { return nil }
+        return episodes[idx + 1]
     }
 
     private func loadProgress(mediaId: Int) async {
@@ -287,24 +329,47 @@ struct MediaDetailView: View {
             )
         } catch {}
         loadingEpisodes = false
+
+        guard !episodes.isEmpty, let token = appState.token else { return }
+        let sURL = appState.serverURL
+        var progress: [Int: WatchProgress] = [:]
+        await withTaskGroup(of: (Int, WatchProgress?).self) { group in
+            for ep in episodes {
+                group.addTask {
+                    let p = try? await APIService.shared.watchProgress(serverURL: sURL, token: token, mediaId: ep.id)
+                    return (ep.id, p)
+                }
+            }
+            for await (id, p) in group {
+                if let p { progress[id] = p }
+            }
+        }
+        episodeProgress = progress
     }
 }
 
 struct EpisodeRowView: View {
     let episode: MediaItem
     let serverURL: String
+    let progress: WatchProgress?
     let onPlay: () -> Void
+
+    private var resumeFraction: Double? {
+        guard let p = progress, !p.completed, p.positionSeconds > 5,
+              let dur = p.durationSeconds, dur > 0 else { return nil }
+        return min(1.0, p.positionSeconds / dur)
+    }
 
     var body: some View {
         HStack(spacing: 12) {
-            PosterImageView(url: episode.posterUrl, serverURL: serverURL)
-                .frame(width: 100, height: 58)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    Image(systemName: "play.circle.fill")
-                        .font(.title2).foregroundColor(.white.opacity(0.8))
-                )
-                .onTapGesture { onPlay() }
+            ZStack {
+                PosterImageView(url: episode.posterUrl, serverURL: serverURL)
+                    .frame(width: 100, height: 58)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                Image(systemName: "play.circle.fill")
+                    .font(.title2).foregroundColor(.white.opacity(0.8))
+            }
+            .onTapGesture { onPlay() }
 
             VStack(alignment: .leading, spacing: 4) {
                 if let ep = episode.episodeNumber {
@@ -315,10 +380,23 @@ struct EpisodeRowView: View {
                 if let overview = episode.overview {
                     Text(overview).font(.caption).foregroundColor(.arcticSub).lineLimit(2)
                 }
+                if let fraction = resumeFraction {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
+                            Capsule().fill(Color.arcticPrimary)
+                                .frame(width: geo.size.width * CGFloat(fraction), height: 3)
+                        }
+                    }
+                    .frame(height: 3)
+                    .padding(.top, 2)
+                }
             }
             Spacer()
             Button(action: onPlay) {
-                Image(systemName: "play.fill").foregroundColor(.arcticPrimary)
+                Image(systemName: resumeFraction != nil ? "arrow.counterclockwise.circle.fill" : "play.fill")
+                    .foregroundColor(.arcticPrimary)
+                    .font(.system(size: resumeFraction != nil ? 22 : 16))
             }
         }
         .padding(.vertical, 10)

@@ -29,6 +29,17 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: $appState.autoPlayEnabled) {
+                        Label("Auto-Play Next Episode", systemImage: "play.circle.fill")
+                            .foregroundColor(.arcticText)
+                    }
+                    .tint(.arcticPrimary)
+                } header: {
+                    Text("Playback").foregroundColor(.arcticMuted)
+                }
+                .listRowBackground(Color.arcticSurface)
+
+                Section {
                     Button(role: .destructive) {
                         appState.logout()
                     } label: {

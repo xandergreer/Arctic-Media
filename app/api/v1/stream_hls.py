@@ -263,42 +263,67 @@ async def get_master_playlist(
     job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, sidx, stype)
     await start_or_warm_job(mf.path, job)
     
-    # Wait for at least 3 complete segments before responding.
-    # AVPlayer requires a minimum buffer — returning an empty or 1-segment
-    # playlist causes it to stall at the live edge on ongoing transcodes.
+    # Wait for at least 1 segment before responding
     m3u8_path = job.workdir / "index.m3u8"
     for _ in range(120):   # up to 60s
         if m3u8_path.exists():
             ts_lines = [l for l in m3u8_path.read_text().splitlines() if l.endswith(".ts")]
-            if len(ts_lines) >= 3:
+            if ts_lines:
                 break
         await asyncio.sleep(0.5)
     else:
         raise HTTPException(500, "Transcoder failed to produce segments")
-             
-    # Rewrite Manifest with fully-qualified URLs (required by AVPlayer / Safari)
-    content = m3u8_path.read_text()
 
-    # Build absolute base using the incoming request's scheme + host
     server_base = f"{request.url.scheme}://{request.url.netloc}"
     base_url = f"{server_base}/api/v1/stream/hls/{media_id}/{job.job_id}"
 
-    # Inject #EXT-X-PLAYLIST-TYPE:EVENT so players treat this as seekable VOD-in-progress
-    # rather than a live stream. When ffmpeg finishes it writes #EXT-X-ENDLIST, which
-    # signals the EVENT is complete and full seeking becomes available.
-    already_has_type = '#EXT-X-PLAYLIST-TYPE' in content
+    # Get total duration via ffprobe so we can build a fake-VOD manifest.
+    # This makes AVPlayer show a proper seek bar immediately instead of treating
+    # the in-progress transcode as a live stream.
+    file_info = await asyncio.to_thread(get_detailed_media_info, mf.path)
+    duration = float(file_info.get("duration") or 0)
 
+    if duration > 0:
+        # Build a complete fake-VOD manifest with all expected segments listed upfront.
+        # Segment serving waits for each segment to be ready (see get_hls_segment).
+        seg_dur = job.seg_dur
+        total_segs = math.ceil(duration / seg_dur)
+        lines = [
+            "#EXTM3U",
+            "#EXT-X-VERSION:3",
+            f"#EXT-X-TARGETDURATION:{int(seg_dur) + 1}",
+            "#EXT-X-MEDIA-SEQUENCE:0",
+            "#EXT-X-PLAYLIST-TYPE:VOD",
+        ]
+        for i in range(total_segs):
+            remaining = duration - i * seg_dur
+            seg_dur_actual = min(seg_dur, remaining)
+            seg_name = f"seg_{i:05d}.ts"
+            lines.append(f"#EXTINF:{seg_dur_actual:.6f},")
+            lines.append(f"{base_url}/{seg_name}?token={token}")
+        lines.append("#EXT-X-ENDLIST")
+        return Response(
+            "\n".join(lines),
+            media_type="application/vnd.apple.mpegurl",
+            headers={"Cache-Control": "no-cache, no-store"},
+        )
+
+    # Fallback (duration unknown): rewrite the live manifest with EVENT type
+    content = m3u8_path.read_text()
+    already_has_type = '#EXT-X-PLAYLIST-TYPE' in content
     new_lines = []
     for line in content.splitlines():
         if line.endswith(".ts"):
             new_lines.append(f"{base_url}/{line}?token={token}")
         else:
             new_lines.append(line)
-        # Insert after #EXT-X-MEDIA-SEQUENCE (standard placement)
         if line.startswith('#EXT-X-MEDIA-SEQUENCE') and not already_has_type:
             new_lines.append('#EXT-X-PLAYLIST-TYPE:EVENT')
-
-    return Response("\n".join(new_lines), media_type="application/vnd.apple.mpegurl")
+    return Response(
+        "\n".join(new_lines),
+        media_type="application/vnd.apple.mpegurl",
+        headers={"Cache-Control": "no-cache, no-store"},
+    )
 
 @router.get("/hls/{media_id}/{job_id}/{segment}")
 async def get_hls_segment(
@@ -307,13 +332,25 @@ async def get_hls_segment(
     segment: str,
     token: str = Query(None)
 ):
-    # Simple auth check (can be skipped for speed if token validation overhead is high, but better safe)
-    # For now, just serve file relative to job dir
     job = _JOBS.get(job_id)
-    if not job: raise HTTPException(404, "Job not found")
-    
+    if not job:
+        raise HTTPException(404, "Job not found")
+
     seg_path = job.workdir / segment
+
+    # In fake-VOD mode the player may request a segment before ffmpeg has produced it.
+    # Poll up to 60 s for the segment to appear rather than returning 404 immediately.
+    if not seg_path.exists():
+        for _ in range(120):  # 60 s
+            await asyncio.sleep(0.5)
+            if seg_path.exists() and seg_path.stat().st_size > 0:
+                break
+            # If ffmpeg exited without writing this segment, stop waiting
+            if job.proc and job.proc.returncode is not None:
+                break
+
     if not seg_path.exists():
         raise HTTPException(404, "Segment not found")
-        
+
+    job.touch()
     return FileResponse(seg_path, media_type="video/mp2t")

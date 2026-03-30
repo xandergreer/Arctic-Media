@@ -83,6 +83,22 @@ struct SearchResult: Codable {
     let total: Int
 }
 
+// MARK: - Media Requests
+
+struct MediaRequest: Codable, Identifiable {
+    let id: Int
+    let userId: Int
+    let username: String
+    let message: String
+    let status: String
+    let createdAt: String
+    enum CodingKeys: String, CodingKey {
+        case id, username, message, status
+        case userId    = "user_id"
+        case createdAt = "created_at"
+    }
+}
+
 // MARK: - Watch History
 
 struct WatchProgress: Codable {

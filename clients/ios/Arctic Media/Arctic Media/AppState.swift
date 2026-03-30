@@ -5,10 +5,14 @@ class AppState: ObservableObject {
     @Published var serverURL: String
     @Published var token: String?
     @Published var currentUser: UserInfo?
+    @Published var autoPlayEnabled: Bool {
+        didSet { UserDefaults.standard.set(autoPlayEnabled, forKey: "autoPlayEnabled") }
+    }
 
     init() {
         self.serverURL = UserDefaults.standard.string(forKey: "serverURL") ?? ""
         self.token = KeychainService.getToken()
+        self.autoPlayEnabled = UserDefaults.standard.bool(forKey: "autoPlayEnabled")
     }
 
     var isConfigured: Bool { !serverURL.isEmpty }

@@ -8,6 +8,7 @@ struct LibraryView: View {
     @State private var loading = true
     @State private var error: String?
     @State private var sort: SortOption = .newest
+    @State private var showRequest = false
 
     enum SortOption: String, CaseIterable, Identifiable {
         case newest = "Newly Added"
@@ -68,6 +69,14 @@ struct LibraryView: View {
         .toolbarBackground(Color.arcticBg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showRequest = true
+                } label: {
+                    Label("Request", systemImage: "plus.circle")
+                        .foregroundColor(.arcticPrimary)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Picker("Sort", selection: $sort) {
@@ -80,6 +89,9 @@ struct LibraryView: View {
                         .foregroundColor(.arcticPrimary)
                 }
             }
+        }
+        .sheet(isPresented: $showRequest) {
+            RequestSheetView(kind: kind)
         }
         .task { await load() }
     }
