@@ -30,6 +30,9 @@
         <button class="admin-tab" data-tab="history" onclick="switchTab('history')">
             <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">history</span>History
         </button>
+        <button class="admin-tab" data-tab="requests" onclick="switchTab('requests')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">inbox</span>Requests
+        </button>
     </div>
 
     <!-- Tab: Live View -->
@@ -93,6 +96,16 @@
         </div>
     </div>
 
+    <!-- Tab: Requests -->
+    <div id="tab-requests" class="admin-tab-content">
+        <div id="requests-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">inbox</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Tab: Server -->
     <div id="tab-server" class="admin-tab-content">
         <div id="server-content">
@@ -143,6 +156,7 @@ function switchTab(name) {
     if (name === 'users' && typeof loadUsers === 'function') loadUsers();
     if (name === 'invites' && typeof loadInvites === 'function') loadInvites();
     if (name === 'history' && typeof loadHistory === 'function') loadHistory();
+    if (name === 'requests' && typeof loadRequests === 'function') loadRequests();
 }
 // Show default tab
 switchTab('live');
@@ -153,4 +167,5 @@ switchTab('live');
 <script src="/static/js/admin_users.js?v=1"></script>
 <script src="/static/js/admin_invites.js?v=1"></script>
 <script src="/static/js/admin_history.js?v=1"></script>
+<script src="/static/js/admin_requests.js?v=1"></script>
 {% endblock %}

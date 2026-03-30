@@ -13,11 +13,18 @@
 </div>
 
 <div class="section" style="padding-top:1.5rem;">
-    <!-- Sort chips -->
-    <div style="display:flex;gap:0.5rem;margin-bottom:1.75rem;flex-wrap:wrap;" id="sort-strip">
-        <span class="chip active" data-sort="added">Newly Added</span>
-        <span class="chip" data-sort="az">A → Z</span>
-        <span class="chip" data-sort="year">Year</span>
+    <!-- Sort chips + request button -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:0.75rem;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;" id="sort-strip">
+            <span class="chip active" data-sort="added">Newly Added</span>
+            <span class="chip" data-sort="az">A → Z</span>
+            <span class="chip" data-sort="year">Year</span>
+        </div>
+        <button onclick="openRequestModal()"
+            style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-pill);padding:0.45rem 1.1rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.15s;"
+            onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'">
+            <span class="material-icons" style="font-size:16px;">add</span>Make a Request
+        </button>
     </div>
 
     <div id="media-grid" class="media-grid">
@@ -43,6 +50,87 @@
 
 <script>const LIBRARY_TYPE = "{{ lib_type }}";</script>
 <script src="/static/js/library.js?v=3"></script>
+
+<!-- Request Modal -->
+<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:90%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+            <h3 style="margin:0;font-size:1.1rem;">Make a Request</h3>
+            <button onclick="closeRequestModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.4rem;line-height:1;padding:0;">&times;</button>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin:0 0 1rem;">
+            Describe the <span id="req-kind-label">title</span> you'd like added.
+        </p>
+        <textarea id="request-message" rows="4"
+            placeholder="e.g. The Dark Knight (2008), or Severance Season 2…"
+            style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:0.75rem;font-size:0.9rem;font-family:var(--font);resize:vertical;outline:none;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div id="request-error" style="color:#f87171;font-size:0.8rem;margin-top:0.5rem;display:none;"></div>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="closeRequestModal()"
+                style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-pill);padding:0.45rem 1.1rem;font-size:0.85rem;cursor:pointer;font-family:var(--font);">
+                Cancel
+            </button>
+            <button id="request-send-btn" onclick="submitRequest()"
+                style="background:var(--primary);color:#fff;border:none;border-radius:var(--radius-pill);padding:0.45rem 1.25rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font);">
+                Send
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Request Success Toast -->
+<div id="request-toast" style="display:none;position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:0.65rem 1.4rem;border-radius:var(--radius-pill);font-size:0.875rem;font-weight:600;z-index:2000;box-shadow:0 8px 24px rgba(0,0,0,0.35);">
+    Request sent!
+</div>
+
+<script>
+function getCookieLib(name) {
+    const v = `; ${document.cookie}`;
+    const p = v.split(`; ${name}=`);
+    if (p.length === 2) return p.pop().split(';').shift();
+}
+function openRequestModal() {
+    const label = LIBRARY_TYPE === 'movies' ? 'movie' : 'TV show';
+    document.getElementById('req-kind-label').textContent = label;
+    document.getElementById('request-message').value = '';
+    document.getElementById('request-error').style.display = 'none';
+    const modal = document.getElementById('request-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('request-message').focus(), 50);
+}
+function closeRequestModal() {
+    document.getElementById('request-modal').style.display = 'none';
+}
+document.getElementById('request-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('request-modal')) closeRequestModal();
+});
+async function submitRequest() {
+    const msg = document.getElementById('request-message').value.trim();
+    const errEl = document.getElementById('request-error');
+    if (!msg) { errEl.textContent = 'Please describe what you'd like.'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('request-send-btn');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    errEl.style.display = 'none';
+    try {
+        const token = getCookieLib('access_token');
+        const res = await fetch('/api/v1/requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ message: msg })
+        });
+        if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+        closeRequestModal();
+        const toast = document.getElementById('request-toast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    } catch (e) {
+        errEl.textContent = e.message || 'Something went wrong.';
+        errEl.style.display = 'block';
+    }
+    btn.disabled = false; btn.textContent = 'Send';
+}
+</script>
 <script>
     // Sort chips
     document.getElementById('sort-strip')?.addEventListener('click', e => {
