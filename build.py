@@ -66,12 +66,10 @@ def build():
         '--hidden-import=passlib.handlers.bcrypt',
         '--hidden-import=argon2',
         '--hidden-import=bcrypt',
-        # System metrics
         '--hidden-import=psutil',
-        '--hidden-import=psutil._pswindows',
-        '--hidden-import=psutil._psutil_windows',
     ]
     
+    os.makedirs(os.path.join("build", APP_NAME), exist_ok=True)
     PyInstaller.__main__.run(args)
 
     # Restore preserved runtime files (database, etc.)
