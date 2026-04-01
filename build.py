@@ -34,6 +34,10 @@ def build():
             print("Close the running app and run build.py again.")
             raise SystemExit(1) from e
 
+    # Resolve data directories from installed packages
+    import babelfish as _babelfish
+    babelfish_data = os.path.join(os.path.dirname(_babelfish.__file__), "data")
+
     # PyInstaller Arguments
     args = [
         MAIN_SCRIPT,
@@ -45,6 +49,7 @@ def build():
         '--add-data=app/templates;app/templates',
         '--add-data=app/static;app/static',
         '--add-data=icons;icons',
+        f'--add-data={babelfish_data};babelfish/data',
         
         # Bundle FFmpeg binaries
         '--add-binary=bin/ffmpeg.exe;bin',
