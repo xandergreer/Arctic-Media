@@ -60,6 +60,7 @@ class TranscodeJob:
     s_index: Optional[int] = None
     s_type: str = "text" # "text" or "image"
     s_path: Optional[str] = None  # external subtitle file path (sidecar .srt/.vtt)
+    v_bsf: Optional[str] = None   # bitstream filter for copy mode (h264_mp4toannexb / hevc_mp4toannexb)
     start_seg: int = 0             # segment index to start transcoding from (for seek)
     seg_dur: float = HLS_SEG_DUR
     gop: int = DEFAULT_GOP
@@ -87,13 +88,13 @@ class TranscodeJob:
 _JOBS: Dict[str, TranscodeJob] = {}
 _ITEM_JOB: Dict[int, str] = {}
 
-def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, start_seg: int = 0) -> str:
+def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0) -> str:
     h = hashlib.sha1()
-    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|{start_seg}|v16".encode())
+    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|{v_bsf or ''}|{start_seg}|v16".encode())
     return h.hexdigest()[:16]
 
-async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, start_seg: int = 0) -> TranscodeJob:
-    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path, start_seg)
+async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0) -> TranscodeJob:
+    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path, v_bsf, start_seg)
     job = _JOBS.get(job_id)
     if not job:
         # Stop old job for same item if exists
@@ -109,7 +110,7 @@ async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: 
                 finally:
                     _JOBS.pop(prev_id, None)
 
-        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path, start_seg=start_seg)
+        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path, v_bsf=v_bsf, start_seg=start_seg)
         _JOBS[job_id] = job
         _ITEM_JOB[item_id] = job_id
         
@@ -205,9 +206,9 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
             "-start_number", str(job.start_seg),  # name output files from this index
         ])
         
-        # Annex B filter for TS if copying h264
-        if job.vcodec == "copy" and job.container == "ts":
-            cmd.extend(["-bsf:v", "h264_mp4toannexb"])
+        # Annex B filter for TS copy mode (h264_mp4toannexb for H.264, hevc_mp4toannexb for H.265)
+        if job.vcodec == "copy" and job.v_bsf:
+            cmd.extend(["-bsf:v", job.v_bsf])
             
         cmd.append(m3u8_out)
         
@@ -283,11 +284,20 @@ async def get_master_playlist(
                 resolved_sidx = None  # no si= needed for a standalone file
 
     # Determine video codec — can only stream-copy when NOT burning subtitles
-    # (FFmpeg refuses -vf + -c:v copy simultaneously)
+    # (FFmpeg refuses -vf + -c:v copy simultaneously).
+    # Pick the correct Annex B BSF based on the actual encoded codec.
     ext = os.path.splitext(mf.path)[1].lower()
+    probe_vcodec = (file_info.get("vcodec") or "").lower()  # e.g. "h264", "hevc", "mpeg4"
     vcodec = "libx264"
+    v_bsf = None
     if ext == ".mp4" and sidx is None:
-        vcodec = "copy"
+        if probe_vcodec == "h264":
+            vcodec = "copy"
+            v_bsf = "h264_mp4toannexb"
+        elif probe_vcodec in ("hevc", "h265"):
+            vcodec = "copy"
+            v_bsf = "hevc_mp4toannexb"
+        # Other codecs (mpeg4, av1, vp9 …) → transcode to libx264
 
     # Calculate start segment from requested time (for track-switch seeking)
     seg_dur = HLS_SEG_DUR
@@ -295,7 +305,7 @@ async def get_master_playlist(
 
     # Create Job with Audio Map
     a_map = await _pick_audio_map(mf.path, aidx)
-    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path, start_seg)
+    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path, v_bsf, start_seg)
     await start_or_warm_job(mf.path, job)
     
     # Wait for at least 1 segment before responding
