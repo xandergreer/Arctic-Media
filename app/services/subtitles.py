@@ -64,7 +64,7 @@ def _do_download(file_path: str, title: str, year: Optional[int],
         params['year'] = year
 
     try:
-        with httpx.Client(timeout=20) as client:
+        with httpx.Client(timeout=20, follow_redirects=True) as client:
             r = client.get('https://api.opensubtitles.com/api/v1/subtitles',
                            headers=headers, params=params)
             r.raise_for_status()

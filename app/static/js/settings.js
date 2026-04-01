@@ -118,6 +118,7 @@ function dismissScanPanel() {
 async function _poll() {
     try {
         const res = await fetch('/api/v1/scan/status', { headers: getAuthHeaders() });
+        if (res.status === 401) { _stopPoll(); return; }
         if (!res.ok) return;
         const data = await res.json();
         const allDone = !data.scanning;
