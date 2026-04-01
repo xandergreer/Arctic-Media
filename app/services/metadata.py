@@ -296,11 +296,13 @@ async def enrich_library(session: AsyncSession, library_id: int):
     items = result.scalars().all()
     print(f"  [META] Enriching {len(items)} items for library {library_id}...")
 
-    # Phase 1: Concurrently enrich movies and shows that haven't been enriched yet
+    # Phase 1: Concurrently enrich movies and shows that haven't been enriched yet.
+    # Retry any item that is missing tmdb_id, poster, overview, or backdrop —
+    # so previously half-enriched items get filled in on subsequent scans.
     async def _enrich_one(item: MediaItem):
         meta = dict(item.extra_json) if item.extra_json else {}
-        if meta.get("tmdb_id") and item.poster_url:
-            return  # already done
+        if meta.get("tmdb_id") and item.poster_url and item.overview and item.backdrop_url:
+            return  # fully enriched
         await refresh_item_metadata(session, item)
 
     targets = [item for item in items if item.kind in (MediaKind.MOVIE, MediaKind.SHOW)]

@@ -443,12 +443,18 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 size_bytes=size,
                 added_at=datetime.datetime.now(),
             ))
+            known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, title, year))
             added += 1
 
         # Commit once per folder instead of once per file
         if new_paths:
-            await db.commit()
+            try:
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                print(f"  [WARN] Skipping folder batch due to DB error (likely duplicate path): {e}")
+                continue
             for path, title_, year_ in new_paths:
                 await subs_svc.queue_download(path, title_, year_)
 
@@ -586,12 +592,18 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 size_bytes=size,
                 added_at=datetime.datetime.now(),
             ))
+            known_paths.add(full_path)  # prevent intra-scan duplicates
             print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
             new_paths.append((full_path, show_name))
             added += 1
 
         if new_paths:
-            await db.commit()
+            try:
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                print(f"  [WARN] Skipping folder batch due to DB error (likely duplicate path): {e}")
+                continue
             for path, sname in new_paths:
                 await subs_svc.queue_download(path, sname)
 
