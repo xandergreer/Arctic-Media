@@ -364,11 +364,16 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
     - mtime skip: unchanged folders skipped entirely
     - commit() per folder batch
     """
-    added = skipped = skipped_folders = 0
-
+    # Extract library attributes to plain variables up-front.
+    # The ORM object gets expired after any db.rollback(), and accessing its
+    # attributes afterwards triggers a lazy reload → greenlet error in async context.
+    lib_id   = library.id
+    lib_path = library.path
     last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
 
-    walk_results: list = await asyncio.to_thread(_walk_and_stat, library.path)
+    added = skipped = skipped_folders = 0
+
+    walk_results: list = await asyncio.to_thread(_walk_and_stat, lib_path)
 
     for root, _dirs, files, folder_mtime, file_sizes in walk_results:
         video_files = [f for f in files if os.path.splitext(f)[1].lower() in VIDEO_EXTENSIONS]
@@ -425,7 +430,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                     title=title,
                     sort_title=title,
                     release_date=datetime.datetime(year, 1, 1) if year else None,
-                    library_id=library.id,
+                    library_id=lib_id,
                 )
                 db.add(media_item)
                 await db.flush()
@@ -476,9 +481,14 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
 
     added = skipped = no_match = skipped_folders = 0
 
+    # Extract library attributes up-front — the ORM object expires after any
+    # db.rollback() and accessing its attributes inside the loop triggers a
+    # lazy reload → greenlet error in async context.
+    lib_id   = library.id
+    lib_path = library.path
     last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
 
-    walk_results: list = await asyncio.to_thread(_walk_and_stat, library.path)
+    walk_results: list = await asyncio.to_thread(_walk_and_stat, lib_path)
 
     # In-memory caches - avoids a DB query every time we see the same show/season/episode
     show_cache:    dict = {}   # title → MediaItem
@@ -555,14 +565,14 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             if show_name in show_cache:
                 show_item = show_cache[show_name]
             else:
-                show_item = await _get_or_create_show(db, show_name, library.id)
+                show_item = await _get_or_create_show(db, show_name, lib_id)
                 show_cache[show_name] = show_item
 
             season_key = (show_item.id, season_num)
             if season_key in season_cache:
                 season_item = season_cache[season_key]
             else:
-                season_item = await _get_or_create_season(db, show_item, season_num, library.id)
+                season_item = await _get_or_create_season(db, show_item, season_num, lib_id)
                 season_cache[season_key] = season_item
 
             ep_title = f"Episode {episode_num}"
@@ -578,7 +588,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             if ep_key in episode_cache:
                 episode_item = episode_cache[ep_key]
             else:
-                episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, library.id)
+                episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, lib_id)
                 episode_cache[ep_key] = episode_item
 
             # Size already collected by _walk_and_stat - no extra syscall needed
