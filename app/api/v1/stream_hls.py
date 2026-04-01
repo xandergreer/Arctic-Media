@@ -60,6 +60,7 @@ class TranscodeJob:
     s_index: Optional[int] = None
     s_type: str = "text" # "text" or "image"
     s_path: Optional[str] = None  # external subtitle file path (sidecar .srt/.vtt)
+    start_seg: int = 0             # segment index to start transcoding from (for seek)
     seg_dur: float = HLS_SEG_DUR
     gop: int = DEFAULT_GOP
     workdir: Path = field(init=False)
@@ -86,13 +87,13 @@ class TranscodeJob:
 _JOBS: Dict[str, TranscodeJob] = {}
 _ITEM_JOB: Dict[int, str] = {}
 
-def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None) -> str:
+def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, start_seg: int = 0) -> str:
     h = hashlib.sha1()
-    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|v15".encode())
+    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|{start_seg}|v16".encode())
     return h.hexdigest()[:16]
 
-async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None) -> TranscodeJob:
-    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path)
+async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, start_seg: int = 0) -> TranscodeJob:
+    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path, start_seg)
     job = _JOBS.get(job_id)
     if not job:
         # Stop old job for same item if exists
@@ -107,8 +108,8 @@ async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: 
                     shutil.rmtree(old.workdir, ignore_errors=True)
                 finally:
                     _JOBS.pop(prev_id, None)
-        
-        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path)
+
+        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path, start_seg=start_seg)
         _JOBS[job_id] = job
         _ITEM_JOB[item_id] = job_id
         
@@ -135,8 +136,14 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
 
         # Prepare Command
         m3u8_out = str(job.workdir / "index.m3u8")
-        
+
         cmd = [FFMPEG_PATH, "-hide_banner", "-nostdin", "-y"]
+
+        # Fast seek: jump to start position before opening the input.
+        # This means FFmpeg starts encoding from approximately job.start_seg * seg_dur seconds in,
+        # and names the output files starting from start_seg (via -start_number below).
+        if job.start_seg > 0:
+            cmd.extend(["-ss", str(job.start_seg * job.seg_dur)])
 
         if job.s_index is not None and job.s_type == 'image':
              # v12: Use scale2ref to fix "unspecified size" for PGS
@@ -194,7 +201,8 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
             "-hls_list_size", "0", # Keep all segments in playlist for seeking
             "-hls_segment_filename", str(job.workdir / "seg_%05d.ts"),
             "-hls_segment_type", "mpegts",
-            "-hls_flags", "independent_segments", 
+            "-hls_flags", "independent_segments",
+            "-start_number", str(job.start_seg),  # name output files from this index
         ])
         
         # Annex B filter for TS if copying h264
@@ -234,14 +242,15 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
 
 @router.get("/{media_id}/master.m3u8")
 async def get_master_playlist(
-    media_id: int, 
+    media_id: int,
     request: Request,
     token: str = Query(None),
-    aidx: int = Query(0), # Added aidx
+    aidx: int = Query(0),
     sidx: Optional[int] = Query(None),
     stype: str = Query("text"),
-    file_id: Optional[int] = Query(None), # Support switching specific files
-    db: AsyncSession = Depends(get_db) 
+    file_id: Optional[int] = Query(None),
+    t: float = Query(0),  # current playback position in seconds (for seek-start)
+    db: AsyncSession = Depends(get_db)
 ):
     # Verify User
     if token:
@@ -280,9 +289,13 @@ async def get_master_playlist(
     if ext == ".mp4" and sidx is None:
         vcodec = "copy"
 
+    # Calculate start segment from requested time (for track-switch seeking)
+    seg_dur = HLS_SEG_DUR
+    start_seg = max(0, int(t / seg_dur)) if t > 0 else 0
+
     # Create Job with Audio Map
     a_map = await _pick_audio_map(mf.path, aidx)
-    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path)
+    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path, start_seg)
     await start_or_warm_job(mf.path, job)
     
     # Wait for at least 1 segment before responding
@@ -302,16 +315,18 @@ async def get_master_playlist(
     if duration > 0:
         # Build a complete fake-VOD manifest with all expected segments listed upfront.
         # Segment serving waits for each segment to be ready (see get_hls_segment).
+        # When start_seg > 0 (track switch at seek position) only list segments from
+        # start_seg onward — earlier segments were never transcoded.
         seg_dur = job.seg_dur
         total_segs = math.ceil(duration / seg_dur)
         lines = [
             "#EXTM3U",
             "#EXT-X-VERSION:3",
             f"#EXT-X-TARGETDURATION:{int(seg_dur) + 1}",
-            "#EXT-X-MEDIA-SEQUENCE:0",
+            f"#EXT-X-MEDIA-SEQUENCE:{job.start_seg}",
             "#EXT-X-PLAYLIST-TYPE:VOD",
         ]
-        for i in range(total_segs):
+        for i in range(job.start_seg, total_segs):
             remaining = duration - i * seg_dur
             seg_dur_actual = min(seg_dur, remaining)
             seg_name = f"seg_{i:05d}.ts"
@@ -353,6 +368,16 @@ async def get_hls_segment(
         raise HTTPException(404, "Job not found")
 
     seg_path = job.workdir / segment
+
+    # Immediately reject requests for segments that predate the seek point —
+    # FFmpeg started from start_seg so those files will never exist.
+    if job.start_seg > 0 and segment.startswith("seg_") and segment.endswith(".ts"):
+        try:
+            seg_num = int(segment[4:9])  # "seg_00284.ts" → 284
+            if seg_num < job.start_seg:
+                raise HTTPException(404, "Segment before seek point")
+        except (ValueError, IndexError):
+            pass
 
     # In fake-VOD mode the player may request a segment before ffmpeg has produced it.
     # Poll up to 60 s for the segment to appear rather than returning 404 immediately.

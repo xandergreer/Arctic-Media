@@ -614,6 +614,9 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
             srcUrl += `&stype=${info.subtitle_tracks[targetS].is_image ? 'image' : 'text'}`;
         }
     }
+    // Pass current playback position so the server seeks FFmpeg to that point.
+    // This prevents the player requesting segment N while FFmpeg is still at segment 0.
+    if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
     const posterSrc = els.backdrop ? els.backdrop.src : "";
 
     if (playerElement) {
