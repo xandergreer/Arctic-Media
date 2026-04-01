@@ -1,12 +1,19 @@
 import PyInstaller.__main__
 import os
 import shutil
+import subprocess
+import sys
 
 APP_NAME = "ArcticMedia"
 MAIN_SCRIPT = "gui_main.py"
 
 def build():
     print(f"Building {APP_NAME}...")
+
+    # Install all dependencies into the current venv before bundling
+    print("Installing dependencies from requirements.txt...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    print("Dependencies installed.")
     
     # Clean previous build — but PRESERVE the database and any runtime files
     DB_NAME = "arctic_media.db"
