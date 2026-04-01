@@ -71,7 +71,7 @@ Once running, open your browser to `http://localhost:8000`.
 
 ### Windows — Pre-built Executable
 
-Download the latest `ArcticMedia.exe` from the [Releases](../../releases) page and double-click to run. No Python or dependencies required.
+Download the latest `ArcticMedia.exe` from the [Releases](../../releases) page, put it ina. desired folder, and double-click to run. No Python or dependencies required.
 
 Arctic Media will start a local web server on port `8000` and appear in the system tray.
 
