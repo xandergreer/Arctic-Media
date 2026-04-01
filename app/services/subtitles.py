@@ -1,11 +1,13 @@
 """
-Subtitle service — uses subliminal's PodnapisiProvider (free, no API key).
+Subtitle service — OpenSubtitles (primary) with SubDL fallback.
 Downloads are queued and processed in the background with rate limiting.
 On-demand downloads are also supported via the API.
 """
 import asyncio
+import io
 import logging
 import os
+import zipfile
 from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -36,17 +38,92 @@ def get_status(file_path: str) -> str:
 def _do_download(file_path: str, title: str, year: Optional[int],
                  season: Optional[int] = None, episode: Optional[int] = None) -> str:
     """
-    Download via OpenSubtitles REST API (opensubtitles.com).
-    Requires OPENSUBTITLES_API_KEY in settings / .env.
+    Primary: SubDL (2000/day). Fallback: OpenSubtitles (20/day).
     Called via asyncio.to_thread so it doesn't block the event loop.
     Returns a status string.
     """
+    result = _do_download_subdl(file_path, title, year, season, episode)
+    if result in ('not_found', 'error'):
+        logger.info(f'[Subs] SubDL {result} — trying OpenSubtitles for {os.path.basename(file_path)}')
+        result = _do_download_opensubtitles(file_path, title, year, season, episode)
+    return result
+
+
+def _do_download_subdl(file_path: str, title: str, year: Optional[int],
+                       season: Optional[int] = None, episode: Optional[int] = None) -> str:
+    """SubDL primary (subdl.com) — 2000 downloads/day."""
+    import httpx
+    from app.core.config import settings
+
+    api_key = settings.SUBDL_API_KEY
+    if not api_key:
+        return 'error'
+
+    params: dict = {
+        'api_key': api_key,
+        'film_name': title,
+        'languages': 'EN',
+        'subs_per_page': 5,
+    }
+    if season is not None and episode is not None:
+        params['type'] = 'tv'
+        params['season_number'] = season
+        params['episode_number'] = episode
+    else:
+        params['type'] = 'movie'
+    if year:
+        params['year'] = year
+
+    try:
+        with httpx.Client(timeout=20, follow_redirects=True) as client:
+            r = client.get('https://api.subdl.com/api/v1/subtitles', params=params)
+            r.raise_for_status()
+            results = r.json().get('subtitles', [])
+
+            if not results:
+                logger.info(f'[SubDL] No results for: {os.path.basename(file_path)}')
+                return 'not_found'
+
+            url = results[0].get('url')
+            if not url:
+                return 'not_found'
+
+            r2 = client.get(f'https://dl.subdl.com{url}')
+            r2.raise_for_status()
+
+            with zipfile.ZipFile(io.BytesIO(r2.content)) as zf:
+                srt_names = [n for n in zf.namelist() if n.lower().endswith('.srt')]
+                if not srt_names:
+                    return 'not_found'
+                content = zf.read(srt_names[0])
+
+        base = os.path.splitext(file_path)[0]
+        out_path = base + '.en.srt'
+        with open(out_path, 'wb') as f:
+            f.write(content)
+
+        try:
+            from app.api.v1.stream import get_detailed_media_info
+            get_detailed_media_info.cache_clear()
+        except Exception:
+            pass
+
+        logger.info(f'[SubDL] Saved: {os.path.basename(out_path)}')
+        return 'done'
+
+    except Exception as e:
+        logger.error(f'[SubDL] Error for {os.path.basename(file_path)}: {e}')
+        return 'error'
+
+
+def _do_download_opensubtitles(file_path: str, title: str, year: Optional[int],
+                                season: Optional[int] = None, episode: Optional[int] = None) -> str:
+    """OpenSubtitles fallback (opensubtitles.com) — 20 downloads/day."""
     import httpx
     from app.core.config import settings
 
     api_key = settings.OPENSUBTITLES_API_KEY
     if not api_key:
-        logger.error('[Subs] OPENSUBTITLES_API_KEY not set — add it to .env')
         return 'error'
 
     headers = {
@@ -71,10 +148,9 @@ def _do_download(file_path: str, title: str, year: Optional[int],
             results = r.json().get('data', [])
 
             if not results:
-                logger.info(f'[Subs] No results for: {os.path.basename(file_path)}')
+                logger.info(f'[OpenSubs] No results for: {os.path.basename(file_path)}')
                 return 'not_found'
 
-            # Pick entry with highest download count
             best = max(results,
                        key=lambda x: x.get('attributes', {}).get('download_count', 0))
             files = best.get('attributes', {}).get('files', [])
@@ -82,7 +158,6 @@ def _do_download(file_path: str, title: str, year: Optional[int],
                 return 'not_found'
             file_id = files[0]['file_id']
 
-            # Exchange file_id for a one-time download link
             r2 = client.post('https://api.opensubtitles.com/api/v1/download',
                              headers=headers, json={'file_id': file_id})
             r2.raise_for_status()
@@ -102,21 +177,17 @@ def _do_download(file_path: str, title: str, year: Optional[int],
         with open(out_path, 'wb') as f:
             f.write(content)
 
-        # Clear the media-info cache so the new sidecar is detected on the next play.
         try:
             from app.api.v1.stream import get_detailed_media_info
             get_detailed_media_info.cache_clear()
         except Exception:
             pass
 
-        logger.info(f'[Subs] Saved: {os.path.basename(out_path)}')
+        logger.info(f'[OpenSubs] Saved: {os.path.basename(out_path)}')
         return 'done'
 
-    except httpx.HTTPStatusError as e:
-        logger.error(f'[Subs] HTTP {e.response.status_code} for {os.path.basename(file_path)}: {e}')
-        return 'error'
     except Exception as e:
-        logger.error(f'[Subs] Error for {os.path.basename(file_path)}: {e}')
+        logger.error(f'[OpenSubs] Error for {os.path.basename(file_path)}: {e}')
         return 'error'
 
 

@@ -147,9 +147,7 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
             cmd.extend(["-ss", str(job.start_seg * job.seg_dur)])
 
         if job.s_index is not None and job.s_type == 'image':
-             # v12: Use scale2ref to fix "unspecified size" for PGS
-             # No input hint needed, the filter does the work.
-             pass
+            cmd.extend(["-fix_sub_duration"])  # required for correct PGS/DVD sub timing
 
         cmd.extend(["-i", src_path])
         
@@ -166,10 +164,11 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
                     cmd.extend(["-map", "0:v:0"])
                     cmd.extend(["-vf", f"subtitles='{escaped_path}':si={job.s_index}"])
             else:
-                # Image subs (PGS/DVD) - v13: Hardcode 1080p canvas
-                # Most PGS is 1080p. Forcing this resolution avoids "unspecified size" graph failures.
-                # format=rgba ensures alpha channel is preserved.
-                cmd.extend(["-filter_complex", f"[0:s:{job.s_index}]scale=1920:1080:force_original_aspect_ratio=decrease,format=rgba[sub];[0:v:0][sub]overlay[v]"])
+                # Image subs (PGS/DVD) — overlay directly without scaling.
+                # PGS is already at the video resolution; explicit scale fails when
+                # the stream has unspecified dimensions, dropping the video output.
+                # shortest=0:repeatlast=0 keeps video playing past the last subtitle cue.
+                cmd.extend(["-filter_complex", f"[0:v:0][0:s:{job.s_index}]overlay=shortest=0:repeatlast=0,format=yuv420p[v]"])
                 cmd.extend(["-map", "[v]"])
         else:
              # No Subs - Just map video

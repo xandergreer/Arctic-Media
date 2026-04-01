@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # OpenSubtitles REST API (opensubtitles.com)
     OPENSUBTITLES_API_KEY: str | None = "nsMKZmXvIaSSe8k5CFSRjZY9PSbTYNRA"
 
+    # SubDL fallback (subdl.com)
+    SUBDL_API_KEY: str | None = "5fhxetp1TQ_xApFZgFNf6-lHKi4utwDK"
+
     # --- NEW SETTINGS FOR AUTHENTICATION ---
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 Week
     ALGORITHM: str = "HS256"
