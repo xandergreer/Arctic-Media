@@ -15,11 +15,9 @@ from typing import List, Optional
 from app.models.library import Library, LibraryType
 from app.models.media import MediaItem, MediaFile, MediaKind
 from app.services.metadata import enrich_library, _search_tv, _get
-from app.services.subtitles import SubtitleService
+from app.services import subtitles as subs_svc
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
-
-subs_service = SubtitleService()
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v"}
 
@@ -445,17 +443,14 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 size_bytes=size,
                 added_at=datetime.datetime.now(),
             ))
-            new_paths.append(full_path)
+            new_paths.append((full_path, title, year))
             added += 1
 
         # Commit once per folder instead of once per file
         if new_paths:
             await db.commit()
-            for path in new_paths:
-                try:
-                    await subs_service.auto_download(path)
-                except Exception as e:
-                    print(f"    [SUBS] Failed: {e}")
+            for path, title_, year_ in new_paths:
+                await subs_svc.queue_download(path, title_, year_)
 
     if skipped_folders:
         print(f"  [MOVIES] Skipped {skipped_folders} unchanged folder(s) via mtime.")
@@ -496,7 +491,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             continue
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
-        new_paths: list[str] = []
+        new_paths: list[tuple[str, str]] = []  # (path, show_name)
 
         for filename in video_files:
             name, _ext = os.path.splitext(filename)
@@ -592,16 +587,13 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 added_at=datetime.datetime.now(),
             ))
             print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
-            new_paths.append(full_path)
+            new_paths.append((full_path, show_name))
             added += 1
 
         if new_paths:
             await db.commit()
-            for path in new_paths:
-                try:
-                    await subs_service.auto_download(path)
-                except Exception as e:
-                    print(f"    [SUBS] Failed: {e}")
+            for path, sname in new_paths:
+                await subs_svc.queue_download(path, sname)
 
     if skipped_folders:
         print(f"  [SHOWS] Skipped {skipped_folders} unchanged folder(s) via mtime.")

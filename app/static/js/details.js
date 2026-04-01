@@ -803,3 +803,103 @@ window.closePlayer = function () {
     }
     if (videoContainer) videoContainer.style.display = "none";
 }
+
+// ── Subtitle download ────────────────────────────────────────────────────────
+
+let _subPollTimer = null;
+
+function _subSetState(btn, state) {
+    // state: 'idle' | 'pending' | 'active' | 'exists' | 'partial' | 'error'
+    const icons = {
+        idle:    'subtitles',
+        pending: 'hourglass_top',
+        active:  'downloading',
+        exists:  'subtitles',
+        partial: 'subtitles',
+        error:   'subtitles',
+    };
+    const titles = {
+        idle:    'Download subtitles',
+        pending: 'Queued\u2026',
+        active:  'Downloading\u2026',
+        exists:  'Subtitles ready',
+        partial: 'Some subtitles missing \u2014 click to retry',
+        error:   'Download failed \u2014 click to retry',
+    };
+    btn.querySelector('.material-icons').textContent = icons[state] || 'subtitles';
+    btn.title = titles[state] || 'Download subtitles';
+    btn.disabled = (state === 'pending' || state === 'active');
+    btn.style.opacity = (state === 'exists') ? '0.5' : '1';
+}
+
+function _subPoll(mediaId, btn) {
+    if (_subPollTimer) clearInterval(_subPollTimer);
+    _subPollTimer = setInterval(async () => {
+        try {
+            const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+            const res = await fetch('/api/v1/subtitles/' + mediaId + '/status', {
+                headers: token ? { Authorization: 'Bearer ' + token } : {}
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const overall = data.overall; // 'none','active','partial','exists'
+            if (overall === 'active') {
+                _subSetState(btn, 'active');
+            } else {
+                // Download finished (or failed with none/partial)
+                clearInterval(_subPollTimer);
+                _subPollTimer = null;
+                _subSetState(btn, overall === 'exists' ? 'exists' : (overall === 'partial' ? 'partial' : 'idle'));
+            }
+        } catch (_) { /* ignore poll errors */ }
+    }, 4000);
+}
+
+window.requestSubtitles = async function () {
+    const btn = document.getElementById('subtitleBtn');
+    const mediaId = document.getElementById('media-id')?.value;
+    if (!mediaId || !btn) return;
+
+    _subSetState(btn, 'pending');
+
+    try {
+        const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+        const res = await fetch('/api/v1/subtitles/' + mediaId + '/download', {
+            method: 'POST',
+            headers: token ? { Authorization: 'Bearer ' + token } : {}
+        });
+        if (!res.ok) {
+            _subSetState(btn, 'error');
+            return;
+        }
+        _subSetState(btn, 'active');
+        _subPoll(mediaId, btn);
+    } catch (_) {
+        _subSetState(btn, 'error');
+    }
+};
+
+// Check status on page load and reflect it on the button
+(async function _initSubtitleBtn() {
+    const btn = document.getElementById('subtitleBtn');
+    const mediaId = document.getElementById('media-id')?.value;
+    if (!btn || !mediaId) return;
+    try {
+        const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+        const res = await fetch('/api/v1/subtitles/' + mediaId + '/status', {
+            headers: token ? { Authorization: 'Bearer ' + token } : {}
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const overall = data.overall;
+        if (overall === 'active') {
+            _subSetState(btn, 'active');
+            _subPoll(mediaId, btn);
+        } else if (overall === 'exists') {
+            _subSetState(btn, 'exists');
+        } else if (overall === 'partial') {
+            _subSetState(btn, 'partial');
+        }
+        // 'none' => leave default idle state
+    } catch (_) { /* ignore */ }
+})();

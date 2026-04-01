@@ -35,6 +35,13 @@ multidict==6.7.1
 orjson==3.11.5
 passlib==1.7.4
 guessit>=3.0.0
+subliminal>=2.1.0,<3
+babelfish>=0.6.0
+pysrt>=1.1.2
+chardet>=3.0.4
+requests>=2.25.0
+dogpile.cache>=0.6.0
+stevedore>=1.19.0
 psutil>=6.0.0
 propcache==0.4.1
 pyasn1==0.6.2

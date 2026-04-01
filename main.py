@@ -40,6 +40,7 @@ from app.api.v1.remote import router as remote_router
 from app.api.v1.history import router as history_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.requests import router as requests_router
+from app.api.v1.subtitles_api import router as subtitles_router
 
 # IMPORTS: These lines register the models with the 'Base' class
 from app.models.user import User
@@ -79,7 +80,11 @@ async def lifespan(app: FastAPI):
         )
 
     print("Database tables verified/created.")
-    
+
+    # Start background subtitle download worker
+    from app.services import subtitles as sub_svc
+    asyncio.create_task(sub_svc.run_worker())
+
     yield
     
     print("Shutting down... Closing Database connection.")
@@ -115,6 +120,7 @@ app.include_router(history_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(requests_router, prefix="/api/v1")
 app.include_router(remote_router) # /pair endpoints
+app.include_router(subtitles_router, prefix="/api/v1")
 
 
 

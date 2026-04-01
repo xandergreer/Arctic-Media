@@ -59,6 +59,7 @@ class TranscodeJob:
     a_map: Optional[str] = None
     s_index: Optional[int] = None
     s_type: str = "text" # "text" or "image"
+    s_path: Optional[str] = None  # external subtitle file path (sidecar .srt/.vtt)
     seg_dur: float = HLS_SEG_DUR
     gop: int = DEFAULT_GOP
     workdir: Path = field(init=False)
@@ -85,13 +86,13 @@ class TranscodeJob:
 _JOBS: Dict[str, TranscodeJob] = {}
 _ITEM_JOB: Dict[int, str] = {}
 
-def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text") -> str:
+def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None) -> str:
     h = hashlib.sha1()
-    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|v14".encode())
+    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|v15".encode())
     return h.hexdigest()[:16]
 
-async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text") -> TranscodeJob:
-    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type)
+async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None) -> TranscodeJob:
+    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path)
     job = _JOBS.get(job_id)
     if not job:
         # Stop old job for same item if exists
@@ -107,7 +108,7 @@ async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: 
                 finally:
                     _JOBS.pop(prev_id, None)
         
-        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type)
+        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path)
         _JOBS[job_id] = job
         _ITEM_JOB[item_id] = job_id
         
@@ -147,10 +148,15 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
         # Subtitle Burn-In
         if job.s_index is not None:
             if job.s_type == 'text':
-                # Text subs (SRT/ASS) - Use subtitles filter
-                escaped_path = src_path.replace("\\", "/").replace(":", "\\:")
-                cmd.extend(["-map", "0:v:0"])
-                cmd.extend(["-vf", f"subtitles='{escaped_path}':si={job.s_index}"])
+                # Text subs — use external file path if sidecar, otherwise extract from video
+                if job.s_path:
+                    escaped_sub = job.s_path.replace("\\", "/").replace(":", "\\:")
+                    cmd.extend(["-map", "0:v:0"])
+                    cmd.extend(["-vf", f"subtitles='{escaped_sub}'"])
+                else:
+                    escaped_path = src_path.replace("\\", "/").replace(":", "\\:")
+                    cmd.extend(["-map", "0:v:0"])
+                    cmd.extend(["-vf", f"subtitles='{escaped_path}':si={job.s_index}"])
             else:
                 # Image subs (PGS/DVD) - v13: Hardcode 1080p canvas
                 # Most PGS is 1080p. Forcing this resolution avoids "unspecified size" graph failures.
@@ -252,15 +258,31 @@ async def get_master_playlist(
     mf = result.scalars().first()
     if not mf: raise HTTPException(404, "Media Not Found")
     
-    # Check Codecs (Simple check)
+    # Probe file for codec info, duration, and subtitle track details
+    file_info = await asyncio.to_thread(get_detailed_media_info, mf.path)
+    duration = float(file_info.get("duration") or 0)
+
+    # Resolve subtitle track details before creating the job
+    s_path = None  # external subtitle file path (sidecar)
+    resolved_sidx = sidx  # subtitle stream index within the file's subtitle streams
+    if sidx is not None:
+        sub_tracks = file_info.get("subtitle_tracks", [])
+        if sidx < len(sub_tracks):
+            track = sub_tracks[sidx]
+            if track.get("is_external"):
+                s_path = track.get("path")
+                resolved_sidx = None  # no si= needed for a standalone file
+
+    # Determine video codec — can only stream-copy when NOT burning subtitles
+    # (FFmpeg refuses -vf + -c:v copy simultaneously)
     ext = os.path.splitext(mf.path)[1].lower()
-    vcodec = "libx264" # Default transcode
-    if ext == ".mp4":
-        vcodec = "copy" # Try copy for mp4
-        
+    vcodec = "libx264"
+    if ext == ".mp4" and sidx is None:
+        vcodec = "copy"
+
     # Create Job with Audio Map
     a_map = await _pick_audio_map(mf.path, aidx)
-    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, sidx, stype)
+    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path)
     await start_or_warm_job(mf.path, job)
     
     # Wait for at least 1 segment before responding
@@ -276,12 +298,6 @@ async def get_master_playlist(
 
     server_base = f"{request.url.scheme}://{request.url.netloc}"
     base_url = f"{server_base}/api/v1/stream/hls/{media_id}/{job.job_id}"
-
-    # Get total duration via ffprobe so we can build a fake-VOD manifest.
-    # This makes AVPlayer show a proper seek bar immediately instead of treating
-    # the in-progress transcode as a live stream.
-    file_info = await asyncio.to_thread(get_detailed_media_info, mf.path)
-    duration = float(file_info.get("duration") or 0)
 
     if duration > 0:
         # Build a complete fake-VOD manifest with all expected segments listed upfront.
