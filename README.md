@@ -36,7 +36,7 @@ It was built as a personal alternative to Plex and Jellyfin with a focus on simp
 
 ### ✍️ Authors
 
-Built by [arctic](https://github.com/arctic) — inspired by Plex, Jellyfin, and Emby.
+Built by [arctic](https://github.com/xandergreer) — inspired by Plex, Jellyfin, and Emby.
 
 
 ## 📱 Client Apps
