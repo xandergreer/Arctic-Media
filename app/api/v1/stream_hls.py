@@ -356,6 +356,64 @@ async def get_master_playlist(
         headers={"Cache-Control": "no-cache, no-store"},
     )
 
+@router.get("/{media_id}/subtitle.vtt")
+async def get_subtitle_vtt(
+    media_id: int,
+    sidx: int = Query(0),
+    file_id: Optional[int] = Query(None),
+    token: str = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Extract an embedded or sidecar text subtitle track and return it as WebVTT."""
+    if token:
+        user = await get_current_user_from_token(token, db)
+        if not user:
+            raise HTTPException(401, "Invalid Token")
+
+    q = (select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
+         if file_id else select(MediaFile).where(MediaFile.media_item_id == media_id))
+    result = await db.execute(q)
+    mf = result.scalars().first()
+    if not mf:
+        raise HTTPException(404, "Media Not Found")
+
+    file_info = await asyncio.to_thread(get_detailed_media_info, mf.path)
+    sub_tracks = file_info.get("subtitle_tracks", [])
+    if sidx >= len(sub_tracks):
+        raise HTTPException(404, "Subtitle track not found")
+
+    track = sub_tracks[sidx]
+
+    # Cache: one .vtt per (file, sidx) pair
+    cache_key = hashlib.sha1(f"{mf.path}|{sidx}".encode()).hexdigest()[:16]
+    vtt_path = TRANSCODE_ROOT / f"sub_{cache_key}.vtt"
+
+    if not vtt_path.exists():
+        if track.get("is_external") and track.get("path"):
+            src = track["path"]
+            if src.lower().endswith(".vtt"):
+                await asyncio.to_thread(shutil.copy, src, str(vtt_path))
+            else:
+                # Convert SRT/ASS/etc → WebVTT
+                cmd = [FFMPEG_PATH, "-y", "-i", src, str(vtt_path)]
+                await asyncio.to_thread(subprocess.run, cmd,
+                                        capture_output=True,
+                                        startupinfo=_get_windows_startupinfo())
+        else:
+            # Extract embedded subtitle stream
+            cmd = [FFMPEG_PATH, "-y", "-i", mf.path, "-map", f"0:s:{sidx}", str(vtt_path)]
+            await asyncio.to_thread(subprocess.run, cmd,
+                                    capture_output=True,
+                                    startupinfo=_get_windows_startupinfo())
+
+    if not vtt_path.exists():
+        raise HTTPException(500, "Failed to extract subtitle track")
+
+    return FileResponse(str(vtt_path), media_type="text/vtt",
+                        headers={"Cache-Control": "public, max-age=3600",
+                                 "Access-Control-Allow-Origin": "*"})
+
+
 @router.get("/hls/{media_id}/{job_id}/{segment}")
 async def get_hls_segment(
     media_id: int,

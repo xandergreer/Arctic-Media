@@ -606,13 +606,17 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     }
 
     // ALWAYS USE HLS
+    // Text subtitles are rendered client-side via WebVTT — no server burn-in needed.
+    // Only image-based subs (PGS/DVD) go through the burn-in path.
+    const _subTrack = (targetS !== null && info.subtitle_tracks) ? info.subtitle_tracks[targetS] : null;
+    const _isImageSub = _subTrack ? !!_subTrack.is_image : false;
+    const _isTextSub  = _subTrack ? !_subTrack.is_image : false;
+
     let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
     if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
-    if (targetS !== null) {
-        srcUrl += `&sidx=${targetS}`;
-        if (info.subtitle_tracks && info.subtitle_tracks[targetS]) {
-            srcUrl += `&stype=${info.subtitle_tracks[targetS].is_image ? 'image' : 'text'}`;
-        }
+    if (targetS !== null && _isImageSub) {
+        // Only burn-in for image-based subs (PGS/DVD); text subs handled below via WebVTT
+        srcUrl += `&sidx=${targetS}&stype=image`;
     }
     // Pass current playback position so the server seeks FFmpeg to that point.
     // This prevents the player requesting segment N while FFmpeg is still at segment 0.
@@ -635,6 +639,13 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
                 if (startTime > 0) playerElement.currentTime = startTime;
                 playerElement.play().catch(e => console.log("Autoplay blocked/failed", e));
                 _startProgressTracking(id);
+                // Load text subtitle as WebVTT — browser renders it natively, no re-encode needed
+                if (_isTextSub) {
+                    const t2 = getCookie("access_token");
+                    let vttUrl = `/api/v1/stream/${id}/subtitle.vtt?sidx=${targetS}&token=${t2}`;
+                    if (window.currentFileId) vttUrl += `&file_id=${window.currentFileId}`;
+                    _loadVttTrack(vttUrl);
+                }
             });
 
             hls.on(Hls.Events.ERROR, function (event, data) {
@@ -768,7 +779,21 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
             select.onchange = (e) => {
                 const val = e.target.value;
                 const newSidx = val === "off" ? null : parseInt(val);
-                playStream(mediaId, qualityStr, aidx, newSidx, plyr ? plyr.currentTime : 0);
+                const newTrack = newSidx !== null ? info.subtitle_tracks[newSidx] : null;
+
+                if (newTrack && !newTrack.is_image) {
+                    // Text sub: extract + render as WebVTT — no stream restart, no black screen
+                    _removeVttTracks();
+                    currentSidx = newSidx;
+                    const tok = getCookie("access_token");
+                    let vttUrl = `/api/v1/stream/${mediaId}/subtitle.vtt?sidx=${newSidx}&token=${tok}`;
+                    if (window.currentFileId) vttUrl += `&file_id=${window.currentFileId}`;
+                    _loadVttTrack(vttUrl);
+                } else {
+                    // Image sub or "off": reload stream (burn-in / clean)
+                    _removeVttTracks();
+                    playStream(mediaId, qualityStr, aidx, newSidx, plyr ? plyr.currentTime : 0);
+                }
             };
 
             row.appendChild(select);
@@ -787,6 +812,39 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
         menuObserver.observe(menuContainer, { childList: true, subtree: true });
     });
     menuObserver.observe(menuContainer, { childList: true, subtree: true });
+}
+
+// ── WebVTT subtitle helpers ──────────────────────────────────────────────────
+
+function _loadVttTrack(vttUrl) {
+    if (!playerElement) return;
+    _removeVttTracks();
+    const t = document.createElement("track");
+    t.id = "__arctic_vtt";
+    t.kind = "subtitles";
+    t.src = vttUrl;
+    t.srclang = "en";
+    t.label = "Subtitles";
+    t.default = true;
+    playerElement.appendChild(t);
+    // Force showing — textTracks needs a tick to register the new element
+    setTimeout(() => {
+        for (let i = 0; i < playerElement.textTracks.length; i++) {
+            const tt = playerElement.textTracks[i];
+            if (tt.label === "Subtitles" || tt.id === "__arctic_vtt") {
+                tt.mode = "showing";
+            }
+        }
+    }, 150);
+}
+
+function _removeVttTracks() {
+    if (!playerElement) return;
+    playerElement.querySelectorAll("track#__arctic_vtt").forEach(t => t.remove());
+    // Also hide any active text tracks left from a previous load
+    for (let i = 0; i < playerElement.textTracks.length; i++) {
+        playerElement.textTracks[i].mode = "disabled";
+    }
 }
 
 window.closePlayer = function () {
