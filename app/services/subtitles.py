@@ -74,6 +74,14 @@ def _do_download(file_path: str, title: str, year: Optional[int]) -> str:
         with open(out_path, 'wb') as f:
             f.write(best.content)
 
+        # Clear the media-info cache so the new sidecar is detected on the next play.
+        # Lazy import avoids circular dependency at module load time.
+        try:
+            from app.api.v1.stream import get_detailed_media_info
+            get_detailed_media_info.cache_clear()
+        except Exception:
+            pass
+
         logger.info(f'[Subs] Saved: {os.path.basename(out_path)}')
         return 'done'
 
