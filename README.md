@@ -44,7 +44,7 @@ Built by [arctic](https://github.com/arctic) — inspired by Plex, Jellyfin, and
 | Platform | Status | Notes |
 |----------|--------|-------|
 | Browser (any) | ✅ Available | Primary interface, works on all devices |
-| iOS | ✅ Available | Native app — see the iOS repo |
+| iOS | ✅ Available | Native app — must sideload ipa |
 | Roku | 🚧 In progress | Coming soon |
 | Android | 🔜 Planned | — |
 
@@ -71,7 +71,7 @@ Once running, open your browser to `http://localhost:8000`.
 
 ### Windows — Pre-built Executable
 
-Download the latest `ArcticMedia.exe` from the [Releases](../../releases) page, put it ina. desired folder, and double-click to run. No Python or dependencies required.
+Download the latest `ArcticMedia.exe` from the [Releases](../../releases) page, put it in a desired folder, and double-click to run. No Python or dependencies required.
 
 Arctic Media will start a local web server on port `8000` and appear in the system tray.
 
@@ -125,6 +125,10 @@ pip install pyinstaller
 pyinstaller ArcticMedia-macOS.spec
 ```
 Output: `dist/ArcticMedia.app`
+
+
+IOS INSTALL INSTRUCTIONS COMING SOON
+
 
 
 ## 💭 Feedback and Contributing
