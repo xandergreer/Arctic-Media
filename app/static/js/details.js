@@ -815,35 +815,91 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
 }
 
 // ── WebVTT subtitle helpers ──────────────────────────────────────────────────
+// Plyr v3 intercepts addtrack events and resets mode to "disabled", so we
+// bypass the browser TextTrack API entirely and render cues in a <div> overlay.
 
-function _loadVttTrack(vttUrl) {
+let _vttCues = [], _vttOverlay = null, _vttRafId = null;
+
+function _ensureVttOverlay() {
+    if (_vttOverlay) return _vttOverlay;
+    const wrapper = document.querySelector('.plyr') || (playerElement && playerElement.parentElement);
+    if (!wrapper) return null;
+    const ov = document.createElement('div');
+    ov.id = '__arctic_sub_overlay';
+    ov.style.cssText = [
+        'position:absolute', 'bottom:12%', 'left:0', 'width:100%',
+        'text-align:center', 'pointer-events:none', 'z-index:9999',
+        'font-size:1.4em', 'line-height:1.4', 'color:#fff',
+        'text-shadow:0 0 4px #000,0 0 4px #000', 'padding:0 8%',
+        'white-space:pre-line'
+    ].join(';');
+    wrapper.style.position = 'relative';
+    wrapper.appendChild(ov);
+    _vttOverlay = ov;
+    return ov;
+}
+
+function _vttTimeToSec(s) {
+    const p = s.trim().split(':');
+    if (p.length === 3) return +p[0] * 3600 + +p[1] * 60 + parseFloat(p[2]);
+    if (p.length === 2) return +p[0] * 60 + parseFloat(p[1]);
+    return parseFloat(p[0]);
+}
+
+function _parseVtt(text) {
+    const cues = [];
+    const blocks = text.replace(/\r\n/g, '\n').split(/\n{2,}/);
+    for (const block of blocks) {
+        const lines = block.trim().split('\n');
+        // Find the timing line (contains " --> ")
+        let timingIdx = lines.findIndex(l => l.includes(' --> '));
+        if (timingIdx < 0) continue;
+        const timing = lines[timingIdx].split(' --> ');
+        if (timing.length < 2) continue;
+        const start = _vttTimeToSec(timing[0]);
+        const end   = _vttTimeToSec(timing[1].split(' ')[0]); // strip cue settings
+        const textLines = lines.slice(timingIdx + 1).filter(l => l.trim());
+        if (!textLines.length) continue;
+        // Strip VTT tags like <b>, <i>, <c.color>, timestamps
+        const html = textLines.join('\n').replace(/<[^>]+>/g, '');
+        cues.push({ start, end, text: html });
+    }
+    return cues;
+}
+
+function _vttRenderLoop() {
+    const ov = _vttOverlay;
+    if (!ov || !playerElement) return;
+    const t = playerElement.currentTime;
+    const active = _vttCues.filter(c => t >= c.start && t < c.end);
+    ov.textContent = active.map(c => c.text).join('\n');
+    _vttRafId = requestAnimationFrame(_vttRenderLoop);
+}
+
+async function _loadVttTrack(vttUrl) {
     if (!playerElement) return;
     _removeVttTracks();
-    const t = document.createElement("track");
-    t.id = "__arctic_vtt";
-    t.kind = "subtitles";
-    t.src = vttUrl;
-    t.srclang = "en";
-    t.label = "Subtitles";
-    t.default = true;
-    playerElement.appendChild(t);
-    // Force showing — textTracks needs a tick to register the new element
-    setTimeout(() => {
-        for (let i = 0; i < playerElement.textTracks.length; i++) {
-            const tt = playerElement.textTracks[i];
-            if (tt.label === "Subtitles" || tt.id === "__arctic_vtt") {
-                tt.mode = "showing";
-            }
-        }
-    }, 150);
+    try {
+        const res = await fetch(vttUrl);
+        if (!res.ok) return;
+        const text = await res.text();
+        _vttCues = _parseVtt(text);
+        const ov = _ensureVttOverlay();
+        if (ov) _vttRafId = requestAnimationFrame(_vttRenderLoop);
+    } catch (e) {
+        console.warn('[Subs] Failed to load VTT overlay:', e);
+    }
 }
 
 function _removeVttTracks() {
-    if (!playerElement) return;
-    playerElement.querySelectorAll("track#__arctic_vtt").forEach(t => t.remove());
-    // Also hide any active text tracks left from a previous load
-    for (let i = 0; i < playerElement.textTracks.length; i++) {
-        playerElement.textTracks[i].mode = "disabled";
+    if (_vttRafId) { cancelAnimationFrame(_vttRafId); _vttRafId = null; }
+    _vttCues = [];
+    if (_vttOverlay) { _vttOverlay.textContent = ''; }
+    // Also silence any native tracks so they don't double-render
+    if (playerElement) {
+        for (let i = 0; i < playerElement.textTracks.length; i++) {
+            playerElement.textTracks[i].mode = "disabled";
+        }
     }
 }
 
