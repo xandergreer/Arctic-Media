@@ -34,13 +34,20 @@ async def request_subtitle_download(
     elif item.kind == MediaKind.SHOW:
         # show → seasons → episodes → files
         s_res = await db.execute(select(MediaItem).where(MediaItem.parent_id == media_id))
-        season_ids = [s.id for s in s_res.scalars().all()]
+        seasons = s_res.scalars().all()
+        season_num_map = {s.id: s.season_number for s in seasons}
+        season_ids = list(season_num_map.keys())
         if season_ids:
             e_res = await db.execute(
                 select(MediaItem).where(MediaItem.parent_id.in_(season_ids))
             )
             episodes = e_res.scalars().all()
-            ep_ids = [e.id for e in episodes]
+            # Map episode_id → (season_number, episode_number)
+            ep_info_map = {
+                e.id: (season_num_map.get(e.parent_id), e.episode_number)
+                for e in episodes
+            }
+            ep_ids = list(ep_info_map.keys())
             show_title = item.title
             show_year = item.year
             if ep_ids:
@@ -48,7 +55,9 @@ async def request_subtitle_download(
                     select(MediaFile).where(MediaFile.media_item_id.in_(ep_ids))
                 )
                 for mf in f_res.scalars().all():
-                    await svc.queue_download(mf.path, show_title, show_year)
+                    s_num, e_num = ep_info_map.get(mf.media_item_id, (None, None))
+                    await svc.queue_download(mf.path, show_title, show_year,
+                                             season=s_num, episode=e_num)
                     queued += 1
 
     return {"queued": queued, "media_id": media_id}

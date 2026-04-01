@@ -604,7 +604,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             ))
             known_paths.add(full_path)  # prevent intra-scan duplicates
             print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
-            new_paths.append((full_path, show_name))
+            new_paths.append((full_path, show_name, season_num, episode_num))
             added += 1
 
         if new_paths:
@@ -619,8 +619,8 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 episode_cache.clear()
                 print(f"  [WARN] Skipping folder batch due to DB error (likely duplicate path): {e}")
                 continue
-            for path, sname in new_paths:
-                await subs_svc.queue_download(path, sname)
+            for path, sname, s_num, e_num in new_paths:
+                await subs_svc.queue_download(path, sname, season=s_num, episode=e_num)
 
     if skipped_folders:
         print(f"  [SHOWS] Skipped {skipped_folders} unchanged folder(s) via mtime.")
