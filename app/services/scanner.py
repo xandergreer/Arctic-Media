@@ -602,6 +602,11 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 await db.commit()
             except Exception as e:
                 await db.rollback()
+                # Clear in-memory caches — ORM objects are expired after rollback and will
+                # trigger lazy reloads (which cause greenlet errors in async) if reused.
+                show_cache.clear()
+                season_cache.clear()
+                episode_cache.clear()
                 print(f"  [WARN] Skipping folder batch due to DB error (likely duplicate path): {e}")
                 continue
             for path, sname in new_paths:
