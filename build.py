@@ -36,7 +36,9 @@ def build():
 
     # Resolve data directories from installed packages
     import babelfish as _babelfish
+    import guessit as _guessit
     babelfish_data = os.path.join(os.path.dirname(_babelfish.__file__), "data")
+    guessit_config = os.path.join(os.path.dirname(_guessit.__file__), "config")
 
     # PyInstaller Arguments
     args = [
@@ -50,6 +52,7 @@ def build():
         '--add-data=app/static;app/static',
         '--add-data=icons;icons',
         f'--add-data={babelfish_data};babelfish/data',
+        f'--add-data={guessit_config};guessit/config',
         
         # Bundle FFmpeg binaries
         '--add-binary=bin/ffmpeg.exe;bin',
