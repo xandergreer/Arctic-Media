@@ -2,6 +2,40 @@
 
 let mediaId, isShow, els;
 
+function _renderExternalLinks(data) {
+    const container = document.getElementById('external-links');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const tmdbId = data.tmdb_id || (data.extra_json && data.extra_json.tmdb_id);
+    const imdbId = data.extra_json && data.extra_json.imdb_id;
+    const tmdbType = isShow ? 'tv' : 'movie';
+
+    if (tmdbId) {
+        const a = document.createElement('a');
+        a.href = `https://www.themoviedb.org/${tmdbType}/${tmdbId}/`;
+        a.target = '_blank';
+        a.rel = 'noreferrer nofollow';
+        a.textContent = '🎬 TMDB';
+        a.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:#032541;color:#01b4e4;padding:6px 14px;border-radius:5px;text-decoration:none;font-weight:700;font-size:13px;border:1px solid #01b4e4;transition:background 0.15s,color 0.15s;';
+        a.onmouseover = () => { a.style.background = '#01b4e4'; a.style.color = '#fff'; };
+        a.onmouseout  = () => { a.style.background = '#032541'; a.style.color = '#01b4e4'; };
+        container.appendChild(a);
+    }
+
+    if (imdbId) {
+        const a = document.createElement('a');
+        a.href = `https://www.imdb.com/title/${imdbId}/`;
+        a.target = '_blank';
+        a.rel = 'noreferrer nofollow';
+        a.textContent = 'IMDb';
+        a.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:#f5c518;color:#000;padding:6px 14px;border-radius:5px;text-decoration:none;font-weight:700;font-size:13px;border:1px solid #d4aa00;transition:background 0.15s;';
+        a.onmouseover = () => { a.style.background = '#d4aa00'; };
+        a.onmouseout  = () => { a.style.background = '#f5c518'; };
+        container.appendChild(a);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         const idInput = document.getElementById("media-id");
@@ -60,6 +94,7 @@ async function loadDetails() {
         // Update UI
         if (els.title) els.title.innerText = data.title;
         if (els.overview) els.overview.innerText = data.overview || "No overview available.";
+        _renderExternalLinks(data);
 
         if (data.release_date && els.year) {
             els.year.innerText = new Date(data.release_date).getFullYear();
