@@ -12,19 +12,20 @@
 
 ## 🌟 Highlights
 
-- Stream your local movie and TV show library from any browser on any device
-- Automatic metadata fetching from TMDB — posters, overviews, ratings, and episode titles
-- Fast library scanning with smart title cleaning and TMDB canonical title correction
-- Continue watching — progress is saved automatically and syncs across devices
-- Per-episode progress bars and resume support on iOS
-- Auto-play next episode with a toggleable setting
-- Admin panel with live viewer monitoring, server metrics, user management, and watch history
-- Media request system — users can request content, admins can acknowledge and fulfill requests
-- Invite-only or open registration — you control who gets access
-- HLS adaptive streaming via FFmpeg for broad device compatibility
-- Native iOS app with liquid glass navigation (iOS 26) for watching on the go
-- Roku app in development
-- Self-contained executable for Windows and macOS — no Python or dependencies required on the host machine
+  - Stream your local movie and TV show library from any browser on any device
+  - Automatic metadata fetching from TMDB. Posters, overviews, ratings, and episode titles
+  - Fast library scanning with smart title cleaning and TMDB canonical title correction
+  - Automatic subtitle downloading powered by SubDL and OpenSubtitles
+  - Continue watching, progress is saved automatically and syncs across devices
+  - Per-episode progress bars and resume support on iOS
+  - Auto-play next episode with a toggleable setting
+  - Admin panel with live viewer monitoring, server metrics, user management, and watch history
+  - Media request system. users can request content, admins can acknowledge and fulfill requests
+  - Invite-only or open registration, you control who gets access
+  - HLS adaptive streaming via FFmpeg for broad device compatibility
+  - Native iOS app for watching on the go
+  - Roku app in development
+  - Self-contained executable for Windows and macOS — no Python or dependencies required
 
 
 ## ℹ️ Overview
@@ -32,11 +33,6 @@
 Arctic Media is a self-hosted media server built with FastAPI, SQLite, and vanilla JavaScript. Point it at your movie and TV show folders, and it will scan, clean, and enrich your library with metadata from TMDB. You and your users can then stream directly from a browser — no app installs, no subscriptions, no cloud.
 
 It was built as a personal alternative to Plex and Jellyfin with a focus on simplicity: a single executable, a single SQLite database, a clean modern UI that works on any device. And most importantly, it's completely free.
-
-
-### ✍️ Authors
-
-Built by [arctic](https://github.com/xandergreer) — inspired by Plex, Jellyfin, and Emby.
 
 
 ## 📱 Client Apps
@@ -127,8 +123,12 @@ pyinstaller ArcticMedia-macOS.spec
 Output: `dist/ArcticMedia.app`
 
 
-IOS INSTALL INSTRUCTIONS COMING SOON
+### iOS — Sideload the IPA
 
+  Download the latest `ArcticMedia.ipa` from the [Releases](../../releases) page and sideload it using
+  [AltStore](https://altstore.io) or [Sideloadly](https://sideloadly.io).
+
+  Once installed, open the app and enter your server's address to connect.
 
 
 ## 💭 Feedback and Contributing
@@ -140,3 +140,8 @@ To contribute, fork the repo and open a pull request. The codebase is intentiona
 - SQLAlchemy models → `app/models/`
 - Jinja2 templates → `app/templates/`
 - Frontend JS → `app/static/js/`
+
+
+### ✍️ Authors
+
+Built by [arctic](https://github.com/xandergreer) — inspired by Plex, Jellyfin, and Emby.
