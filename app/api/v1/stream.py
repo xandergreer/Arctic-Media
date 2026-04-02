@@ -246,9 +246,10 @@ async def get_subtitle(
     media_path = None
     
     async with AsyncSessionLocal() as db:
-        if token:
-             user = await get_current_user_from_token(token, db)
-             if not user: raise HTTPException(401, "Unauthorized")
+        if not token:
+            raise HTTPException(401, "Not authenticated")
+        user = await get_current_user_from_token(token, db)
+        if not user: raise HTTPException(401, "Unauthorized")
         
         if file_id:
             q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
@@ -319,12 +320,6 @@ async def stream_video(
     file_id: Optional[int] = Query(None),
     range: str = Header(None) 
 ):
-    try:
-        import tempfile
-        with open(os.path.join(tempfile.gettempdir(), "arctic_debug.txt"), "a") as f:
-            f.write(f"REQ: id={media_id} time={start_time} range={range}\n")
-    except: pass
-    
     print(f"STREAM REQ: media_id={media_id} start_time={start_time} range={range}")
     from app.core.database import AsyncSessionLocal
 

@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, insert
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Annotated, Optional, List
 
 from app.core.database import get_db
 from app.models.settings import ServerSetting
-# from app.api.v1.auth import get_current_user  # Assuming we want to protect this
+from app.models.user import User
+from app.api.deps import get_current_active_superuser
 
 router = APIRouter()
 
@@ -22,7 +23,7 @@ class SettingResponse(BaseModel):
 @router.get("", response_model=List[SettingResponse])
 async def get_settings(
     db: AsyncSession = Depends(get_db),
-    # current_user = Depends(get_current_user) # Uncomment to protect
+    current_user: User = Depends(get_current_active_superuser),
 ):
     result = await db.execute(select(ServerSetting))
     settings = result.scalars().all()
@@ -32,13 +33,11 @@ async def get_settings(
 async def get_setting(
     key: str,
     db: AsyncSession = Depends(get_db),
-    # current_user = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     result = await db.execute(select(ServerSetting).where(ServerSetting.key == key))
     setting = result.scalars().first()
     if not setting:
-        # Return empty or defaults if not found, or 404. 
-        # For settings, it's often nicer to just return empty value.
         return SettingResponse(key=key, value=None)
     return setting
 
@@ -46,7 +45,7 @@ async def get_setting(
 async def update_setting(
     setting_data: SettingUpdate,
     db: AsyncSession = Depends(get_db),
-    # current_user = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     # Check if exists
     result = await db.execute(select(ServerSetting).where(ServerSetting.key == setting_data.key))

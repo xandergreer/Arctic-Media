@@ -1,6 +1,8 @@
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
+import time
 from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -16,11 +18,27 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
+# Simple in-memory rate limiter: max 20 attempts per IP per 15 minutes
+_login_attempts: dict = defaultdict(deque)
+_RATE_WINDOW = 900   # seconds
+_RATE_MAX    = 20
+
+def _check_rate_limit(ip: str) -> None:
+    now = time.monotonic()
+    q = _login_attempts[ip]
+    while q and q[0] < now - _RATE_WINDOW:
+        q.popleft()
+    if len(q) >= _RATE_MAX:
+        raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
+    q.append(now)
+
 @router.post("/token")
 async def login_for_access_token(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
+    _check_rate_limit(request.client.host)
     """
     Standard OAuth2 Login.
     Frontend sends: `username`, `password` (form-data).

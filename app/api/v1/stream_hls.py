@@ -476,13 +476,22 @@ async def get_hls_segment(
     media_id: int,
     job_id: str,
     segment: str,
-    token: str = Query(None)
+    token: str = Query(None),
+    db: AsyncSession = Depends(get_db),
 ):
+    if not token:
+        raise HTTPException(401, "Not authenticated")
+    user = await get_current_user_from_token(token, db)
+    if not user:
+        raise HTTPException(401, "Invalid token")
+
     job = _JOBS.get(job_id)
     if not job:
         raise HTTPException(404, "Job not found")
 
-    seg_path = job.workdir / segment
+    seg_path = (job.workdir / segment).resolve()
+    if not str(seg_path).startswith(str(job.workdir.resolve())):
+        raise HTTPException(400, "Invalid segment path")
 
     # Immediately reject requests for segments that predate the seek point —
     # FFmpeg started from start_seg so those files will never exist.

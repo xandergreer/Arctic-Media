@@ -1,3 +1,7 @@
+# Secrets — never commit these
+.env
+.secret_key
+
 # automatic python environment
 venv/
 
