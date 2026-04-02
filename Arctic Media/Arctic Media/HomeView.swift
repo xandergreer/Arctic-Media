@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var recentShows: [MediaItem]  = []
     @State private var allMovies: [MediaItem]    = []
     @State private var allShows: [MediaItem]     = []
+    @State private var continueWatching: [ContinueWatchingItem] = []
     @State private var isLoading = true
     @State private var selectedTab = 0
 
@@ -41,6 +42,9 @@ struct HomeView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28) {
+                            if !continueWatching.isEmpty {
+                                continueWatchingSection
+                            }
                             if !recentMovies.isEmpty {
                                 shelfSection(title: "Recently Added Movies", items: recentMovies) { item in
                                     MovieDetailView(item: item)
@@ -54,9 +58,30 @@ struct HomeView: View {
                         }
                         .padding(.vertical)
                     }
+                    .refreshable { await load() }
                 }
             }
             .navigationTitle("Arctic Media")
+        }
+    }
+
+    // MARK: - Continue Watching
+
+    private var continueWatchingSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Continue Watching")
+                .font(.title3.weight(.semibold))
+                .padding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(continueWatching) { item in
+                        ContinueWatchingCard(item: item)
+                            .environmentObject(api)
+                    }
+                }
+                .padding(.horizontal)
+            }
         }
     }
 
@@ -133,16 +158,85 @@ struct HomeView: View {
 
     private func load() async {
         isLoading = true
-        async let recent  = try? api.getRecentlyAdded()
-        async let movies  = try? api.getMovies()
-        async let shows   = try? api.getShows()
-        let (r, m, s)     = await (recent, movies, shows)
-        recentMovies      = r?.movies ?? []
-        recentShows       = r?.shows  ?? []
-        allMovies         = m ?? []
-        allShows          = s ?? []
-        isLoading         = false
+        async let recent   = try? api.getRecentlyAdded()
+        async let movies   = try? api.getMovies()
+        async let shows    = try? api.getShows()
+        async let cw       = try? api.getContinueWatching()
+        let (r, m, s, c)   = await (recent, movies, shows, cw)
+        recentMovies       = r?.movies ?? []
+        recentShows        = r?.shows  ?? []
+        allMovies          = m ?? []
+        allShows           = s ?? []
+        continueWatching   = c ?? []
+        isLoading          = false
+        // Refresh user info in case it changed
+        if api.currentUser == nil { await api.fetchCurrentUser() }
     }
+}
+
+// MARK: - Continue Watching card
+
+struct ContinueWatchingCard: View {
+    let item: ContinueWatchingItem
+    @EnvironmentObject private var api: APIService
+    @State private var streamItem: _StreamItem?
+
+    var body: some View {
+        Button {
+            if let url = api.streamURL(mediaId: item.media_id) {
+                streamItem = _StreamItem(id: item.media_id, url: url, title: cardTitle)
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .bottom) {
+                    PosterView(url: item.poster_url)
+                        .frame(width: 120, height: 180)
+
+                    // Progress bar
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(Color(.systemGray4))
+                            .frame(height: 3)
+                            .overlay(
+                                Rectangle()
+                                    .fill(Color.blue)
+                                    .frame(width: geo.size.width * CGFloat(item.progress_pct) / 100, height: 3),
+                                alignment: .leading
+                            )
+                    }
+                    .frame(height: 3)
+                }
+
+                Text(item.title)
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                    .frame(width: 120, alignment: .leading)
+
+                if let sub = item.subtitle {
+                    Text(sub)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 120, alignment: .leading)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .fullScreenCover(item: $streamItem) { s in
+            VideoPlayerView(mediaId: s.id, streamURL: s.url, title: s.title)
+                .environmentObject(api)
+        }
+    }
+
+    private var cardTitle: String {
+        if let sub = item.subtitle { return "\(item.title) – \(sub)" }
+        return item.title
+    }
+}
+
+private struct _StreamItem: Identifiable {
+    let id: Int
+    let url: URL
+    let title: String
 }
 
 // MARK: - Poster card (shelf)

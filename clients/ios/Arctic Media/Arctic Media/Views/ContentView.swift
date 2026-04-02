@@ -37,6 +37,10 @@ struct MainTabView: View {
             NavigationStack { SearchView() }
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
 
+            NavigationStack { DownloadsView() }
+                .tabItem { Label("Downloads", systemImage: "arrow.down.circle.fill") }
+                .badge(DownloadManager.shared.activeProgress.isEmpty ? 0 : DownloadManager.shared.activeProgress.count)
+
             NavigationStack { SettingsView() }
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }

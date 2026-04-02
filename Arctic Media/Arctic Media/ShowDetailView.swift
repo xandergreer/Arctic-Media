@@ -12,6 +12,7 @@ struct ShowDetailView: View {
     @EnvironmentObject private var api: APIService
     @State private var seasons: [MediaItem] = []
     @State private var isLoading = true
+    @State private var showEdit = false
 
     var body: some View {
         List {
@@ -35,6 +36,14 @@ struct ShowDetailView: View {
                     }
                 }
                 .padding(.vertical, 8)
+
+                if api.isAdmin {
+                    Button { showEdit = true } label: {
+                        Label("Edit Metadata", systemImage: "pencil")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             // Seasons
@@ -58,6 +67,10 @@ struct ShowDetailView: View {
         .navigationTitle(item.title)
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadSeasons() }
+        .sheet(isPresented: $showEdit) {
+            EditMediaView(item: item)
+                .environmentObject(api)
+        }
     }
 
     private func loadSeasons() async {
@@ -74,6 +87,7 @@ struct SeasonRowsView: View {
 
     @EnvironmentObject private var api: APIService
     @State private var episodes: [MediaItem] = []
+    @State private var progressMap: [Int: WatchProgress] = [:]
     @State private var isLoading = true
     @State private var streamItem: EpisodeStreamItem?
 
@@ -96,7 +110,7 @@ struct SeasonRowsView: View {
                             )
                         }
                     } label: {
-                        EpisodeRow(episode: episode)
+                        EpisodeRow(episode: episode, progress: progressMap[episode.id])
                     }
                     .buttonStyle(.plain)
                 }
@@ -113,6 +127,21 @@ struct SeasonRowsView: View {
         isLoading = true
         episodes = (try? await api.getEpisodes(seasonId: season.id)) ?? []
         isLoading = false
+        await loadProgress()
+    }
+
+    private func loadProgress() async {
+        await withTaskGroup(of: (Int, WatchProgress?).self) { group in
+            for ep in episodes {
+                group.addTask {
+                    let p = try? await api.getProgress(mediaId: ep.id)
+                    return (ep.id, p)
+                }
+            }
+            for await (id, p) in group {
+                if let p { progressMap[id] = p }
+            }
+        }
     }
 
     private func episodeTitle(for ep: MediaItem) -> String {
@@ -127,6 +156,7 @@ struct SeasonRowsView: View {
 
 struct EpisodeRow: View {
     let episode: MediaItem
+    var progress: WatchProgress?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -137,7 +167,7 @@ struct EpisodeRow: View {
                     .frame(width: 28, alignment: .trailing)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(episode.title)
                     .font(.body)
                     .lineLimit(1)
@@ -147,12 +177,29 @@ struct EpisodeRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
+                if let p = progress, let dur = p.duration_seconds, dur > 0,
+                   p.position_seconds > 5, !p.completed {
+                    let pct = CGFloat(p.position_seconds / dur)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color(.systemGray5)).frame(height: 3)
+                            Capsule().fill(Color.blue)
+                                .frame(width: geo.size.width * pct, height: 3)
+                        }
+                    }
+                    .frame(height: 3)
+                }
             }
 
             Spacer()
 
-            Image(systemName: "play.circle")
-                .foregroundStyle(.blue)
+            if progress?.completed == true {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.blue)
+            } else {
+                Image(systemName: "play.circle")
+                    .foregroundStyle(.blue)
+            }
         }
         .padding(.vertical, 4)
     }

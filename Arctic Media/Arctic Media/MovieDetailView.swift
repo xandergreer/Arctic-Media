@@ -1,6 +1,5 @@
 import SwiftUI
 
-// Wraps the stream URL so fullScreenCover(item:) only fires when non-nil
 private struct StreamItem: Identifiable {
     let id: Int
     let url: URL
@@ -12,6 +11,8 @@ struct MovieDetailView: View {
 
     @EnvironmentObject private var api: APIService
     @State private var streamItem: StreamItem?
+    @State private var progress: WatchProgress?
+    @State private var showEdit = false
 
     var body: some View {
         ScrollView {
@@ -19,10 +20,20 @@ struct MovieDetailView: View {
                 backdrop
 
                 VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.title).font(.title2.weight(.bold))
-                        if let year = item.year {
-                            Text(year).foregroundStyle(.secondary)
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title).font(.title2.weight(.bold))
+                            if let year = item.year {
+                                Text(year).foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if api.isAdmin {
+                            Button { showEdit = true } label: {
+                                Image(systemName: "pencil")
+                                    .foregroundStyle(.secondary)
+                                    .padding(8)
+                            }
                         }
                     }
 
@@ -40,6 +51,19 @@ struct MovieDetailView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
 
+                    if let p = progress, let dur = p.duration_seconds, dur > 0,
+                       p.position_seconds > 5, !p.completed {
+                        let pct = CGFloat(p.position_seconds / dur)
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color(.systemGray5)).frame(height: 4)
+                                Capsule().fill(Color.blue)
+                                    .frame(width: geo.size.width * pct, height: 4)
+                            }
+                        }
+                        .frame(height: 4)
+                    }
+
                     if let overview = item.overview, !overview.isEmpty {
                         Text(overview).foregroundStyle(.secondary)
                     }
@@ -48,8 +72,13 @@ struct MovieDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .task { progress = try? await api.getProgress(mediaId: item.id) }
         .fullScreenCover(item: $streamItem) { s in
             VideoPlayerView(mediaId: s.id, streamURL: s.url, title: s.title)
+                .environmentObject(api)
+        }
+        .sheet(isPresented: $showEdit) {
+            EditMediaView(item: item)
                 .environmentObject(api)
         }
     }

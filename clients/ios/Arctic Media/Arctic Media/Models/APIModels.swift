@@ -28,7 +28,7 @@ enum MediaKind: String, Codable {
     case movie, show, season, episode
 }
 
-struct MediaItem: Codable, Identifiable {
+struct MediaItem: Codable, Identifiable, Hashable {
     let id: Int
     let kind: MediaKind
     let title: String
@@ -133,6 +133,12 @@ struct SubtitleTrack: Codable, Identifiable {
         case index, codec, language, title
         case isImage = "is_image"
     }
+
+    var displayName: String {
+        if let t = title, !t.isEmpty, t.lowercased() != language?.lowercased() { return t }
+        if let lang = language, !lang.isEmpty, lang != "und" { return lang.uppercased() }
+        return "Track \(index + 1)"
+    }
 }
 
 struct StreamInfo: Codable {
@@ -147,6 +153,45 @@ struct StreamInfo: Codable {
         case canDirectPlay    = "can_direct_play"
         case audioTracks      = "audio_tracks"
         case subtitleTracks   = "subtitle_tracks"
+    }
+}
+
+// MARK: - Continue Watching
+
+struct ContinueWatchingItem: Codable, Identifiable {
+    let mediaId: Int
+    let title: String
+    let posterUrl: String?
+    let kind: String
+    let episodeNumber: Int?
+    let seasonNumber: Int?
+    let showId: Int?
+    let positionSeconds: Double
+    let durationSeconds: Double?
+    let progressPct: Int
+    var id: Int { mediaId }
+
+    enum CodingKeys: String, CodingKey {
+        case title, kind
+        case mediaId         = "media_id"
+        case posterUrl       = "poster_url"
+        case episodeNumber   = "episode_number"
+        case seasonNumber    = "season_number"
+        case showId          = "show_id"
+        case positionSeconds = "position_seconds"
+        case durationSeconds = "duration_seconds"
+        case progressPct     = "progress_pct"
+    }
+
+    var subtitle: String? {
+        guard kind == "episode" else { return nil }
+        if let s = seasonNumber, let e = episodeNumber { return "S\(s) E\(e)" }
+        return nil
+    }
+
+    // ID to navigate to: the parent show for episodes, the movie itself for movies
+    var navigationId: Int {
+        kind == "episode" ? (showId ?? mediaId) : mediaId
     }
 }
 

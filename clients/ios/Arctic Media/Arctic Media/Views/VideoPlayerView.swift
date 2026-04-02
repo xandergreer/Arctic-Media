@@ -24,62 +24,85 @@ struct VideoPlayerView: View {
     @State private var endObserver: Any?
     @State private var progressTickCounter = 0
 
+    @State private var subtitleTracks: [SubtitleTrack] = []
+    @State private var selectedSubtitleIdx: Int? = nil
+    @State private var showSubtitlePicker = false
+
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Color.black
 
-            if let player {
-                VideoPlayer(player: player)
-                    .ignoresSafeArea()
-            }
-
-            if isLoading && errorMessage == nil {
-                VStack(spacing: 14) {
-                    ProgressView().tint(.white).scaleEffect(1.4)
-                    Text("Loading…").font(.footnote).foregroundColor(.white.opacity(0.55))
+                if let player {
+                    AVPlayerControllerRepresentable(player: player)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
 
-            if let msg = errorMessage {
-                errorOverlay(msg)
-            }
+                if isLoading && errorMessage == nil {
+                    VStack(spacing: 14) {
+                        ProgressView().tint(.white).scaleEffect(1.4)
+                        Text("Loading…").font(.footnote).foregroundColor(.white.opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
 
-            // Close button — VideoPlayer doesn't expose one when presented via fullScreenCover
-            if !isLoading && errorMessage == nil {
-                VStack {
-                    HStack {
+                if let msg = errorMessage {
+                    errorOverlay(msg)
+                }
+
+                // Overlay buttons — positioned using actual safe area insets
+                if !isLoading && errorMessage == nil {
+                    HStack(alignment: .center) {
                         Button {
                             teardown()
                             dismiss()
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundStyle(.white, Color.black.opacity(0.45))
+                            Image(systemName: "chevron.left.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundStyle(.white, Color.black.opacity(0.5))
                                 .shadow(radius: 4)
                         }
-                        .padding(.leading, 16)
-                        .padding(.top, 8)
+
                         Spacer()
+
+                        if !subtitleTracks.isEmpty {
+                            Button { showSubtitlePicker = true } label: {
+                                Image(systemName: "captions.bubble.fill")
+                                    .font(.system(size: 26))
+                                    .foregroundStyle(
+                                        selectedSubtitleIdx != nil ? Color.yellow : Color.white,
+                                        Color.black.opacity(0.5)
+                                    )
+                                    .shadow(radius: 4)
+                            }
+                        }
                     }
-                    Spacer()
+                    .padding(.horizontal, 20)
+                    .padding(.top, geo.safeAreaInsets.top + 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-                .safeAreaPadding(.top)
             }
+            .ignoresSafeArea()
         }
+        .ignoresSafeArea()
         .preferredColorScheme(.dark)
         .task { await setup() }
         .onDisappear { teardown() }
+        .sheet(isPresented: $showSubtitlePicker) { subtitlePickerSheet }
     }
 
     // MARK: - Setup / teardown
 
     private func setup() async {
-        // Pre-fetch duration from server for better seek UX before AVPlayer loads
+        // Fetch stream info: duration + subtitle tracks
         if let info = try? await APIService.shared.streamInfo(
-            serverURL: serverURL, token: token, mediaId: mediaId),
-           let d = info.duration, d > 0 {
-            await MainActor.run { duration = d }
+            serverURL: serverURL, token: token, mediaId: mediaId) {
+            if let d = info.duration, d > 0 {
+                await MainActor.run { duration = d }
+            }
+            let tracks = info.subtitleTracks.filter { !$0.isImage }
+            if !tracks.isEmpty {
+                await MainActor.run { subtitleTracks = tracks }
+            }
         }
 
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
@@ -91,7 +114,7 @@ struct VideoPlayerView: View {
         p.automaticallyWaitsToMinimizeStalling = true
         await MainActor.run { player = p }
 
-        // Progress autosave every ~10 s
+        // Save progress every ~10 s via periodic observer
         let tok = p.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.5, preferredTimescale: 600),
             queue: .main
@@ -102,7 +125,7 @@ struct VideoPlayerView: View {
                 progressTickCounter = 0
                 let pos = time.seconds
                 let dur = duration
-                if pos > 0 && dur > 0 {
+                if pos > 5 && dur > 0 {
                     Task {
                         await APIService.shared.updateProgress(
                             serverURL: serverURL, token: token,
@@ -113,7 +136,7 @@ struct VideoPlayerView: View {
         }
         await MainActor.run { timeObserverToken = tok }
 
-        // Seek to resume point and start playing once ready
+        // Observe item status: seek to startAt when ready, then play
         let obs = item.observe(\.status, options: [.initial, .new]) { i, _ in
             switch i.status {
             case .readyToPlay:
@@ -136,11 +159,10 @@ struct VideoPlayerView: View {
         }
         await MainActor.run { statusObserver = obs }
 
-        // End-of-playback: save completion + trigger autoplay
+        // End-of-playback
         let eo = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
-            object: item,
-            queue: .main
+            object: item, queue: .main
         ) { [self] _ in
             guard !self.tornDown else { return }
             self.onFinished?()
@@ -165,7 +187,7 @@ struct VideoPlayerView: View {
         }
         // Final progress save
         let pos = currentTime; let dur = duration
-        if pos > 0 && dur > 0 {
+        if pos > 5 && dur > 0 {
             Task {
                 await APIService.shared.updateProgress(
                     serverURL: serverURL, token: token,
@@ -177,6 +199,104 @@ struct VideoPlayerView: View {
         UIApplication.shared.isIdleTimerDisabled = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
+
+    // MARK: - Subtitle reload
+
+    private func reloadWithSubtitle(sidx: Int?) {
+        let pos = currentTime
+        var urlStr = "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)"
+        if let sidx { urlStr += "&sidx=\(sidx)&stype=text" }
+        guard let newURL = URL(string: urlStr) else { return }
+
+        statusObserver?.invalidate()
+        statusObserver = nil
+        if let eo = endObserver {
+            NotificationCenter.default.removeObserver(eo)
+            endObserver = nil
+        }
+
+        isLoading = true
+        let newItem = AVPlayerItem(url: newURL)
+        player?.replaceCurrentItem(with: newItem)
+
+        let obs = newItem.observe(\.status, options: [.new]) { item, _ in
+            guard item.status == .readyToPlay else { return }
+            Task { @MainActor in
+                self.isLoading = false
+                if pos > 5 {
+                    let t = CMTime(seconds: pos, preferredTimescale: 600)
+                    self.player?.seek(to: t, toleranceBefore: .zero,
+                                      toleranceAfter: CMTime(seconds: 1, preferredTimescale: 600)) { _ in
+                        self.player?.play()
+                    }
+                } else {
+                    self.player?.play()
+                }
+            }
+        }
+        statusObserver = obs
+
+        let eo = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: newItem, queue: .main
+        ) { [self] _ in
+            guard !self.tornDown else { return }
+            self.onFinished?()
+            self.teardown()
+            self.dismiss()
+        }
+        endObserver = eo
+    }
+
+    // MARK: - Subtitle picker sheet
+
+    private var subtitlePickerSheet: some View {
+        NavigationStack {
+            List {
+                Button {
+                    selectedSubtitleIdx = nil
+                    showSubtitlePicker = false
+                    reloadWithSubtitle(sidx: nil)
+                } label: {
+                    HStack {
+                        Text("Off")
+                        Spacer()
+                        if selectedSubtitleIdx == nil {
+                            Image(systemName: "checkmark").foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+
+                ForEach(subtitleTracks) { track in
+                    Button {
+                        selectedSubtitleIdx = track.index
+                        showSubtitlePicker = false
+                        reloadWithSubtitle(sidx: track.index)
+                    } label: {
+                        HStack {
+                            Text(track.displayName)
+                            Spacer()
+                            if selectedSubtitleIdx == track.index {
+                                Image(systemName: "checkmark").foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+            }
+            .navigationTitle("Subtitles")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showSubtitlePicker = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Error overlay
 
     @ViewBuilder
     private func errorOverlay(_ msg: String) -> some View {
@@ -196,5 +316,23 @@ struct VideoPlayerView: View {
                 .clipShape(Capsule())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - AVPlayerViewController wrapper
+
+private struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
+    let player: AVPlayer
+
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let vc = AVPlayerViewController()
+        vc.player = player
+        vc.showsPlaybackControls = true
+        vc.videoGravity = .resizeAspect
+        return vc
+    }
+
+    func updateUIViewController(_ vc: AVPlayerViewController, context: Context) {
+        if vc.player !== player { vc.player = player }
     }
 }

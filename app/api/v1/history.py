@@ -53,6 +53,7 @@ async def get_continue_watching(
             pct = min(100, round(hist.position_seconds / hist.duration_seconds * 100))
         link = f"/movie/{item.id}" if item.kind.value == "movie" else f"/show/{item.id}"
         season_number = None
+        show_id = None
         # For episodes, link to the parent show and resolve season number
         if item.kind.value == "episode" and item.parent_id:
             season_res = await db.execute(select(MediaItem).where(MediaItem.id == item.parent_id))
@@ -61,6 +62,7 @@ async def get_continue_watching(
                 season_number = season.season_number
                 if season.parent_id:
                     link = f"/show/{season.parent_id}"
+                    show_id = season.parent_id
         out.append({
             "media_id": item.id,
             "title": item.title,
@@ -69,6 +71,7 @@ async def get_continue_watching(
             "kind": item.kind.value,
             "episode_number": item.episode_number,
             "season_number": season_number,
+            "show_id": show_id,
             "position_seconds": hist.position_seconds,
             "duration_seconds": hist.duration_seconds,
             "progress_pct": pct,

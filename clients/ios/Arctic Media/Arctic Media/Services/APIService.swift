@@ -99,12 +99,21 @@ class APIService {
 
     func updateProgress(serverURL: String, token: String, mediaId: Int, position: Double, duration: Double) async {
         guard var req = try? makeRequest(serverURL: serverURL, path: "/api/v1/history/\(mediaId)", method: "POST") else { return }
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: [
             "position_seconds": position,
             "duration_seconds": duration
         ])
         _ = try? await session.data(for: req)
+    }
+
+    // MARK: - Continue Watching
+
+    func continueWatching(serverURL: String, token: String) async throws -> [ContinueWatchingItem] {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/history")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
     }
 
     // MARK: - Media Requests
@@ -133,8 +142,13 @@ class APIService {
 
     // MARK: - Stream URL (not a network call — just constructs the URL)
 
-    func hlsURL(serverURL: String, token: String, mediaId: Int, audioIndex: Int = 0) -> URL? {
-        URL(string: "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)&aidx=\(audioIndex)")
+    func hlsURL(serverURL: String, token: String, mediaId: Int,
+                audioIndex: Int = 0, sidx: Int? = nil, stype: String = "text",
+                startAt: Double? = nil) -> URL? {
+        var str = "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)&aidx=\(audioIndex)"
+        if let sidx { str += "&sidx=\(sidx)&stype=\(stype)" }
+        if let t = startAt, t > 5 { str += "&t=\(Int(t))" }
+        return URL(string: str)
     }
 
     // MARK: - Media Edit

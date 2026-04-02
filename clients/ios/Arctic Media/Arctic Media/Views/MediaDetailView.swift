@@ -26,6 +26,7 @@ struct MediaDetailView: View {
     @State private var episodeProgress: [Int: WatchProgress] = [:]
     @State private var showEdit = false
     @State private var currentItem: MediaItem
+    @State private var episodeSheet: MediaItem?
 
     init(item: MediaItem) {
         self.item = item
@@ -72,6 +73,15 @@ struct MediaDetailView: View {
                         if currentItem.kind == .movie {
                             playButtons(mediaId: currentItem.id, title: currentItem.title)
                                 .padding(.horizontal)
+                            DownloadButton(
+                                mediaId: currentItem.id,
+                                title: currentItem.title,
+                                posterUrl: currentItem.posterUrl,
+                                kind: "movie",
+                                episodeLabel: nil,
+                                compact: false
+                            )
+                            .padding(.horizontal)
                         }
 
                         if let overview = currentItem.overview, !overview.isEmpty {
@@ -130,6 +140,19 @@ struct MediaDetailView: View {
                 token: appState.token ?? "",
                 startAt: req.startAt,
                 onFinished: req.onFinished
+            )
+        }
+        .sheet(item: $episodeSheet) { ep in
+            EpisodeDetailSheet(
+                episode: ep,
+                serverURL: appState.serverURL,
+                progress: episodeProgress[ep.id],
+                onPlay: {
+                    let p = episodeProgress[ep.id]
+                    let resumeAt: Double? = (p?.completed == false && (p?.positionSeconds ?? 0) > 30)
+                        ? p?.positionSeconds : nil
+                    playEpisode(ep, startAt: resumeAt)
+                }
             )
         }
         .task {
@@ -252,7 +275,8 @@ struct MediaDetailView: View {
                         EpisodeRowView(
                             episode: ep,
                             serverURL: appState.serverURL,
-                            progress: episodeProgress[ep.id]
+                            progress: episodeProgress[ep.id],
+                            onDetail: { episodeSheet = ep }
                         ) {
                             let p = episodeProgress[ep.id]
                             let resumeAt: Double? = (p?.completed == false && (p?.positionSeconds ?? 0) > 30)
@@ -352,6 +376,7 @@ struct EpisodeRowView: View {
     let episode: MediaItem
     let serverURL: String
     let progress: WatchProgress?
+    let onDetail: () -> Void
     let onPlay: () -> Void
 
     private var resumeFraction: Double? {
@@ -362,37 +387,45 @@ struct EpisodeRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                PosterImageView(url: episode.posterUrl, serverURL: serverURL)
-                    .frame(width: 100, height: 58)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                Image(systemName: "play.circle.fill")
-                    .font(.title2).foregroundColor(.white.opacity(0.8))
-            }
-            .onTapGesture { onPlay() }
+            PosterImageView(url: episode.posterUrl, serverURL: serverURL)
+                .frame(width: 100, height: 58)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .onTapGesture { onDetail() }
 
-            VStack(alignment: .leading, spacing: 4) {
-                if let ep = episode.episodeNumber {
-                    Text("E\(ep)").font(.caption2.weight(.bold)).foregroundColor(.arcticMuted)
-                }
-                Text(episode.title)
-                    .font(.subheadline.weight(.semibold)).foregroundColor(.arcticText).lineLimit(1)
-                if let overview = episode.overview {
-                    Text(overview).font(.caption).foregroundColor(.arcticSub).lineLimit(2)
-                }
-                if let fraction = resumeFraction {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
-                            Capsule().fill(Color.arcticPrimary)
-                                .frame(width: geo.size.width * CGFloat(fraction), height: 3)
-                        }
+            Button(action: onDetail) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let ep = episode.episodeNumber {
+                        Text("E\(ep)").font(.caption2.weight(.bold)).foregroundColor(.arcticMuted)
                     }
-                    .frame(height: 3)
-                    .padding(.top, 2)
+                    Text(episode.title)
+                        .font(.subheadline.weight(.semibold)).foregroundColor(.arcticText).lineLimit(1)
+                    if let overview = episode.overview {
+                        Text(overview).font(.caption).foregroundColor(.arcticSub).lineLimit(2)
+                    }
+                    if let fraction = resumeFraction {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
+                                Capsule().fill(Color.arcticPrimary)
+                                    .frame(width: geo.size.width * CGFloat(fraction), height: 3)
+                            }
+                        }
+                        .frame(height: 3)
+                        .padding(.top, 2)
+                    }
                 }
             }
+            .buttonStyle(.plain)
+
             Spacer()
+            DownloadButton(
+                mediaId: episode.id,
+                title: episode.title,
+                posterUrl: episode.posterUrl,
+                kind: "episode",
+                episodeLabel: episode.episodeNumber.map { "E\($0)" },
+                compact: true
+            )
             Button(action: onPlay) {
                 Image(systemName: resumeFraction != nil ? "arrow.counterclockwise.circle.fill" : "play.fill")
                     .foregroundColor(.arcticPrimary)
@@ -400,5 +433,142 @@ struct EpisodeRowView: View {
             }
         }
         .padding(.vertical, 10)
+    }
+}
+
+// MARK: - Episode Detail Sheet
+
+struct EpisodeDetailSheet: View {
+    let episode: MediaItem
+    let serverURL: String
+    let progress: WatchProgress?
+    let onPlay: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private var resumeFraction: Double? {
+        guard let p = progress, !p.completed, p.positionSeconds > 5,
+              let dur = p.durationSeconds, dur > 0 else { return nil }
+        return min(1.0, p.positionSeconds / dur)
+    }
+
+    private var resumePosition: Double? {
+        guard let p = progress, !p.completed, p.positionSeconds > 30 else { return nil }
+        return p.positionSeconds
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top, spacing: 14) {
+                        PosterImageView(url: episode.posterUrl, serverURL: serverURL)
+                            .frame(width: 130, height: 76)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let ep = episode.episodeNumber {
+                                Text("Episode \(ep)")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.arcticMuted)
+                            }
+                            Text(episode.title)
+                                .font(.headline)
+                                .foregroundColor(.arcticText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let fraction = resumeFraction {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.white.opacity(0.2)).frame(height: 4)
+                                Capsule().fill(Color.arcticPrimary)
+                                    .frame(width: geo.size.width * CGFloat(fraction), height: 4)
+                            }
+                        }
+                        .frame(height: 4)
+                    }
+
+                    if let overview = episode.overview, !overview.isEmpty {
+                        Text(overview)
+                            .font(.subheadline)
+                            .foregroundColor(.arcticSub)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if let pos = resumePosition {
+                        VStack(spacing: 10) {
+                            Button {
+                                dismiss()
+                                Task {
+                                    try? await Task.sleep(nanoseconds: 250_000_000)
+                                    onPlay()
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill")
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("Resume").font(.body.weight(.semibold))
+                                        Text(formatTime(pos)).font(.caption2).opacity(0.8)
+                                    }
+                                    Spacer()
+                                }
+                                .frame(maxWidth: .infinity).padding(14)
+                                .background(Color.arcticPrimary)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+
+                            Button {
+                                dismiss()
+                                Task {
+                                    try? await Task.sleep(nanoseconds: 250_000_000)
+                                    onPlay()
+                                }
+                            } label: {
+                                Label("Start from Beginning", systemImage: "backward.end.fill")
+                                    .font(.body.weight(.medium))
+                                    .frame(maxWidth: .infinity).padding(14)
+                                    .background(Color.arcticSurface)
+                                    .foregroundColor(.arcticText)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.arcticBorder, lineWidth: 1))
+                            }
+                        }
+                    } else {
+                        Button {
+                            dismiss()
+                            Task {
+                                try? await Task.sleep(nanoseconds: 250_000_000)
+                                onPlay()
+                            }
+                        } label: {
+                            Label("Play", systemImage: "play.fill")
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity).padding(14)
+                                .background(Color.arcticPrimary)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+                .padding()
+            }
+            .background(Color.arcticBg.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }.foregroundColor(.arcticPrimary)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func formatTime(_ s: Double) -> String {
+        let t = Int(s); let h = t / 3600; let m = (t % 3600) / 60; let sec = t % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
     }
 }

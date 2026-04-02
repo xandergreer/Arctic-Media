@@ -32,6 +32,12 @@ struct VideoPlayerView: View {
     @State private var showControls = true
     @State private var controlsTimer: Timer?
     @State private var progressTimer: Timer?
+
+    // Subtitles
+    @State private var subtitleTracks: [SubtitleTrack] = []
+    @State private var selectedSubtitleIdx: Int? = nil
+    @State private var showSubtitlePicker = false
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -39,16 +45,12 @@ struct VideoPlayerView: View {
             ZStack {
                 Color.black
 
-                // Pure video layer — no native controls, taps pass through to ZStack
                 PlayerLayer(player: coordinator.player)
                     .ignoresSafeArea()
 
-                // Controls overlay — positioned with explicit safe area insets
-                // so nothing is clipped by the status bar or Dynamic Island
                 if showControls {
                     VStack(spacing: 0) {
                         topBar
-                            // geo.safeAreaInsets.top includes the Dynamic Island height
                             .padding(.top, geo.safeAreaInsets.top + 8)
                             .padding(.horizontal, 20)
                             .background(
@@ -84,9 +86,11 @@ struct VideoPlayerView: View {
         .ignoresSafeArea()
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
+        .sheet(isPresented: $showSubtitlePicker) { subtitlePickerSheet }
         .onAppear {
             coordinator.load(url: streamURL)
             Task { await resumeProgress() }
+            Task { await loadSubtitleTracks() }
             scheduleHideControls()
             startProgressTimer()
         }
@@ -94,7 +98,16 @@ struct VideoPlayerView: View {
             controlsTimer?.invalidate()
             stopProgressTimer()
             coordinator.pause()
-            Task { await saveProgress() }
+            let pos = coordinator.currentPosition
+            let dur = coordinator.player.currentItem?.duration.seconds
+            guard pos > 5 else { return }
+            let validDur = (dur?.isFinite == true && dur! > 0) ? dur : nil
+            // Detached so it survives view dismissal
+            let service = api
+            let id = mediaId
+            Task.detached { @MainActor in
+                try? await service.saveProgress(mediaId: id, position: pos, duration: validDur)
+            }
         }
     }
 
@@ -104,7 +117,14 @@ struct VideoPlayerView: View {
         HStack(spacing: 12) {
             Button {
                 coordinator.pause()
-                Task { await saveProgress() }
+                let pos = coordinator.currentPosition
+                let dur = coordinator.player.currentItem?.duration.seconds
+                let validDur = (dur?.isFinite == true && dur! > 0) ? dur : nil
+                let service = api
+                let id = mediaId
+                Task.detached { @MainActor in
+                    try? await service.saveProgress(mediaId: id, position: pos, duration: validDur)
+                }
                 dismiss()
             } label: {
                 Image(systemName: "chevron.backward")
@@ -137,9 +157,94 @@ struct VideoPlayerView: View {
                     .foregroundStyle(.white)
                     .shadow(radius: 3)
             }
+
             Spacer()
+
+            if !subtitleTracks.filter({ !$0.is_image }).isEmpty {
+                Button {
+                    showSubtitlePicker = true
+                    resetHideTimer()
+                } label: {
+                    Image(systemName: "captions.bubble")
+                        .font(.title2)
+                        .foregroundStyle(selectedSubtitleIdx != nil ? .yellow : .white)
+                        .shadow(radius: 3)
+                }
+            }
         }
         .padding(.vertical, 10)
+    }
+
+    // MARK: - Subtitle picker sheet
+
+    private var subtitlePickerSheet: some View {
+        NavigationStack {
+            List {
+                Button {
+                    selectedSubtitleIdx = nil
+                    reloadStream(sidx: nil)
+                    showSubtitlePicker = false
+                } label: {
+                    HStack {
+                        Text("Off")
+                        Spacer()
+                        if selectedSubtitleIdx == nil {
+                            Image(systemName: "checkmark").foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+
+                ForEach(subtitleTracks.filter { !$0.is_image }) { track in
+                    Button {
+                        selectedSubtitleIdx = track.index
+                        reloadStream(sidx: track.index, stype: "text")
+                        showSubtitlePicker = false
+                    } label: {
+                        HStack {
+                            Text(track.displayName)
+                            Spacer()
+                            if selectedSubtitleIdx == track.index {
+                                Image(systemName: "checkmark").foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+            }
+            .navigationTitle("Subtitles")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showSubtitlePicker = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Subtitle helpers
+
+    private func loadSubtitleTracks() async {
+        subtitleTracks = (try? await api.getStreamInfo(mediaId: mediaId))?.subtitle_tracks ?? []
+    }
+
+    private func reloadStream(sidx: Int?, stype: String = "text") {
+        let pos = coordinator.currentPosition
+        guard let newURL = api.streamURL(mediaId: mediaId, sidx: sidx, stype: stype, t: pos > 5 ? pos : nil) else { return }
+        coordinator.load(url: newURL)
+        if pos > 5 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                let time = CMTime(seconds: pos, preferredTimescale: 600)
+                coordinator.player.seek(to: time,
+                                        toleranceBefore: CMTime(seconds: 2, preferredTimescale: 600),
+                                        toleranceAfter:  CMTime(seconds: 2, preferredTimescale: 600)) { _ in
+                    coordinator.play()
+                }
+            }
+        } else {
+            coordinator.play()
+        }
     }
 
     // MARK: - Controls timer
@@ -174,21 +279,21 @@ struct VideoPlayerView: View {
 
     private func startProgressTimer() {
         progressTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
-            Task { await saveProgress() }
+            let pos = coordinator.currentPosition
+            let dur = coordinator.player.currentItem?.duration.seconds
+            guard pos > 5 else { return }
+            let validDur = (dur?.isFinite == true && dur! > 0) ? dur : nil
+            let service = api
+            let id = mediaId
+            Task { @MainActor in
+                try? await service.saveProgress(mediaId: id, position: pos, duration: validDur)
+            }
         }
     }
 
     private func stopProgressTimer() {
         progressTimer?.invalidate()
         progressTimer = nil
-    }
-
-    private func saveProgress() async {
-        let pos = coordinator.player.currentTime().seconds
-        let dur = coordinator.player.currentItem?.duration.seconds
-        guard pos.isFinite, pos > 0 else { return }
-        let validDur = (dur?.isFinite == true && dur! > 0) ? dur : nil
-        try? await api.saveProgress(mediaId: mediaId, position: pos, duration: validDur)
     }
 }
 
@@ -198,10 +303,28 @@ struct VideoPlayerView: View {
 final class PlayerCoordinator: ObservableObject {
     let player = AVPlayer()
     @Published var isPlaying = false
+    @Published private(set) var currentPosition: Double = 0
+
+    private var timeObserver: Any?
 
     init() {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         try? AVAudioSession.sharedInstance().setActive(true, options: [])
+
+        // Reliable position tracking — avoids race conditions with currentTime()
+        timeObserver = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 1, preferredTimescale: 600),
+            queue: .main
+        ) { [weak self] time in
+            guard time.isValid, !time.seconds.isNaN, time.seconds > 0 else { return }
+            self?.currentPosition = time.seconds
+        }
+    }
+
+    deinit {
+        if let obs = timeObserver {
+            player.removeTimeObserver(obs)
+        }
     }
 
     func load(url: URL) {

@@ -97,11 +97,13 @@ async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: 
     job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path, v_bsf, start_seg)
     job = _JOBS.get(job_id)
     if not job:
-        # Stop old job for same item if exists
+        # Evict old job for same item only if it has been idle for >5 minutes.
+        # An active download keeps touching last_access on every segment request,
+        # so a recent last_access means iOS is still downloading — don't kill it.
         prev_id = _ITEM_JOB.get(item_id)
         if prev_id and prev_id != job_id:
             old = _JOBS.get(prev_id)
-            if old:
+            if old and (time.time() - old.last_access) > 300:
                 try:
                     if old.proc and old.proc.returncode is None:
                         try: old.proc.terminate()
@@ -249,7 +251,53 @@ async def get_master_playlist(
     sidx: Optional[int] = Query(None),
     stype: str = Query("text"),
     file_id: Optional[int] = Query(None),
-    t: float = Query(0),  # current playback position in seconds (for seek-start)
+    t: float = Query(0),
+    db: AsyncSession = Depends(get_db)
+):
+    """Proper HLS master playlist. AVPlayer and AVAssetDownloadURLSession both need this."""
+    if token:
+        user = await get_current_user_from_token(token, db)
+        if not user: raise HTTPException(401, "Invalid Token")
+
+    q = (select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
+         if file_id else select(MediaFile).where(MediaFile.media_item_id == media_id))
+    result = await db.execute(q)
+    mf = result.scalars().first()
+    if not mf: raise HTTPException(404, "Media Not Found")
+
+    server_base = f"{request.url.scheme}://{request.url.netloc}"
+    playlist_url = (f"{server_base}/api/v1/stream/{media_id}/playlist.m3u8"
+                    f"?token={token or ''}&aidx={aidx}")
+    if sidx is not None:
+        playlist_url += f"&sidx={sidx}&stype={stype}"
+    if file_id:
+        playlist_url += f"&file_id={file_id}"
+    if t > 0:
+        playlist_url += f"&t={int(t)}"
+
+    lines = [
+        "#EXTM3U",
+        "#EXT-X-VERSION:3",
+        "#EXT-X-STREAM-INF:BANDWIDTH=2500000,CODECS=\"avc1.64001f,mp4a.40.2\"",
+        playlist_url,
+    ]
+    return Response(
+        "\n".join(lines),
+        media_type="application/vnd.apple.mpegurl",
+        headers={"Cache-Control": "no-cache, no-store"},
+    )
+
+
+@router.get("/{media_id}/playlist.m3u8")
+async def get_media_playlist(
+    media_id: int,
+    request: Request,
+    token: str = Query(None),
+    aidx: int = Query(0),
+    sidx: Optional[int] = Query(None),
+    stype: str = Query("text"),
+    file_id: Optional[int] = Query(None),
+    t: float = Query(0),
     db: AsyncSession = Depends(get_db)
 ):
     # Verify User
