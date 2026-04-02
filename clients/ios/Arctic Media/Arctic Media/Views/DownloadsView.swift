@@ -113,28 +113,40 @@ struct DownloadsView: View {
         let progress = dm.activeProgress[mediaId] ?? 0
         let info = dm.activeInfo[mediaId]
         HStack(spacing: 14) {
-            // Poster with progress ring overlay
-            ZStack {
-                PosterImageView(url: info?.posterUrl, serverURL: appState.serverURL)
-                    .frame(width: 50, height: 75)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .opacity(0.5)
-
+            // Poster with progress ring overlay + speed label
+            VStack(spacing: 3) {
                 ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.25), lineWidth: 3)
-                        .frame(width: 38, height: 38)
-                    Circle()
-                        .trim(from: 0, to: CGFloat(progress))
-                        .stroke(Color.arcticPrimary,
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 38, height: 38)
-                        .animation(.linear(duration: 0.4), value: progress)
-                    Text("\(Int(progress * 100))%")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white)
+                    PosterImageView(url: info?.posterUrl, serverURL: appState.serverURL)
+                        .frame(width: 50, height: 75)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .opacity(0.5)
+
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.25), lineWidth: 3)
+                            .frame(width: 38, height: 38)
+                        Circle()
+                            .trim(from: 0, to: CGFloat(progress))
+                            .stroke(dm.isPaused(mediaId) ? Color.arcticMuted : Color.arcticPrimary,
+                                    style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 38, height: 38)
+                            .animation(.linear(duration: 0.4), value: progress)
+                        if dm.isPaused(mediaId) {
+                            Image(systemName: "pause.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                        } else {
+                            Text("\(Int(progress * 100))%")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
                 }
+                Text(dm.activeSpeed[mediaId].map { DownloadManager.formatSpeed($0) } ?? "")
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundColor(.arcticMuted)
+                    .frame(width: 50)
             }
 
             VStack(alignment: .leading, spacing: 5) {
@@ -160,9 +172,9 @@ struct DownloadsView: View {
                 }
                 .frame(height: 4)
 
-                Text(info?.kind == "movie" ? "Movie" : "Episode")
+                Text(dm.isPaused(mediaId) ? "Paused" : (info?.kind == "movie" ? "Movie" : "Episode"))
                     .font(.caption2)
-                    .foregroundColor(.arcticMuted)
+                    .foregroundColor(dm.isPaused(mediaId) ? .yellow : .arcticMuted)
             }
 
             Spacer()

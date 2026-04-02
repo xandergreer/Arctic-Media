@@ -65,10 +65,17 @@ struct DownloadButton: View {
         } else {
             HStack(spacing: 12) {
                 ProgressView(value: progress).tint(.arcticPrimary).frame(maxWidth: .infinity)
-                Text("\(Int(progress * 100))%")
-                    .font(.caption.monospacedDigit())
-                    .foregroundColor(.arcticMuted)
-                    .frame(width: 36)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Int(progress * 100))%")
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(.arcticMuted)
+                    if let speed = dm.activeSpeed[mediaId] {
+                        Text(DownloadManager.formatSpeed(speed))
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .foregroundColor(.arcticMuted)
+                    }
+                }
+                .frame(width: 54, alignment: .trailing)
                 Image(systemName: "xmark.circle.fill").foregroundColor(.arcticMuted)
             }
             .frame(maxWidth: .infinity)
