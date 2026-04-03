@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showChangePassword = false
 
     var body: some View {
         ZStack {
@@ -40,12 +41,17 @@ struct SettingsView: View {
                 .listRowBackground(Color.arcticSurface)
 
                 Section {
+                    Button {
+                        showChangePassword = true
+                    } label: {
+                        Label("Change Password", systemImage: "lock.rotation")
+                            .foregroundColor(.arcticText)
+                    }
                     Button(role: .destructive) {
                         appState.logout()
                     } label: {
                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
-
                     Button {
                         appState.setServer("")
                         appState.logout()
@@ -79,6 +85,9 @@ struct SettingsView: View {
                 )
             } catch {}
         }
+        .sheet(isPresented: $showChangePassword) {
+            ChangePasswordSheet()
+        }
     }
 
     private func infoRow(label: String, value: String) -> some View {
@@ -90,5 +99,102 @@ struct SettingsView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
+    }
+}
+
+// MARK: - Change Password Sheet
+
+private struct ChangePasswordSheet: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var current = ""
+    @State private var newPw = ""
+    @State private var confirm = ""
+    @State private var isLoading = false
+    @State private var errorMsg: String?
+    @State private var success = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack { Color.arcticBg.ignoresSafeArea()
+                Form {
+                    Section {
+                        SecureField("Current password", text: $current)
+                            .textContentType(.password)
+                        SecureField("New password", text: $newPw)
+                            .textContentType(.newPassword)
+                        SecureField("Confirm new password", text: $confirm)
+                            .textContentType(.newPassword)
+                    } footer: {
+                        if let err = errorMsg {
+                            Text(err).foregroundColor(.red)
+                        } else if success {
+                            Text("Password updated successfully.").foregroundColor(.green)
+                        }
+                    }
+                    .listRowBackground(Color.arcticSurface)
+
+                    Section {
+                        Button {
+                            Task { await submit() }
+                        } label: {
+                            if isLoading {
+                                HStack {
+                                    Spacer()
+                                    ProgressView().tint(.white)
+                                    Spacer()
+                                }
+                            } else {
+                                Text("Update Password")
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .disabled(isLoading)
+                        .listRowBackground(Color.arcticPrimary)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Change Password")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.arcticBg, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func submit() async {
+        errorMsg = nil
+        success = false
+        guard !current.isEmpty, !newPw.isEmpty, !confirm.isEmpty else {
+            errorMsg = "Please fill in all fields."; return
+        }
+        guard newPw == confirm else {
+            errorMsg = "New passwords do not match."; return
+        }
+        guard newPw.count >= 6 else {
+            errorMsg = "New password must be at least 6 characters."; return
+        }
+        guard let token = appState.token else { return }
+
+        isLoading = true
+        do {
+            try await APIService.shared.changePassword(
+                serverURL: appState.serverURL, token: token,
+                currentPassword: current, newPassword: newPw)
+            success = true
+            current = ""; newPw = ""; confirm = ""
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            dismiss()
+        } catch {
+            errorMsg = error.localizedDescription
+        }
+        isLoading = false
     }
 }

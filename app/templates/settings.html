@@ -71,6 +71,32 @@
         {% endif %}
     </div>
 
+    <!-- Change Password -->
+    <div class="card" style="margin-bottom:1.25rem;">
+        <div class="settings-section-head">
+            <span class="material-icons">lock</span>
+            <h3>Change Password</h3>
+        </div>
+        <form id="change-password-form">
+            <div class="form-group">
+                <label for="cp-current">Current Password</label>
+                <input type="password" id="cp-current" class="form-control" placeholder="Enter current password" autocomplete="current-password">
+            </div>
+            <div class="form-group">
+                <label for="cp-new">New Password</label>
+                <input type="password" id="cp-new" class="form-control" placeholder="At least 6 characters" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label for="cp-confirm">Confirm New Password</label>
+                <input type="password" id="cp-confirm" class="form-control" placeholder="Repeat new password" autocomplete="new-password">
+            </div>
+            <div id="cp-msg" style="font-size:0.85rem;margin-bottom:0.75rem;display:none;"></div>
+            <button type="submit" class="btn btn-primary">
+                <span class="material-icons" style="font-size:1rem;">lock_reset</span> Update Password
+            </button>
+        </form>
+    </div>
+
     <!-- Add Library -->
     <div class="card">
         <div class="settings-section-head">
@@ -134,6 +160,6 @@
 </div>
 
 <script src="/static/js/fsbrowser.js?v=2"></script>
-<script src="/static/js/settings.js?v=3"></script>
+<script src="/static/js/settings.js?v=4"></script>
 
 {% endblock %}

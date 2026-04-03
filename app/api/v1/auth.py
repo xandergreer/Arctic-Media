@@ -105,11 +105,25 @@ async def register_user(
 
 @router.get("/me", response_model=dict)
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    """
-    Get current user info.
-    """
     return {
         "id": current_user.id,
         "username": current_user.username,
         "is_superuser": current_user.is_superuser
     }
+
+
+@router.post("/change-password")
+async def change_password(
+    current_password: str,
+    new_password: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: User = Depends(get_current_user),
+):
+    """Allow a logged-in user to change their own password."""
+    if not security.verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+    current_user.hashed_password = security.get_password_hash(new_password)
+    await db.commit()
+    return {"detail": "Password updated successfully."}

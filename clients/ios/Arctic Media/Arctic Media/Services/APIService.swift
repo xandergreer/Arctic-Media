@@ -38,6 +38,16 @@ class APIService {
         return try await send(req)
     }
 
+    func changePassword(serverURL: String, token: String,
+                        currentPassword: String, newPassword: String) async throws {
+        let params = "current_password=\(currentPassword.encoded)&new_password=\(newPassword.encoded)"
+        var req = try makeRequest(serverURL: serverURL,
+                                  path: "/api/v1/auth/change-password?\(params)",
+                                  method: "POST")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let _: [String: String] = try await send(req)
+    }
+
     // MARK: - Media
 
     func recentlyAdded(serverURL: String, token: String, limit: Int = 12) async throws -> RecentlyAdded {

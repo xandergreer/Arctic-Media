@@ -303,4 +303,41 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch { /* not critical */ }
     })();
 
+    // ─── Change Password ──────────────────────────────────────────────────────────
+
+    const cpForm = document.getElementById('change-password-form');
+    if (cpForm) {
+        cpForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const current = document.getElementById('cp-current').value;
+            const newPw   = document.getElementById('cp-new').value;
+            const confirm = document.getElementById('cp-confirm').value;
+            const msg     = document.getElementById('cp-msg');
+
+            const show = (text, ok) => {
+                msg.textContent = text;
+                msg.style.color = ok ? 'var(--primary)' : '#f87171';
+                msg.style.display = 'block';
+            };
+
+            if (!current || !newPw || !confirm) { show('Please fill in all fields.', false); return; }
+            if (newPw !== confirm) { show('New passwords do not match.', false); return; }
+            if (newPw.length < 6) { show('New password must be at least 6 characters.', false); return; }
+
+            try {
+                const params = new URLSearchParams({ current_password: current, new_password: newPw });
+                const res = await fetch(`/api/v1/auth/change-password?${params}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                });
+                const data = await res.json();
+                if (!res.ok) { show(data.detail || 'Failed.', false); return; }
+                show('Password updated successfully.', true);
+                cpForm.reset();
+            } catch (err) {
+                show('Request failed.', false);
+            }
+        });
+    }
+
 });
