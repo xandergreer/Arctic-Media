@@ -165,7 +165,7 @@
             try {
                 // Try to get current user info
                 // If 401, not logged in
-                const response = await fetch('/api/v1/auth/me');
+                const response = await fetch('/api/v1/auth/me', { headers: getAuthHeaders() });
                 if (response.ok) {
                     document.getElementById('login-prompt').style.display = 'none';
                     document.getElementById('pair-form').style.display = 'block';
@@ -196,9 +196,10 @@
                 // In remote.py we defined @router.post("/pair/activate").
                 // Main.py will include it.
                 // Assuming mounted without prefix or just check
-                const response = await fetch('/api/v1/pair/activate', {
+                const response = await fetch('/pair/activate', {
                     method: 'POST',
                     headers: {
+                        ...getAuthHeaders(),
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ user_code: code })
