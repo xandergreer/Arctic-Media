@@ -369,6 +369,15 @@ struct AdminUsersResponse: Codable {
     let users: [AdminUser]
 }
 
+struct ResetPasswordResponse: Codable {
+    let username: String
+    let newPassword: String
+    enum CodingKeys: String, CodingKey {
+        case username
+        case newPassword = "new_password"
+    }
+}
+
 // MARK: - Admin: Invites
 
 struct InviteCode: Codable, Identifiable {

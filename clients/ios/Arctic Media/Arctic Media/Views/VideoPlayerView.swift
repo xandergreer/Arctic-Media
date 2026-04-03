@@ -24,6 +24,7 @@ struct VideoPlayerView: View {
     @State private var endObserver: Any?
     @State private var progressTickCounter = 0
 
+    @State private var offlineLoader: OfflinePlaybackHelper?
     @State private var subtitleTracks: [SubtitleTrack] = []
     @State private var selectedSubtitleIdx: Int? = nil
     @State private var showSubtitlePicker = false
@@ -109,7 +110,14 @@ struct VideoPlayerView: View {
         try? AVAudioSession.sharedInstance().setActive(true)
         UIApplication.shared.isIdleTimerDisabled = true
 
-        let item = AVPlayerItem(url: url)
+        let item: AVPlayerItem
+        if url.isFileURL {
+            let loader = OfflinePlaybackHelper(mediaId: mediaId, localPlaylistURL: url)
+            await MainActor.run { offlineLoader = loader }
+            item = loader.makePlayerItem()
+        } else {
+            item = AVPlayerItem(url: url)
+        }
         let p = AVPlayer(playerItem: item)
         p.automaticallyWaitsToMinimizeStalling = true
         await MainActor.run { player = p }
@@ -329,6 +337,8 @@ private struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         vc.player = player
         vc.showsPlaybackControls = true
         vc.videoGravity = .resizeAspect
+        vc.allowsPictureInPicturePlayback = true
+        vc.canStartPictureInPictureAutomaticallyFromInline = true
         return vc
     }
 

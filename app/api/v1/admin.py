@@ -351,6 +351,34 @@ async def toggle_superuser(
     return {"id": user.id, "username": user.username, "is_superuser": user.is_superuser}
 
 
+@router.post("/users/{user_id}/reset-password")
+async def reset_user_password(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Generate a new random password for a user and return it once. Superuser only."""
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Use the change-password flow to update your own password.")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    from app.core.security import get_password_hash
+    # 8-char password: 2 words from a tiny wordlist + 2 digits — memorable and typeable
+    adjectives = ["red", "blue", "fast", "cold", "warm", "bold", "calm", "dark"]
+    nouns      = ["fox", "cat", "sun", "sky", "oak", "ice", "bay", "arc"]
+    new_password = (
+        secrets.choice(adjectives)
+        + secrets.choice(nouns)
+        + str(secrets.randbelow(90) + 10)  # 10–99
+    )
+    user.hashed_password = get_password_hash(new_password)
+    await db.commit()
+    return {"username": user.username, "new_password": new_password}
+
+
 @router.delete("/users/{user_id}")
 async def delete_user(
     user_id: int,

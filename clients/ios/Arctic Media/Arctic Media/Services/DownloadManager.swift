@@ -108,7 +108,15 @@ final class DownloadManager: NSObject, ObservableObject {
         let toResume = loadResumableDownloads().filter { pausedMediaIds.contains($0.mediaId) }
         pausedMediaIds.removeAll()
         for rd in toResume {
-            guard activeProgress[rd.mediaId] != nil else { continue }
+            // Restore state in case it was cleared when the URLSession request was killed
+            if activeProgress[rd.mediaId] == nil {
+                activeProgress[rd.mediaId] = 0.01
+            }
+            if activeInfo[rd.mediaId] == nil {
+                activeInfo[rd.mediaId] = ActiveDownloadInfo(
+                    mediaId: rd.mediaId, title: rd.title, posterUrl: rd.posterUrl,
+                    kind: rd.kind, episodeLabel: rd.episodeLabel)
+            }
             let task = Task { [weak self] in
                 guard let self else { return }
                 await self.performDownload(
@@ -325,27 +333,32 @@ final class DownloadManager: NSObject, ObservableObject {
                 self.speedPoints.removeValue(forKey: mediaId)
             }
 
-        } catch is CancellationError {
+        } catch {
             await MainActor.run {
                 self.activeTasks.removeValue(forKey: mediaId)
                 self.activeSpeed.removeValue(forKey: mediaId)
                 self.speedPoints.removeValue(forKey: mediaId)
-                // If paused, keep progress/info visible so the user sees the paused state.
-                // If user-cancelled, clean everything up.
-                if !self.pausedMediaIds.contains(mediaId) {
+
+                // CancellationError = Swift Task cancelled.
+                // URLError.cancelled = iOS cancelled the in-flight network request (e.g. backgrounding).
+                // In both cases, if this mediaId is marked as paused, keep progress/info intact.
+                let isCancelled = error is CancellationError
+                    || (error as? URLError)?.code == .cancelled
+                    || (error as? URLError)?.code == .networkConnectionLost
+
+                if isCancelled && self.pausedMediaIds.contains(mediaId) {
+                    // Paused — preserve state so the user sees the paused ring
+                } else if isCancelled {
+                    // User explicitly cancelled — clean up
+                    self.activeProgress.removeValue(forKey: mediaId)
+                    self.activeInfo.removeValue(forKey: mediaId)
+                } else {
+                    // Genuine download error
+                    self.activeErrors[mediaId] = error.localizedDescription
+                    self.removeResumableDownload(mediaId)
                     self.activeProgress.removeValue(forKey: mediaId)
                     self.activeInfo.removeValue(forKey: mediaId)
                 }
-            }
-        } catch {
-            await MainActor.run {
-                self.activeErrors[mediaId] = error.localizedDescription
-                self.removeResumableDownload(mediaId)
-                self.activeTasks.removeValue(forKey: mediaId)
-                self.activeProgress.removeValue(forKey: mediaId)
-                self.activeInfo.removeValue(forKey: mediaId)
-                self.activeSpeed.removeValue(forKey: mediaId)
-                self.speedPoints.removeValue(forKey: mediaId)
             }
         }
     }

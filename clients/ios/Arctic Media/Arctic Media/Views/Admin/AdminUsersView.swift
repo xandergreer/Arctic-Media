@@ -5,6 +5,7 @@ struct AdminUsersView: View {
     @State private var users: [AdminUser] = []
     @State private var loading = true
     @State private var confirmDelete: AdminUser?
+    @State private var resetResult: ResetPasswordResponse?
     @State private var errorMsg: String?
 
     var body: some View {
@@ -21,6 +22,7 @@ struct AdminUsersView: View {
         .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await load() }
+        // Delete confirmation
         .alert("Delete User", isPresented: Binding(
             get: { confirmDelete != nil },
             set: { if !$0 { confirmDelete = nil } }
@@ -34,6 +36,23 @@ struct AdminUsersView: View {
                 Text("Delete \"\(u.username)\"? This cannot be undone.")
             }
         }
+        // Reset password result
+        .alert("Password Reset", isPresented: Binding(
+            get: { resetResult != nil },
+            set: { if !$0 { resetResult = nil } }
+        )) {
+            Button("Copy Password") {
+                if let r = resetResult {
+                    UIPasteboard.general.string = r.newPassword
+                }
+                resetResult = nil
+            }
+            Button("Done", role: .cancel) { resetResult = nil }
+        } message: {
+            if let r = resetResult {
+                Text("\(r.username)'s new password is:\n\n\(r.newPassword)\n\nShare this with the user — they should change it after logging in.")
+            }
+        }
     }
 
     private var userList: some View {
@@ -44,6 +63,8 @@ struct AdminUsersView: View {
             ForEach(users) { user in
                 UserRowView(user: user) {
                     Task { await toggleSuperuser(user) }
+                } onResetPassword: {
+                    Task { await resetPassword(user) }
                 } onDelete: {
                     confirmDelete = user
                 }
@@ -83,6 +104,17 @@ struct AdminUsersView: View {
         }
     }
 
+    private func resetPassword(_ user: AdminUser) async {
+        guard let token = appState.token else { return }
+        do {
+            let result = try await APIService.shared.resetPassword(
+                serverURL: appState.serverURL, token: token, userId: user.id)
+            resetResult = result
+        } catch {
+            errorMsg = error.localizedDescription
+        }
+    }
+
     private func deleteUser(_ user: AdminUser) async {
         guard let token = appState.token else { return }
         do {
@@ -97,6 +129,7 @@ struct AdminUsersView: View {
 private struct UserRowView: View {
     let user: AdminUser
     let onToggleSuperuser: () -> Void
+    let onResetPassword: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -137,6 +170,8 @@ private struct UserRowView: View {
             if !user.isSelf {
                 Menu {
                     Button(user.isSuperuser ? "Revoke Admin" : "Make Admin", action: onToggleSuperuser)
+                    Button("Reset Password", action: onResetPassword)
+                    Divider()
                     Button("Delete User", role: .destructive, action: onDelete)
                 } label: {
                     Image(systemName: "ellipsis.circle")

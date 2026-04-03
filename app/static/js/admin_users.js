@@ -69,6 +69,12 @@ function renderUsers(users) {
                 onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
                 <span class="material-icons" style="font-size:13px;">${promoteIcon}</span>${promoteLabel}
             </button>
+            <button onclick="resetPassword(${u.id}, '${u.username}')"
+                style="display:inline-flex;align-items:center;gap:0.3rem;background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);padding:0.3rem 0.65rem;font-size:0.78rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);"
+                onmouseenter="this.style.borderColor='var(--border-bright)';this.style.color='var(--text)'"
+                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+                <span class="material-icons" style="font-size:13px;">lock_reset</span>Reset PW
+            </button>
             <button onclick="deleteUser(${u.id}, '${u.username}')"
                 style="display:inline-flex;align-items:center;gap:0.3rem;background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);padding:0.3rem 0.65rem;font-size:0.78rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);"
                 onmouseenter="this.style.borderColor='#f87171';this.style.color='#f87171'"
@@ -132,6 +138,62 @@ async function toggleSuperuser(userId, username) {
     } catch (e) {
         alert('Request failed.');
     }
+}
+
+async function resetPassword(userId, username) {
+    if (!confirm(`Reset password for "${username}"? A new temporary password will be generated.`)) return;
+    try {
+        const res = await fetch(`/api/v1/admin/users/${userId}/reset-password`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            alert(err.detail || 'Failed.');
+            return;
+        }
+        const data = await res.json();
+        // Show modal with the new password so admin can copy it
+        showPasswordModal(data.username, data.new_password);
+    } catch (e) {
+        alert('Request failed.');
+    }
+}
+
+function showPasswordModal(username, password) {
+    const existing = document.getElementById('pw-reset-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'pw-reset-modal';
+    modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;`;
+    modal.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius-lg);padding:2rem;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
+                <span class="material-icons" style="color:var(--primary);">lock_reset</span>
+                <h3 style="margin:0;font-size:1.1rem;">Password Reset</h3>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.88rem;margin:0 0 1rem;">
+                New temporary password for <strong style="color:var(--text);">${username}</strong>. Share this with the user.
+            </p>
+            <div style="display:flex;align-items:center;gap:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 1rem;margin-bottom:1.5rem;">
+                <code id="pw-reset-value" style="flex:1;font-size:1.1rem;letter-spacing:0.05em;color:var(--text);">${password}</code>
+                <button onclick="
+                    navigator.clipboard.writeText('${password}');
+                    this.textContent='Copied!';
+                    this.style.color='var(--primary)';
+                    setTimeout(()=>{this.innerHTML='<span class=\\'material-icons\\' style=\\'font-size:16px;\\'>content_copy</span>';this.style.color='';},1500);"
+                    style="background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:0;">
+                    <span class="material-icons" style="font-size:16px;">content_copy</span>
+                </button>
+            </div>
+            <button onclick="document.getElementById('pw-reset-modal').remove()"
+                style="width:100%;padding:0.6rem;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.9rem;font-weight:600;cursor:pointer;font-family:var(--font);">
+                Done
+            </button>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
 async function deleteUser(userId, username) {

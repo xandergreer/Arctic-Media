@@ -217,6 +217,12 @@ class APIService {
         _ = try await session.data(for: req)
     }
 
+    func resetPassword(serverURL: String, token: String, userId: Int) async throws -> ResetPasswordResponse {
+        var req = try makeRequest(serverURL: serverURL, path: "/api/v1/admin/users/\(userId)/reset-password", method: "POST")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return try await send(req)
+    }
+
     // MARK: - Admin: Invites
 
     func adminInvites(serverURL: String, token: String) async throws -> InvitesResponse {
