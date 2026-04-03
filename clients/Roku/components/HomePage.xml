@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="HomePage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/HomePage.brs" />
+    <children>
+        <Rectangle color="0x0A0A1AFF" width="1920" height="1080" />
+
+        <!-- Header -->
+        <Label translation="[80, 36]"
+               text="❄ Arctic Media"
+               color="0x4A9FFFFF"
+               font="font:SmallBoldSystemFont"
+               width="400" />
+        <Label id="userLabel"
+               translation="[1600, 36]"
+               text=""
+               color="0x888888FF"
+               font="font:SmallSystemFont"
+               width="260"
+               horizAlign="right" />
+
+        <!-- Content rows -->
+        <RowList id="rowList"
+                 translation="[0, 100]"
+                 width="1920"
+                 height="940"
+                 itemComponentName="PosterItem"
+                 rowItemSize="[[182, 268]]"
+                 rowItemSpacing="[[16, 0]]"
+                 rowLabelOffset="[80, 0]"
+                 rowLabelColor="0xFFFFFFFF"
+                 rowLabelFont="font:SmallBoldSystemFont"
+                 numRows="3"
+                 rowHeights="[320, 320, 320]"
+                 focusedRowLabelColor="0x4A9FFFFF"
+                 />
+
+        <!-- Loading / Empty -->
+        <Label id="loadingLabel"
+               translation="[760, 500]"
+               text="Loading…"
+               color="0x888888FF"
+               font="font:MediumSystemFont"
+               width="400" />
+    </children>
+</component>

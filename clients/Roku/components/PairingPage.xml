@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="PairingPage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/PairingPage.brs" />
+    <children>
+        <Rectangle color="0x0A0A1AFF" width="1920" height="1080" />
+
+        <!-- App logo / title -->
+        <Label id="appTitle"
+               translation="[160, 90]"
+               text="❄ Arctic Media"
+               color="0x4A9FFFFF"
+               font="font:LargeBoldSystemFont"
+               width="800" />
+
+        <!-- Setup view (URL entry) -->
+        <Group id="setupView" visible="false">
+            <Label translation="[160, 200]"
+                   text="Enter your server address to get started."
+                   color="0xCCCCCCFF"
+                   font="font:MediumSystemFont"
+                   width="1200" />
+            <Label id="urlDisplay"
+                   translation="[160, 290]"
+                   text="http://"
+                   color="0x4A9FFFFF"
+                   font="font:LargeSystemFont"
+                   width="1400" />
+            <Label translation="[160, 400]"
+                   text="Example: http://192.168.1.100:8085"
+                   color="0x888888FF"
+                   font="font:SmallSystemFont"
+                   width="900" />
+            <Label id="setupPrompt"
+                   translation="[160, 470]"
+                   text="Press OK to open keyboard"
+                   color="0xFFFFFFFF"
+                   font="font:SmallSystemFont"
+                   width="900" />
+            <Keyboard id="urlKeyboard"
+                      translation="[160, 540]"
+                      visible="false" />
+        </Group>
+
+        <!-- Pairing view (show code) -->
+        <Group id="pairingView" visible="false">
+            <Label translation="[160, 200]"
+                   text="Step 1 — Sign in to your server in a browser:"
+                   color="0x888888FF"
+                   font="font:SmallSystemFont"
+                   width="1200" />
+            <Label id="loginUrl"
+                   translation="[160, 240]"
+                   text=""
+                   color="0x4A9FFFFF"
+                   font="font:MediumBoldSystemFont"
+                   width="1400" />
+            <Label translation="[160, 320]"
+                   text="Step 2 — Go to /pair and enter this code:"
+                   color="0x888888FF"
+                   font="font:SmallSystemFont"
+                   width="1200" />
+            <Label id="pairUrl"
+                   translation="[160, 355]"
+                   text=""
+                   color="0x555577FF"
+                   font="font:SmallSystemFont"
+                   width="1400" />
+            <Label id="codeLabel"
+                   translation="[160, 430]"
+                   text="---- - ----"
+                   color="0xFFFFFFFF"
+                   font="font:LargeSystemFont"
+                   width="800" />
+            <Label id="statusLabel"
+                   translation="[160, 580]"
+                   text="Waiting for authorization…"
+                   color="0x888888FF"
+                   font="font:SmallSystemFont"
+                   width="1200" />
+            <Label id="errorLabel"
+                   translation="[160, 640]"
+                   text=""
+                   color="0xFF4444FF"
+                   font="font:SmallSystemFont"
+                   width="1400" />
+            <Label translation="[160, 920]"
+                   text="Press * (Options) to change server address"
+                   color="0x333344FF"
+                   font="font:SmallSystemFont"
+                   width="1000" />
+        </Group>
+
+        <!-- Loading state -->
+        <Label id="loadingLabel"
+               translation="[160, 300]"
+               text="Connecting to server…"
+               color="0xCCCCCCFF"
+               font="font:MediumSystemFont"
+               width="900"
+               visible="false" />
+    </children>
+</component>

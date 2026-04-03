@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="SeasonPage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/SeasonPage.brs" />
+    <children>
+        <Rectangle color="0x0A0A1AFF" width="1920" height="1080" />
+
+        <Label id="showTitle"
+               translation="[80, 50]"
+               width="1760"
+               font="font:LargeBoldSystemFont"
+               color="0xFFFFFFFF" />
+
+        <!-- Season selector (left column) -->
+        <Label translation="[80, 140]"
+               text="SEASONS"
+               color="0x888888FF"
+               font="font:SmallBoldSystemFont"
+               width="200" />
+        <LabelList id="seasonList"
+                   translation="[80, 175]"
+                   width="260"
+                   height="800"
+                   itemSize="[260, 52]"
+                   itemSpacing="[0, 4]"
+                   focusBitmapUri=""
+                   focusedColor="0x4A9FFFFF"
+                   color="0xCCCCCCFF"
+                   font="font:SmallBoldSystemFont"
+                   focusedFont="font:SmallBoldSystemFont" />
+
+        <!-- Divider -->
+        <Rectangle translation="[358, 140]" width="2" height="840" color="0x222233FF" />
+
+        <!-- Episode list (right column) -->
+        <Label translation="[380, 140]"
+               text="EPISODES"
+               color="0x888888FF"
+               font="font:SmallBoldSystemFont"
+               width="300" />
+        <LabelList id="episodeList"
+                   translation="[380, 175]"
+                   width="1460"
+                   height="800"
+                   itemSize="[1460, 60]"
+                   itemSpacing="[0, 4]"
+                   focusBitmapUri=""
+                   focusedColor="0x4A9FFFFF"
+                   color="0xCCCCCCFF"
+                   font="font:SmallSystemFont"
+                   focusedFont="font:SmallBoldSystemFont" />
+
+        <Label translation="[80, 1030]"
+               text="← Back"
+               color="0x444455FF"
+               font="font:SmallSystemFont"
+               width="200" />
+    </children>
+</component>

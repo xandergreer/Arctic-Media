@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="DetailsPage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/DetailsPage.brs" />
+    <children>
+        <Rectangle color="0x0A0A1AFF" width="1920" height="1080" />
+        <Poster id="backdrop" width="1920" height="1080" opacity="0.15" />
+        <Poster id="poster" translation="[100, 120]" width="320" height="470" />
+
+        <Label id="titleLabel" translation="[480, 120]" width="1300"
+               font="font:LargeBoldSystemFont" color="0xFFFFFFFF" wrap="true" />
+        <Label id="metaLabel" translation="[480, 230]" width="900"
+               font="font:SmallSystemFont" color="0x888888FF" />
+        <Label id="overviewLabel" translation="[480, 290]" width="1360"
+               font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" />
+
+        <Rectangle id="playBtn" translation="[480, 660]"
+                   color="0x4A9FFFFF" width="220" height="56" />
+        <Label id="playBtnLabel" translation="[492, 674]"
+               text="Play" color="0xFFFFFFFF"
+               font="font:MediumBoldSystemFont" width="200" />
+
+        <Rectangle id="episodesBtn" translation="[720, 660]"
+                   color="0x1A2A4AFF" width="280" height="56" visible="false" />
+        <Label id="episodesBtnLabel" translation="[732, 674]"
+               text="Browse Episodes" color="0xFFFFFFFF"
+               font="font:SmallBoldSystemFont" width="260" visible="false" />
+
+        <Label translation="[480, 760]" text="Back to return"
+               color="0x444455FF" font="font:SmallSystemFont" width="400" />
+    </children>
+</component>

@@ -351,6 +351,28 @@ async def toggle_superuser(
     return {"id": user.id, "username": user.username, "is_superuser": user.is_superuser}
 
 
+@router.post("/users")
+async def create_user(
+    username: str,
+    password: str,
+    is_superuser: bool = False,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_active_superuser),
+):
+    """Create a new user account. Superuser only."""
+    from app.services import auth as auth_service
+    existing = await auth_service.get_user_by_username(db, username)
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already taken.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    user = await auth_service.create_user(db, username, password)
+    if is_superuser:
+        user.is_superuser = True
+        await db.commit()
+    return {"id": user.id, "username": user.username, "is_superuser": user.is_superuser}
+
+
 @router.post("/users/{user_id}/reset-password")
 async def reset_user_password(
     user_id: int,

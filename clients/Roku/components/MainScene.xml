@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="MainScene" extends="Scene">
+    <interface>
+        <field id="navRequest"    type="assocarray" alwaysNotify="true" />
+        <field id="launchContent" type="assocarray" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+    <children>
+        <Rectangle id="bg" color="0x0A0A1AFF" width="1920" height="1080" />
+    </children>
+</component>

@@ -6,6 +6,7 @@ struct AdminUsersView: View {
     @State private var loading = true
     @State private var confirmDelete: AdminUser?
     @State private var resetResult: ResetPasswordResponse?
+    @State private var showCreateUser = false
     @State private var errorMsg: String?
 
     var body: some View {
@@ -21,6 +22,13 @@ struct AdminUsersView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showCreateUser = true } label: {
+                    Image(systemName: "person.badge.plus")
+                }
+            }
+        }
         .task { await load() }
         // Delete confirmation
         .alert("Delete User", isPresented: Binding(
@@ -35,6 +43,9 @@ struct AdminUsersView: View {
             if let u = confirmDelete {
                 Text("Delete \"\(u.username)\"? This cannot be undone.")
             }
+        }
+        .sheet(isPresented: $showCreateUser) {
+            CreateUserSheet { await load() }
         }
         // Reset password result
         .alert("Password Reset", isPresented: Binding(
@@ -200,5 +211,93 @@ private struct UserRowView: View {
         if secs < 3600 { return "\(secs / 60)m ago" }
         if secs < 86400 { return "\(secs / 3600)h ago" }
         return "\(secs / 86400)d ago"
+    }
+}
+
+// MARK: - Create User Sheet
+
+private struct CreateUserSheet: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    var onCreated: () async -> Void
+
+    @State private var username = ""
+    @State private var password = ""
+    @State private var makeAdmin = false
+    @State private var isLoading = false
+    @State private var errorMsg: String?
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.arcticBg.ignoresSafeArea()
+                Form {
+                    Section {
+                        TextField("Username", text: $username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        SecureField("Password (min 6 characters)", text: $password)
+                            .textContentType(.newPassword)
+                        Toggle("Make Admin", isOn: $makeAdmin)
+                            .tint(.arcticPrimary)
+                    } footer: {
+                        if let err = errorMsg {
+                            Text(err).foregroundColor(.red)
+                        }
+                    }
+                    .listRowBackground(Color.arcticSurface)
+
+                    Section {
+                        Button {
+                            Task { await submit() }
+                        } label: {
+                            if isLoading {
+                                HStack { Spacer(); ProgressView().tint(.white); Spacer() }
+                            } else {
+                                Text("Create User")
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .disabled(isLoading)
+                        .listRowBackground(Color.arcticPrimary)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Create User")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.arcticBg, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func submit() async {
+        errorMsg = nil
+        guard !username.trimmingCharacters(in: .whitespaces).isEmpty else { errorMsg = "Username is required."; return }
+        guard password.count >= 6 else { errorMsg = "Password must be at least 6 characters."; return }
+        guard let token = appState.token else { return }
+
+        isLoading = true
+        do {
+            let params = "username=\(username.encoded)&password=\(password.encoded)&is_superuser=\(makeAdmin)"
+            var req = try URLRequest(url: URL(string: appState.serverURL + "/api/v1/admin/users?\(params)")!)
+            req.httpMethod = "POST"
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let (_, response) = try await URLSession.shared.data(for: req)
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                errorMsg = "Failed (HTTP \(http.statusCode))."; isLoading = false; return
+            }
+            await onCreated()
+            dismiss()
+        } catch {
+            errorMsg = error.localizedDescription
+        }
+        isLoading = false
     }
 }

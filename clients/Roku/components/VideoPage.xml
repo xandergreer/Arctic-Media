@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="VideoPage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/VideoPage.brs" />
+    <children>
+        <Rectangle color="0x000000FF" width="1920" height="1080" />
+        <Video id="video"
+               translation="[0, 0]"
+               width="1920"
+               height="1080" />
+    </children>
+</component>

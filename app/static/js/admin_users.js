@@ -41,6 +41,7 @@ async function loadUsers() {
 function renderUsers(users) {
     const el = document.getElementById('users-content');
 
+
     if (users.length === 0) {
         el.innerHTML = `<div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
             <span class="material-icons" style="font-size:3rem;display:block;margin-bottom:1rem;">person_off</span>
@@ -119,7 +120,14 @@ function renderUsers(users) {
         </div>`;
     }).join('');
 
-    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:0.75rem;">${rows}</div>`;
+    const createBtn = `
+        <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+            <button onclick="showCreateUserModal()"
+                style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:0.45rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font);">
+                <span class="material-icons" style="font-size:15px;">person_add</span>Create User
+            </button>
+        </div>`;
+    el.innerHTML = createBtn + `<div style="display:flex;flex-direction:column;gap:0.75rem;">${rows}</div>`;
 }
 
 async function toggleSuperuser(userId, username) {
@@ -137,6 +145,77 @@ async function toggleSuperuser(userId, username) {
         loadUsers();
     } catch (e) {
         alert('Request failed.');
+    }
+}
+
+function showCreateUserModal() {
+    const existing = document.getElementById('create-user-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'create-user-modal';
+    modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;`;
+    modal.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius-lg);padding:2rem;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+                <span class="material-icons" style="color:var(--primary);">person_add</span>
+                <h3 style="margin:0;font-size:1.1rem;">Create User</h3>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Username</label>
+                <input id="cu-username" type="text" class="form-control" placeholder="e.g. john" autocomplete="off">
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Password</label>
+                <input id="cu-password" type="password" class="form-control" placeholder="At least 6 characters" autocomplete="new-password">
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.5rem;">
+                <input type="checkbox" id="cu-admin" style="accent-color:var(--primary);width:15px;height:15px;">
+                <label for="cu-admin" style="font-size:0.88rem;cursor:pointer;">Make admin</label>
+            </div>
+            <div id="cu-error" style="font-size:0.83rem;color:#f87171;margin-bottom:0.75rem;display:none;"></div>
+            <div style="display:flex;gap:0.75rem;">
+                <button onclick="document.getElementById('create-user-modal').remove()"
+                    style="flex:1;padding:0.6rem;background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);font-size:0.9rem;cursor:pointer;font-family:var(--font);">
+                    Cancel
+                </button>
+                <button onclick="createUser()"
+                    style="flex:1;padding:0.6rem;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.9rem;font-weight:600;cursor:pointer;font-family:var(--font);">
+                    Create
+                </button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    setTimeout(() => document.getElementById('cu-username')?.focus(), 50);
+}
+
+async function createUser() {
+    const username = document.getElementById('cu-username').value.trim();
+    const password = document.getElementById('cu-password').value;
+    const isAdmin  = document.getElementById('cu-admin').checked;
+    const errEl    = document.getElementById('cu-error');
+
+    if (!username || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+    if (password.length < 6)    { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+
+    try {
+        const params = new URLSearchParams({ username, password, is_superuser: isAdmin });
+        const res = await fetch(`/api/v1/admin/users?${params}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            errEl.textContent = err.detail || 'Failed.';
+            errEl.style.display = 'block';
+            return;
+        }
+        document.getElementById('create-user-modal').remove();
+        loadUsers();
+    } catch (e) {
+        errEl.textContent = 'Request failed.';
+        errEl.style.display = 'block';
     }
 }
 

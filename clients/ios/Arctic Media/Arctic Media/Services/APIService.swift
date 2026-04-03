@@ -297,7 +297,7 @@ class APIService {
     }
 }
 
-private extension String {
+extension String {
     var encoded: String {
         addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? self
     }
