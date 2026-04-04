@@ -31,10 +31,10 @@
                    font="font:LargeSystemFont"
                    width="1400" />
             <Label translation="[160, 400]"
-                   text="Example: http://192.168.1.100:8085"
+                   text="Keyboard starts with http:// — just type your IP:port, e.g. 10.0.0.5:8085"
                    color="0x888888FF"
                    font="font:SmallSystemFont"
-                   width="900" />
+                   width="1400" />
             <Label id="setupPrompt"
                    translation="[160, 470]"
                    text="Press OK to open keyboard"

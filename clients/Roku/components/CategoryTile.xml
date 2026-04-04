@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="CategoryTile" extends="Group">
+    <interface>
+        <field id="itemContent"  type="node"  alwaysNotify="true" />
+        <field id="focusPercent" type="float" alwaysNotify="true" />
+    </interface>
+    <children>
+        <Rectangle id="bg"          color="0x0D1F38FF" width="320" height="180" />
+        <Rectangle id="focusBorder" color="0x4A9FFFFF" width="324" height="184" translation="[-2,-2]" opacity="0" />
+        <Poster    id="poster"       width="320" height="180" loadDisplayMode="scaleToZoom" opacity="0.5" />
+        <Poster    id="cornerMask"  uri="pkg:/images/corner_cat.png" width="320" height="180" />
+        <Rectangle id="gradient"    color="0x00000099" width="320" height="80"  translation="[0,100]" />
+        <Label     id="titleLabel"  translation="[14,120]" width="292" height="44"
+                   font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+    </children>
+    <script type="text/brightscript" uri="pkg:/components/CategoryTile.brs" />
+</component>

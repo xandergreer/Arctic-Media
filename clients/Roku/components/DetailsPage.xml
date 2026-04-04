@@ -7,30 +7,43 @@
     <script type="text/brightscript" uri="pkg:/source/utils.brs" />
     <script type="text/brightscript" uri="pkg:/components/DetailsPage.brs" />
     <children>
-        <Rectangle color="0x0A0A1AFF" width="1920" height="1080" />
-        <Poster id="backdrop" width="1920" height="1080" opacity="0.15" />
-        <Poster id="poster" translation="[100, 120]" width="320" height="470" />
+        <!-- Background -->
+        <Rectangle color="0x080818FF" width="1920" height="1080" />
+        <!-- Blurred backdrop poster -->
+        <Poster id="backdrop" width="1920" height="1080" opacity="0.14" loadDisplayMode="scaleToZoom" />
 
-        <Label id="titleLabel" translation="[480, 120]" width="1300"
+        <!-- Poster (portrait 2:3) -->
+        <Poster id="poster" translation="[60, 80]" width="256" height="384" loadDisplayMode="scaleToZoom" />
+
+        <!-- Title -->
+        <Label id="titleLabel" translation="[376, 80]" width="1490"
                font="font:LargeBoldSystemFont" color="0xFFFFFFFF" wrap="true" />
-        <Label id="metaLabel" translation="[480, 230]" width="900"
-               font="font:SmallSystemFont" color="0x888888FF" />
-        <Label id="overviewLabel" translation="[480, 290]" width="1360"
+
+        <!-- Meta: year · type -->
+        <Label id="metaLabel" translation="[376, 200]" width="900"
+               font="font:SmallSystemFont" color="0x4A9FFFFF" />
+
+        <!-- Divider -->
+        <Rectangle translation="[376, 228]" width="720" height="2" color="0x1C1C3AFF" />
+
+        <!-- Overview -->
+        <Label id="overviewLabel" translation="[376, 242]" width="1460"
                font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" />
 
-        <Rectangle id="playBtn" translation="[480, 660]"
-                   color="0x4A9FFFFF" width="220" height="56" />
-        <Label id="playBtnLabel" translation="[492, 674]"
-               text="Play" color="0xFFFFFFFF"
-               font="font:MediumBoldSystemFont" width="200" />
+        <!-- Play button -->
+        <Rectangle id="playBtn"  translation="[376, 504]" width="190" height="56" color="0x4A9FFFFF" />
+        <Label id="playBtnLabel" translation="[392, 522]" text="Play"
+               color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="165" />
 
-        <Rectangle id="episodesBtn" translation="[720, 660]"
-                   color="0x1A2A4AFF" width="280" height="56" visible="false" />
-        <Label id="episodesBtnLabel" translation="[732, 674]"
-               text="Browse Episodes" color="0xFFFFFFFF"
-               font="font:SmallBoldSystemFont" width="260" visible="false" />
+        <!-- Browse Episodes button (TV shows only) -->
+        <Rectangle id="episodesBtn"  translation="[584, 504]" width="260" height="56"
+                   color="0x1A2A4AFF" visible="false" />
+        <Label id="episodesBtnLabel" translation="[598, 522]" text="Browse Episodes"
+               color="0xCCCCCCFF" font="font:SmallBoldSystemFont" width="242" visible="false" />
 
-        <Label translation="[480, 760]" text="Back to return"
-               color="0x444455FF" font="font:SmallSystemFont" width="400" />
+        <!-- Hint -->
+        <Label translation="[376, 600]"
+               text="Back = return     Left / Right = switch     OK = select"
+               color="0x33334AFF" font="font:SmallSystemFont" width="900" />
     </children>
 </component>

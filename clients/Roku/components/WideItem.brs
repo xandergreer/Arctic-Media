@@ -3,7 +3,7 @@ sub init()
     m.focusBorder = m.top.findNode("focusBorder")
     m.titleBg     = m.top.findNode("titleBg")
     m.titleLabel  = m.top.findNode("titleLabel")
-    m.top.scaleRotateCenter = [91, 135]
+    m.top.scaleRotateCenter = [140, 79]
     m.top.observeField("itemContent",  "onContent")
     m.top.observeField("focusPercent", "onFocus")
 end sub
@@ -11,10 +11,10 @@ end sub
 sub onContent(event as object)
     content = event.getData()
     if content = invalid then return
+    m.titleLabel.text = content.title
     uri = content.hdPosterUrl
     if uri = invalid then uri = ""
-    m.poster.uri       = uri
-    m.titleLabel.text  = content.title
+    m.poster.uri = uri
 end sub
 
 sub onFocus(event as object)

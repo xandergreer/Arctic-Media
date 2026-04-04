@@ -30,7 +30,7 @@ sub onStartTimer(event as object)
 
     savedUrl = GetReg("server_url")
     if savedUrl <> "" and savedUrl <> invalid
-        m.serverUrl = savedUrl
+        m.serverUrl = savedUrl.Trim()
         showLoading()
         startPairRequest()
     else
@@ -74,6 +74,7 @@ end sub
 ' -------------------------------------------------------
 
 sub startPairRequest()
+
     task = CreateObject("roSGNode", "ApiTask")
     task.url    = m.serverUrl + "/pair/request"
     task.method = "POST"
@@ -87,6 +88,7 @@ end sub
 sub onPairRequestResult(event as object)
     data = event.getData()
     if data = invalid then return
+    if data.user_code = invalid then return
 
     m.deviceCode = data.device_code
     userCode = data.user_code
@@ -136,6 +138,7 @@ end sub
 sub onPollResult(event as object)
     data = event.getData()
     if data = invalid then return
+    if data.status = invalid then return
 
     status = data.status
     if status = "authorized"
@@ -182,7 +185,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     if m.urlKeyboard <> invalid and m.urlKeyboard.visible
         if key = "back"
-            url = m.urlKeyboard.text
+            url = m.urlKeyboard.text.Trim()
             if Len(url) > 10 and Left(url, 4) = "http"
                 m.urlKeyboard.visible = false
                 m.top.setFocus(true)

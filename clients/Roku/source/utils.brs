@@ -35,6 +35,22 @@ function FormatDuration(seconds as integer) as string
     return mn.ToStr() + "m"
 end function
 
+' Format seconds as h:mm:ss or m:ss for the video player OSD
+function FormatVideoTime(seconds as integer) as string
+    if seconds < 0 then seconds = 0
+    h  = int(seconds / 3600)
+    mn = int((seconds mod 3600) / 60)
+    s  = seconds mod 60
+    ss = s.ToStr()
+    if s < 10 then ss = "0" + ss
+    ms = mn.ToStr()
+    if h > 0
+        if mn < 10 then ms = "0" + ms
+        return h.ToStr() + ":" + ms + ":" + ss
+    end if
+    return ms + ":" + ss
+end function
+
 ' Build playback URL
 function BuildHlsUrl(serverUrl as string, token as string, mediaId as integer) as string
     return serverUrl + "/api/v1/stream/" + mediaId.ToStr() + "/master.m3u8?token=" + token

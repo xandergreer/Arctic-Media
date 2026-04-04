@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="WideItem" extends="Group">
+    <interface>
+        <field id="itemContent"  type="node"  alwaysNotify="true" />
+        <field id="focusPercent" type="float" alwaysNotify="true" />
+    </interface>
+    <children>
+        <Rectangle id="bg"          color="0x1A1A2AFF" width="280" height="158" />
+        <Rectangle id="focusBorder" color="0x4A9FFFFF" width="284" height="162" translation="[-2,-2]" opacity="0" />
+        <Poster    id="poster"       width="280" height="158" loadDisplayMode="scaleToZoom" />
+        <Poster    id="cornerMask"  uri="pkg:/images/corner_wide.png" width="280" height="158" />
+        <Rectangle id="titleBg"     color="0x000000CC" width="280" height="52"  translation="[0,106]" opacity="0" />
+        <Label     id="titleLabel"  translation="[6,112]" width="268" height="44"
+                   font="font:SmallBoldSystemFont" color="0xFFFFFFFF" wrap="true" opacity="0" />
+    </children>
+    <script type="text/brightscript" uri="pkg:/components/WideItem.brs" />
+</component>

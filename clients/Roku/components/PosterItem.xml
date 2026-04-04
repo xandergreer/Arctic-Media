@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component name="PosterItem" extends="Group">
     <interface>
-        <field id="itemContent"      type="node"  alwaysNotify="true" />
-        <field id="focusPercent"     type="float" alwaysNotify="true" />
-        <field id="rowFocusPercent"  type="float" alwaysNotify="true" />
+        <field id="width"        type="float" />
+        <field id="height"       type="float" />
+        <field id="itemContent"  type="node"  alwaysNotify="true" />
+        <field id="focusPercent" type="float" alwaysNotify="true" />
     </interface>
     <children>
-        <Rectangle id="bg" color="0x1A1A2AFF" width="182" height="268" />
-        <Poster id="poster" width="182" height="268" loadingBitmapUri="" failedBitmapUri="" />
-        <Rectangle id="focusBorder" color="0x4A9FFFFF" width="182" height="268" opacity="0" />
-        <Rectangle id="titleBg" color="0x000000CC" width="182" height="50" translation="[0, 218]" opacity="0" />
+        <Rectangle id="bg" color="0x1A1A2AFF" width="182" height="270" />
+        <Rectangle id="focusBorder" color="0x4A9FFFFF" width="186" height="274"
+                   translation="[-2, -2]" opacity="0" />
+        <Poster id="poster" width="182" height="270" loadDisplayMode="scaleToZoom" />
+        <Poster id="cornerMask" uri="pkg:/images/corner_poster.png" width="182" height="270" />
+        <Rectangle id="titleBg" color="0x000000CC" width="182" height="46"
+                   translation="[0, 224]" opacity="0" />
         <Label id="titleLabel"
-               translation="[6, 224]"
-               width="170" height="44"
+               translation="[6, 229]"
+               width="170" height="40"
                font="font:SmallBoldSystemFont"
                color="0xFFFFFFFF"
                wrap="true"
