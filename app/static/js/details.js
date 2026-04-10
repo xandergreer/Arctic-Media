@@ -1002,7 +1002,7 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
             });
 
             select.innerHTML = html;
-            select.onchange = (e) => {
+            select.onchange = async (e) => {
                 const val = e.target.value;
                 const newSidx = val === "off" ? null : parseInt(val);
                 const newTrack = newSidx !== null ? info.subtitle_tracks[newSidx] : null;
