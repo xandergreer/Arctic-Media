@@ -1,5 +1,4 @@
-# Secrets — never commit these
-.env
+# Secrets
 .secret_key
 
 # automatic python environment
