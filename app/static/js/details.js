@@ -42,10 +42,10 @@ function _renderGenresDisplay(data) {
     if (!section || !list) return;
     const genres = (data.extra_json && data.extra_json.genres) || [];
     if (!genres.length) return;
-    list.innerHTML = genres.map(g =>
-        `<span style="background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:0.25rem 0.75rem;font-size:0.8rem;color:var(--text-muted);">${g}</span>`
-    ).join('');
+    list.innerHTML = genres.map(g => `<span class="genre-pill">${g}</span>`).join('');
     section.classList.remove('hidden');
+    const about = document.getElementById('about-section');
+    if (about) about.classList.remove('hidden');
 }
 
 function _renderCastDisplay(data) {
@@ -54,13 +54,128 @@ function _renderCastDisplay(data) {
     if (!section || !list) return;
     const cast = (data.extra_json && data.extra_json.cast) || [];
     if (!cast.length) return;
-    list.innerHTML = cast.map(c => `
-        <div style="min-width:8rem;max-width:12rem;">
-            <div style="font-size:0.875rem;font-weight:600;color:var(--text);">${c.name}</div>
-            ${c.role ? `<div style="font-size:0.75rem;color:var(--text-muted);">${c.role}</div>` : ''}
-        </div>
-    `).join('');
+    list.innerHTML = cast.map(c => {
+        const photoHtml = c.photo
+            ? `<img class="cast-card-photo" src="${c.photo}" alt="${c.name}" loading="lazy"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+              + `<div class="cast-card-photo-placeholder" style="display:none"><span class="material-icons" style="font-size:2rem;">person</span></div>`
+            : `<div class="cast-card-photo-placeholder"><span class="material-icons" style="font-size:2rem;">person</span></div>`;
+        return `<div class="cast-card">
+            ${photoHtml}
+            <div class="cast-card-name" title="${c.name}">${c.name}</div>
+            ${c.role ? `<div class="cast-card-role" title="${c.role}">${c.role}</div>` : ''}
+        </div>`;
+    }).join('');
     section.classList.remove('hidden');
+}
+
+async function _renderSimilarDisplay(mediaId, isShow) {
+    const section = document.getElementById('similar-section');
+    const list = document.getElementById('similar-list');
+    if (!section || !list) return;
+    try {
+        const res = await fetch(`/api/v1/media/${mediaId}/similar`, { credentials: 'include' });
+        if (!res.ok) return;
+        const items = await res.json();
+        if (!items || !items.length) return;
+        const base = isShow ? '/show' : '/movie';
+        list.innerHTML = items.map(item => {
+            const year = item.release_date ? new Date(item.release_date).getFullYear() : '';
+            const poster = item.poster_url || '';
+            return `<div class="similar-card" onclick="window.location.href='${base}/${item.id}'">
+                <img class="similar-card-poster" src="${poster}" alt="${item.title}" loading="lazy">
+                <div class="similar-card-title" title="${item.title}">${item.title}</div>
+                ${year ? `<div class="similar-card-year">${year}</div>` : ''}
+            </div>`;
+        }).join('');
+        section.classList.remove('hidden');
+    } catch (e) { console.error('Similar fetch failed', e); }
+}
+
+async function _renderMediaInfo(mediaId) {
+    const section = document.getElementById('mediainfo-section');
+    const container = document.getElementById('mediainfo-list');
+    if (!section || !container) return;
+    try {
+        const res = await fetch(`/api/v1/media/${mediaId}/mediainfo`, { credentials: 'include' });
+        if (!res.ok) return;
+        const info = await res.json();
+        if (!info || Object.keys(info).length === 0) return;
+
+        const cards = [];
+
+        // Video card
+        if (info.video) {
+            const v = info.video;
+            const rows = [];
+            if (v.codec) rows.push(['Codec', v.codec.toUpperCase()]);
+            if (v.profile) rows.push(['Profile', v.profile]);
+            if (v.width && v.height) rows.push(['Resolution', `${v.width}×${v.height}`]);
+            if (v.framerate) rows.push(['Framerate', `${v.framerate} fps`]);
+            if (v.bitrate) rows.push(['Bitrate', `${(v.bitrate / 1_000_000).toFixed(1)} Mbps`]);
+            if (v.pix_fmt) rows.push(['Pixel Format', v.pix_fmt]);
+            if (rows.length) cards.push(_miCard('Video', rows));
+        }
+
+        // Audio tracks
+        for (const t of (info.audio_tracks || [])) {
+            const rows = [];
+            if (t.language && t.language !== 'und') rows.push(['Language', t.language.toUpperCase()]);
+            if (t.title && t.title !== t.language) rows.push(['Title', t.title]);
+            if (t.codec) rows.push(['Codec', t.codec.toUpperCase()]);
+            if (t.channels) rows.push(['Channels', String(t.channels)]);
+            if (t.sample_rate) rows.push(['Sample Rate', `${t.sample_rate} Hz`]);
+            if (rows.length) cards.push(_miCard('Audio', rows));
+        }
+
+        // Subtitle tracks (single card listing all)
+        const subs = info.subtitle_tracks || [];
+        if (subs.length) {
+            const rows = subs.map((s, i) => {
+                const lang = s.language && s.language !== 'und' ? s.language.toUpperCase() : '';
+                const codec = s.codec ? `(${s.codec})` : '';
+                const img = s.is_image ? ' [image]' : '';
+                return [`${i + 1}.`, [lang, codec, img].filter(Boolean).join(' ')];
+            });
+            cards.push(_miCard('Subtitles', rows));
+        }
+
+        // File info
+        if (info.size_bytes || info.duration) {
+            const rows = [];
+            if (info.path) rows.push(['File', info.path.split(/[\\/]/).pop()]);
+            if (info.size_bytes) rows.push(['Size', _fmtSize(info.size_bytes)]);
+            if (info.duration) rows.push(['Duration', _fmtDuration(info.duration)]);
+            if (rows.length) cards.push(_miCard('File', rows));
+        }
+
+        if (!cards.length) return;
+        container.innerHTML = cards.join('');
+        section.classList.remove('hidden');
+    } catch (e) { console.error('Media info fetch failed', e); }
+}
+
+function _miCard(type, rows) {
+    return `<div class="mediainfo-card">
+        <div class="mediainfo-card-type">${type}</div>
+        ${rows.map(([label, value]) =>
+            `<div class="mediainfo-card-row">
+                <span class="mediainfo-card-label">${label}</span>
+                <span class="mediainfo-card-value">${value}</span>
+            </div>`).join('')}
+    </div>`;
+}
+
+function _fmtSize(bytes) {
+    if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
+    if (bytes >= 1e6) return (bytes / 1e6).toFixed(0) + ' MB';
+    return bytes + ' B';
+}
+
+function _fmtDuration(secs) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -119,6 +234,8 @@ async function loadDetails() {
         _renderExternalLinks(data);
         _renderGenresDisplay(data);
         _renderCastDisplay(data);
+        _renderSimilarDisplay(mediaId, isShow);
+        _renderMediaInfo(mediaId);
 
         if (data.release_date && els.year) {
             els.year.innerText = new Date(data.release_date).getFullYear();

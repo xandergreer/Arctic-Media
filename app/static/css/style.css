@@ -1702,3 +1702,214 @@ footer {
         transform: rotate(360deg);
     }
 }
+/* ── Detail Below (Cast, Similar, Media Info) ────────────────────── */
+.detail-below {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+}
+
+.detail-section {
+    margin-top: 2.5rem;
+}
+
+.detail-section.hidden {
+    display: none;
+}
+
+.detail-section-header {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+}
+
+/* ── Cast scroll row ─────────────────────────────────────────────── */
+.cast-scroll-row {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.cast-scroll-row::-webkit-scrollbar { height: 4px; }
+.cast-scroll-row::-webkit-scrollbar-track { background: transparent; }
+.cast-scroll-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.cast-card {
+    flex: 0 0 90px;
+    text-align: center;
+}
+
+.cast-card-photo {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto 0.5rem;
+    border: 2px solid var(--border);
+    background: var(--surface-2);
+}
+
+.cast-card-photo-placeholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    border: 2px solid var(--border);
+    color: var(--text-muted);
+}
+
+.cast-card-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 90px;
+}
+
+.cast-card-role {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 90px;
+    margin-top: 0.1rem;
+}
+
+/* ── Similar scroll row ──────────────────────────────────────────── */
+.similar-scroll-row {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.similar-scroll-row::-webkit-scrollbar { height: 4px; }
+.similar-scroll-row::-webkit-scrollbar-track { background: transparent; }
+.similar-scroll-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.similar-card {
+    flex: 0 0 130px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+.similar-card:hover { transform: scale(1.04); }
+
+.similar-card-poster {
+    width: 130px;
+    height: 195px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    display: block;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+}
+
+.similar-card-title {
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    margin-top: 0.4rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
+}
+
+.similar-card-year {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.1rem;
+}
+
+/* ── About section ───────────────────────────────────────────────── */
+.about-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.about-item-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+}
+
+.about-item-value {
+    font-size: 0.9rem;
+    color: var(--text-sub);
+    line-height: 1.6;
+}
+
+.genre-pill {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0.2rem 0.25rem 0.2rem 0;
+}
+
+/* ── Media Info cards ────────────────────────────────────────────── */
+.mediainfo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.mediainfo-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    min-width: 160px;
+    max-width: 260px;
+    flex: 1 1 180px;
+}
+
+.mediainfo-card-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--primary);
+    margin-bottom: 0.65rem;
+}
+
+.mediainfo-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+    margin-bottom: 0.2rem;
+    line-height: 1.45;
+}
+
+.mediainfo-card-label {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.mediainfo-card-value {
+    color: var(--text);
+    text-align: right;
+    word-break: break-word;
+}

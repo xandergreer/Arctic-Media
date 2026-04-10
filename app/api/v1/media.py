@@ -310,6 +310,164 @@ async def delete_media_item(
     await db.commit()
     # 204 No Content — nothing to return
 
+@router.get("/{media_id}/similar")
+async def get_similar_media(
+    media_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return up to 20 items of the same kind with overlapping genres."""
+    item = await db.get(MediaItem, media_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    meta = item.extra_json or {}
+    item_genres = set(meta.get("genres") or [])
+
+    q = select(MediaItem).where(
+        MediaItem.kind == item.kind,
+        MediaItem.id != media_id,
+        MediaItem.poster_url.isnot(None)
+    ).order_by(desc(MediaItem.id)).limit(500)
+    result = await db.execute(q)
+    candidates = result.scalars().all()
+
+    def _overlap(candidate) -> int:
+        cg = set((candidate.extra_json or {}).get("genres") or [])
+        return len(item_genres & cg)
+
+    if item_genres:
+        scored = sorted(candidates, key=_overlap, reverse=True)
+        filtered = [c for c in scored if _overlap(c) > 0][:20]
+        if len(filtered) < 8:
+            extras = [c for c in scored if c not in filtered][:20 - len(filtered)]
+            filtered = filtered + extras
+    else:
+        filtered = candidates[:20]
+
+    return [
+        {
+            "id": c.id,
+            "title": c.title,
+            "poster_url": c.poster_url,
+            "release_date": str(c.release_date) if c.release_date else None,
+        }
+        for c in filtered[:20]
+    ]
+
+
+@router.get("/{media_id}/mediainfo")
+async def get_mediainfo(
+    media_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return detailed ffprobe stream info for the primary file of a media item."""
+    import subprocess, json, asyncio
+    from app.core.ffmpeg_manager import get_binary as get_ffmpeg_path
+
+    item = await db.get(MediaItem, media_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    q = select(MediaFile).where(MediaFile.media_item_id == media_id).order_by(desc(MediaFile.size_bytes)).limit(1)
+    result = await db.execute(q)
+    mf = result.scalars().first()
+    if not mf:
+        return {}
+
+    ffprobe = get_ffmpeg_path("ffprobe")
+
+    def _probe(path: str) -> dict:
+        try:
+            cmd = [
+                ffprobe, "-v", "error",
+                "-show_entries",
+                "stream=index,codec_name,codec_type,profile,pix_fmt,width,height,r_frame_rate,bit_rate,channels,sample_rate,tags"
+                ":format=duration,size,bit_rate"
+                ":stream_tags=language,title",
+                "-of", "json", path
+            ]
+            si = None
+            if os.name == "nt":
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            r = subprocess.run(cmd, capture_output=True, text=True, startupinfo=si)
+            return json.loads(r.stdout)
+        except Exception:
+            return {}
+
+    data = await asyncio.to_thread(_probe, mf.path)
+    fmt = data.get("format") or {}
+
+    info: dict = {
+        "path": mf.path,
+        "size_bytes": mf.size_bytes,
+        "duration": None,
+        "video": None,
+        "audio_tracks": [],
+        "subtitle_tracks": [],
+    }
+
+    try:
+        info["duration"] = float(fmt.get("duration") or 0) or None
+    except Exception:
+        pass
+
+    audio_idx = 0
+    sub_idx = 0
+    for stream in data.get("streams") or []:
+        stype = stream.get("codec_type")
+        tags = stream.get("tags") or {}
+        lang = tags.get("language", "und")
+        title = tags.get("title") or lang
+
+        if stype == "video" and info["video"] is None:
+            fps = None
+            try:
+                num, den = stream.get("r_frame_rate", "0/1").split("/")
+                fps = round(int(num) / int(den), 3) if int(den) else None
+            except Exception:
+                pass
+            bitrate = None
+            try:
+                bitrate = int(stream.get("bit_rate") or 0) or None
+            except Exception:
+                pass
+            info["video"] = {
+                "codec": stream.get("codec_name"),
+                "profile": stream.get("profile"),
+                "pix_fmt": stream.get("pix_fmt"),
+                "width": stream.get("width"),
+                "height": stream.get("height"),
+                "framerate": fps,
+                "bitrate": bitrate,
+            }
+        elif stype == "audio":
+            info["audio_tracks"].append({
+                "index": audio_idx,
+                "codec": stream.get("codec_name"),
+                "language": lang,
+                "title": title,
+                "channels": stream.get("channels"),
+                "sample_rate": stream.get("sample_rate"),
+            })
+            audio_idx += 1
+        elif stype == "subtitle":
+            codec = stream.get("codec_name")
+            is_image = codec in ("hdmv_pgs_subtitle", "dvd_subtitle", "dvdsub")
+            info["subtitle_tracks"].append({
+                "index": sub_idx,
+                "codec": codec,
+                "language": lang,
+                "title": title,
+                "is_image": is_image,
+            })
+            sub_idx += 1
+
+    return info
+
+
 @router.get("/{media_id}/files")
 async def get_media_files(
     media_id: int,

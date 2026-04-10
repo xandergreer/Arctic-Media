@@ -150,7 +150,11 @@ def _pack_cast(data: Dict[str, Any], limit: int = 15) -> list:
     credits = data.get("credits") or {}
     cast_list = credits.get("cast") or []
     return [
-        {"name": m["name"], "role": m.get("character") or None}
+        {
+            "name": m["name"],
+            "role": m.get("character") or None,
+            "photo": f"https://image.tmdb.org/t/p/w185{m['profile_path']}" if m.get("profile_path") else None,
+        }
         for m in cast_list[:limit]
         if m.get("name")
     ]

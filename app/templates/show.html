@@ -43,23 +43,35 @@
 
         <p class="detail-overview" id="overview"></p>
         <div id="external-links" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem;"></div>
-
-        <!-- Genres -->
-        <div id="genres-section" class="hidden" style="margin-top:1.25rem;">
-            <div id="genres-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;"></div>
-        </div>
-
-        <!-- Cast -->
-        <div id="cast-section" class="hidden" style="margin-top:1.5rem;">
-            <h3 style="font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:0 0 0.75rem;">Cast</h3>
-            <div id="cast-list" style="display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;"></div>
-        </div>
-
-        <!-- Video player -->
-        <div class="video-container" id="video-container">
-            <video id="video-player" controls crossorigin playsinline></video>
-        </div>
     </div>
+</div>
+
+<!-- ── Below-hero sections ───────────────────────────────────────── -->
+<div class="detail-below">
+
+    <!-- Cast & Crew -->
+    <section id="cast-section" class="detail-section hidden">
+        <div class="detail-section-header">Cast &amp; Crew</div>
+        <div class="cast-scroll-row" id="cast-list"></div>
+    </section>
+
+    <!-- More Like This -->
+    <section id="similar-section" class="detail-section hidden">
+        <div class="detail-section-header">More Like This</div>
+        <div class="similar-scroll-row" id="similar-list"></div>
+    </section>
+
+    <!-- About -->
+    <section id="about-section" class="detail-section hidden">
+        <div class="detail-section-header">About</div>
+        <div class="about-grid">
+            <div id="genres-section" class="hidden">
+                <div class="about-item-label">Genres</div>
+                <div id="genres-list" class="about-item-value"></div>
+            </div>
+        </div>
+    </section>
+
 </div>
 
 <!-- Edit Modal -->
@@ -185,5 +197,5 @@
 </div>
 
 {% block scripts %}
-<script src="/static/js/details.js?v=PlyrV28"></script>
+<script src="/static/js/details.js?v=PlyrV29"></script>
 {% endblock %}
