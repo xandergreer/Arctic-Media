@@ -67,34 +67,76 @@
 
 <!-- Edit Modal -->
 <div id="editModal" class="modal hidden">
-    <div class="modal-content">
-        <h2 style="margin-bottom:1.5rem;">Edit Metadata</h2>
-        <div style="display:grid;gap:1rem;">
-            <div class="form-group" style="margin:0;">
-                <label>Title</label>
-                <input id="edit-title" type="text" class="form-control">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label>TMDB ID</label>
-                <input id="edit-tmdb" type="number" class="form-control">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label>Poster URL</label>
-                <input id="edit-poster" type="text" class="form-control">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label>Backdrop URL</label>
-                <input id="edit-backdrop" type="text" class="form-control">
-            </div>
-            <label
-                style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;color:var(--text-sub);font-size:0.9rem;">
-                <input id="edit-refresh" type="checkbox" style="width:1rem;height:1rem;accent-color:var(--primary);">
-                Refresh from TMDB
-            </label>
+    <div class="modal-content edit-modal-content">
+        <div class="edit-modal-header">
+            <h2 style="margin:0;font-size:1.1rem;font-weight:700;">Edit Metadata</h2>
+            <button id="closeEditModal" class="btn btn-ghost" style="padding:0.3rem;">
+                <span class="material-icons">close</span>
+            </button>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.5rem;">
-            <button id="closeEditModal" class="btn btn-ghost">Cancel</button>
-            <button id="saveEditModal" class="btn btn-primary">Save Changes</button>
+        <div class="edit-tabs">
+            <button class="edit-tab active" data-tab="info">Info</button>
+            <button class="edit-tab" data-tab="ids">IDs</button>
+            <button class="edit-tab" data-tab="genres">Genres</button>
+            <button class="edit-tab" data-tab="cast">Cast</button>
+            <button class="edit-tab" data-tab="images">Images</button>
+        </div>
+        <div class="edit-modal-body">
+            <!-- Info -->
+            <div id="edit-tab-info" class="edit-tab-panel">
+                <div class="form-group"><label>Title</label><input id="edit-title" type="text" class="form-control"></div>
+                <div class="form-group"><label>Original Title</label><input id="edit-original-title" type="text" class="form-control" placeholder="Leave blank if same as title"></div>
+                <div class="form-group"><label>Sort Title</label><input id="edit-sort-title" type="text" class="form-control" placeholder="e.g. Matrix, The"></div>
+                <div class="form-group"><label>Tagline</label><input id="edit-tagline" type="text" class="form-control"></div>
+                <div class="form-group"><label>Overview</label><textarea id="edit-overview" class="form-control" rows="5" style="resize:vertical;"></textarea></div>
+                <div class="form-group"><label>Release Date</label><input id="edit-release-date" type="date" class="form-control"></div>
+            </div>
+            <!-- IDs -->
+            <div id="edit-tab-ids" class="edit-tab-panel hidden">
+                <div class="form-group"><label>TheMovieDB ID</label><input id="edit-tmdb" type="number" class="form-control" placeholder="e.g. 603"></div>
+                <div class="form-group"><label>IMDb ID</label><input id="edit-imdb" type="text" class="form-control" placeholder="e.g. tt0133093"></div>
+                <div class="form-group"><label>TheTVDB ID</label><input id="edit-tvdb" type="number" class="form-control" placeholder="TV shows only"></div>
+                <button id="edit-fetch-tmdb" class="btn btn-primary" style="margin-top:0.25rem;">
+                    <span class="material-icons" style="font-size:1rem;">download</span> Fetch from TMDB
+                </button>
+            </div>
+            <!-- Genres -->
+            <div id="edit-tab-genres" class="edit-tab-panel hidden">
+                <div id="edit-genres-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;min-height:2.5rem;margin-bottom:1rem;padding:0.75rem;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border);"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <input id="edit-genre-input" type="text" class="form-control" placeholder="Add genre…">
+                    <button id="edit-genre-add" class="btn btn-primary" style="flex-shrink:0;"><span class="material-icons" style="font-size:1rem;">add</span></button>
+                </div>
+            </div>
+            <!-- Cast -->
+            <div id="edit-tab-cast" class="edit-tab-panel hidden">
+                <div id="edit-cast-list" style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:1rem;"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <input id="edit-cast-name" type="text" class="form-control" placeholder="Actor name">
+                    <input id="edit-cast-role" type="text" class="form-control" placeholder="Role / character">
+                    <button id="edit-cast-add" class="btn btn-primary" style="flex-shrink:0;"><span class="material-icons" style="font-size:1rem;">add</span></button>
+                </div>
+            </div>
+            <!-- Images -->
+            <div id="edit-tab-images" class="edit-tab-panel hidden">
+                <div class="form-group">
+                    <label>Poster URL</label>
+                    <input id="edit-poster" type="text" class="form-control">
+                    <div id="edit-poster-preview" style="margin-top:0.75rem;display:none;"><img src="" style="max-height:220px;border-radius:var(--radius-sm);"></div>
+                </div>
+                <div class="form-group">
+                    <label>Backdrop URL</label>
+                    <input id="edit-backdrop" type="text" class="form-control">
+                    <div id="edit-backdrop-preview" style="margin-top:0.75rem;display:none;"><img src="" style="max-width:100%;border-radius:var(--radius-sm);"></div>
+                </div>
+            </div>
+        </div>
+        <div id="edit-msg" style="display:none;padding:0 1.5rem 0.5rem;font-size:0.85rem;"></div>
+        <div class="edit-modal-footer">
+            <button id="cancelEditModal" class="btn btn-ghost">Cancel</button>
+            <button id="saveEditModal" class="btn btn-primary">
+                <span class="material-icons" style="font-size:1rem;">save</span> Save Changes
+            </button>
         </div>
     </div>
 </div>
@@ -133,5 +175,5 @@
 </div>
 
 {% block scripts %}
-<script src="/static/js/details.js?v=PlyrV26"></script>
+<script src="/static/js/details.js?v=PlyrV27"></script>
 {% endblock %}

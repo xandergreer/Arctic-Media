@@ -176,9 +176,10 @@ async def get_media_item(
         raise HTTPException(status_code=404, detail="Media not found")
     return item
 
+from datetime import datetime as _dt
 from sqlalchemy.orm.attributes import flag_modified
 from app.schemas.media import MediaUpdate
-from app.services.metadata import refresh_item_metadata, refresh_show_episodes
+from app.services.metadata import refresh_item_metadata, refresh_show_episodes, normalize_sort
 from app.models.media import MediaKind
 from app.core.config import settings
 
@@ -200,31 +201,80 @@ async def update_media_item(
     if not item:
         raise HTTPException(status_code=404, detail="Media not found")
 
-    # Update basic fields if provided
+    # ── Direct column updates ──────────────────────────────────────────────────
     if media_data.title is not None:
         item.title = media_data.title
-    
+
+    if media_data.overview is not None:
+        item.overview = media_data.overview or None
+
     if media_data.poster_url is not None:
-        item.poster_url = media_data.poster_url if media_data.poster_url else None
-        
+        item.poster_url = media_data.poster_url or None
+
     if media_data.backdrop_url is not None:
-        item.backdrop_url = media_data.backdrop_url if media_data.backdrop_url else None
-        
+        item.backdrop_url = media_data.backdrop_url or None
+
+    if media_data.release_date is not None:
+        if media_data.release_date:
+            try:
+                item.release_date = _dt.strptime(media_data.release_date, "%Y-%m-%d")
+            except ValueError:
+                pass
+        else:
+            item.release_date = None
+
+    # Sort title: explicit non-empty value wins; otherwise re-derive if title changed
+    if media_data.sort_title:
+        item.sort_title = media_data.sort_title
+    elif media_data.title is not None:
+        item.sort_title = normalize_sort(media_data.title)
+
+    # ── extra_json updates ─────────────────────────────────────────────────────
+    meta = dict(item.extra_json) if item.extra_json else {}
+    json_changed = False
     do_refresh = media_data.refresh_from_tmdb
+
     if media_data.tmdb_id is not None:
-        meta = dict(item.extra_json) if item.extra_json else {}
         old_tmdb_id = meta.get("tmdb_id")
         meta["tmdb_id"] = media_data.tmdb_id
-        item.tmdb_id = media_data.tmdb_id          # set the direct column too
-        item.extra_json = meta
-        flag_modified(item, "extra_json")           # ensure SQLAlchemy tracks the JSON change
+        item.tmdb_id = media_data.tmdb_id
+        json_changed = True
         if media_data.tmdb_id != old_tmdb_id:
             do_refresh = True
 
+    if media_data.imdb_id is not None:
+        meta["imdb_id"] = media_data.imdb_id or None
+        json_changed = True
+
+    if media_data.tvdb_id is not None:
+        meta["tvdb_id"] = media_data.tvdb_id
+        json_changed = True
+
+    if media_data.original_title is not None:
+        meta["original_title"] = media_data.original_title or None
+        json_changed = True
+
+    if media_data.tagline is not None:
+        meta["tagline"] = media_data.tagline or None
+        json_changed = True
+
+    if media_data.genres is not None:
+        meta["genres"] = media_data.genres
+        json_changed = True
+
+    if media_data.cast is not None:
+        meta["cast"] = [c.model_dump() for c in media_data.cast]
+        json_changed = True
+
+    if json_changed:
+        item.extra_json = meta
+        flag_modified(item, "extra_json")
+
+    # ── TMDB refresh ───────────────────────────────────────────────────────────
     if do_refresh:
         if not settings.TMDB_API_KEY:
             raise HTTPException(status_code=503, detail="TMDB API key is not configured on this server.")
-        await db.flush()  # write pending changes before metadata service reads the item
+        await db.flush()
         refreshed = await refresh_item_metadata(db, item)
         if not refreshed:
             raise HTTPException(status_code=502, detail="TMDB lookup failed — check the TMDB ID and try again.")

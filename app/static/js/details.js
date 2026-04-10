@@ -159,86 +159,292 @@ async function loadDetails() {
     }
 }
 
+// ── Edit modal state ──────────────────────────────────────────────────────────
+let _editGenres = [];
+let _editCast   = [];
+
+function _renderGenres() {
+    const list = document.getElementById('edit-genres-list');
+    if (!list) return;
+    if (_editGenres.length === 0) {
+        list.innerHTML = '<span style="color:var(--text-muted);font-size:0.875rem;font-style:italic;">No genres. Add one below.</span>';
+        return;
+    }
+    list.innerHTML = _editGenres.map((g, i) => `
+        <span class="badge" style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.3rem 0.55rem;">
+            ${g}
+            <button onclick="_removeGenre(${i})" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;line-height:1;opacity:0.65;">
+                <span class="material-icons" style="font-size:0.85rem;vertical-align:middle;">close</span>
+            </button>
+        </span>`).join('');
+}
+
+window._removeGenre = function (idx) {
+    _editGenres.splice(idx, 1);
+    _renderGenres();
+};
+
+function _renderCast() {
+    const list = document.getElementById('edit-cast-list');
+    if (!list) return;
+    if (_editCast.length === 0) {
+        list.innerHTML = '<span style="color:var(--text-muted);font-size:0.875rem;font-style:italic;">No cast added.</span>';
+        return;
+    }
+    list.innerHTML = _editCast.map((c, i) => `
+        <div style="display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.75rem;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+            <span class="material-icons" style="font-size:1rem;color:var(--text-muted);flex-shrink:0;">person</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:0.875rem;font-weight:600;">${c.name}</div>
+                ${c.role ? `<div style="font-size:0.78rem;color:var(--text-muted);">${c.role}</div>` : ''}
+            </div>
+            <button onclick="_removeCast(${i})" class="btn btn-ghost btn-sm" style="padding:0.2rem;flex-shrink:0;">
+                <span class="material-icons" style="font-size:0.9rem;">close</span>
+            </button>
+        </div>`).join('');
+}
+
+window._removeCast = function (idx) {
+    _editCast.splice(idx, 1);
+    _renderCast();
+};
+
+function _showEditMsg(text, ok) {
+    const el = document.getElementById('edit-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = ok ? '#4ade80' : '#f87171';
+    el.style.display = 'block';
+}
+
+function _hideEditMsg() {
+    const el = document.getElementById('edit-msg');
+    if (el) el.style.display = 'none';
+}
+
 async function checkAdminAndSetupEdit() {
     try {
         const meRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
         if (!meRes.ok) return;
         const me = await meRes.json();
+        if (!me.is_superuser) return;
 
-        if (me.is_superuser) {
-            const editBtn = document.getElementById("editBtn");
-            const modal = document.getElementById("editModal");
-            const closeBtn = document.getElementById("closeEditModal");
-            const saveBtn = document.getElementById("saveEditModal");
+        const editBtn  = document.getElementById('editBtn');
+        const modal    = document.getElementById('editModal');
+        if (!editBtn || !modal) return;
 
-            if (editBtn) {
-                editBtn.classList.remove("hidden");
-                editBtn.onclick = () => {
-                    // Populate Modal
-                    document.getElementById("edit-title").value = currentMetadata.title || "";
-                    document.getElementById("edit-tmdb").value = (currentMetadata.extra_json && currentMetadata.extra_json.tmdb_id) || "";
-                    document.getElementById("edit-poster").value = currentMetadata.poster_url || "";
-                    document.getElementById("edit-backdrop").value = currentMetadata.backdrop_url || "";
-                    document.getElementById("edit-refresh").checked = false;
+        editBtn.classList.remove('hidden');
 
-                    modal.classList.remove("hidden");
-                };
-            }
+        // ── Tab switching ──────────────────────────────────────────────────────
+        document.querySelectorAll('.edit-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.edit-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.edit-tab-panel').forEach(p => p.classList.add('hidden'));
+                tab.classList.add('active');
+                const panel = document.getElementById(`edit-tab-${tab.dataset.tab}`);
+                if (panel) panel.classList.remove('hidden');
+            });
+        });
 
-            if (closeBtn) {
-                closeBtn.onclick = () => modal.classList.add("hidden");
-            }
+        // ── Image previews ─────────────────────────────────────────────────────
+        const posterIn   = document.getElementById('edit-poster');
+        const backdropIn = document.getElementById('edit-backdrop');
+        if (posterIn) posterIn.addEventListener('input', () => {
+            const preview = document.getElementById('edit-poster-preview');
+            if (!preview) return;
+            const img = preview.querySelector('img');
+            if (posterIn.value) { img.src = posterIn.value; preview.style.display = 'block'; }
+            else preview.style.display = 'none';
+        });
+        if (backdropIn) backdropIn.addEventListener('input', () => {
+            const preview = document.getElementById('edit-backdrop-preview');
+            if (!preview) return;
+            const img = preview.querySelector('img');
+            if (backdropIn.value) { img.src = backdropIn.value; preview.style.display = 'block'; }
+            else preview.style.display = 'none';
+        });
 
-            // Close on click outside
-            window.onclick = (event) => {
-                if (event.target == modal) {
-                    modal.classList.add("hidden");
-                }
-                const deleteModal = document.getElementById("deleteModal");
-                if (deleteModal && event.target == deleteModal) {
-                    deleteModal.classList.add("hidden");
-                }
-            }
+        // ── Genre editor ───────────────────────────────────────────────────────
+        const genreAddBtn = document.getElementById('edit-genre-add');
+        const genreInput  = document.getElementById('edit-genre-input');
+        if (genreAddBtn && genreInput) {
+            const addGenre = () => {
+                const v = genreInput.value.trim();
+                if (!v || _editGenres.includes(v)) { genreInput.value = ''; return; }
+                _editGenres.push(v);
+                genreInput.value = '';
+                _renderGenres();
+            };
+            genreAddBtn.addEventListener('click', addGenre);
+            genreInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addGenre(); } });
+        }
 
-            if (saveBtn) {
-                saveBtn.onclick = async () => {
-                    const body = {
-                        title: document.getElementById("edit-title").value,
-                        tmdb_id: parseInt(document.getElementById("edit-tmdb").value) || null,
-                        poster_url: document.getElementById("edit-poster").value,
-                        backdrop_url: document.getElementById("edit-backdrop").value,
-                        refresh_from_tmdb: document.getElementById("edit-refresh").checked
-                    };
+        // ── Cast editor ────────────────────────────────────────────────────────
+        const castAddBtn = document.getElementById('edit-cast-add');
+        const castName   = document.getElementById('edit-cast-name');
+        const castRole   = document.getElementById('edit-cast-role');
+        if (castAddBtn && castName) {
+            castAddBtn.addEventListener('click', () => {
+                const n = castName.value.trim();
+                if (!n) return;
+                const r = castRole ? castRole.value.trim() : '';
+                _editCast.push({ name: n, role: r || null });
+                castName.value = '';
+                if (castRole) castRole.value = '';
+                _renderCast();
+            });
+            castName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); castAddBtn.click(); } });
+        }
 
-                    saveBtn.innerText = "Saving...";
-                    saveBtn.disabled = true;
+        // ── Close modal ────────────────────────────────────────────────────────
+        const closeModal = () => modal.classList.add('hidden');
+        document.getElementById('closeEditModal')?.addEventListener('click', closeModal);
+        document.getElementById('cancelEditModal')?.addEventListener('click', closeModal);
+        window.addEventListener('click', e => {
+            if (e.target === modal) closeModal();
+            const dm = document.getElementById('deleteModal');
+            if (dm && e.target === dm) dm.classList.add('hidden');
+        });
 
-                    try {
-                        const r = await fetch(`/api/v1/media/${mediaId}`, {
-                            method: 'PATCH',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body)
-                        });
-
-                        if (!r.ok) throw new Error("Update failed");
-
+        // ── Fetch from TMDB ────────────────────────────────────────────────────
+        const fetchTmdbBtn = document.getElementById('edit-fetch-tmdb');
+        if (fetchTmdbBtn) {
+            fetchTmdbBtn.addEventListener('click', async () => {
+                const tmdbId = parseInt(document.getElementById('edit-tmdb').value) || null;
+                if (!tmdbId) { _showEditMsg('Enter a TMDB ID first.', false); return; }
+                fetchTmdbBtn.disabled = true;
+                fetchTmdbBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">hourglass_top</span> Fetching…';
+                try {
+                    const r = await fetch(`/api/v1/media/${mediaId}`, {
+                        method: 'PATCH',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tmdb_id: tmdbId, refresh_from_tmdb: true })
+                    });
+                    if (!r.ok) {
+                        const err = await r.json().catch(() => ({}));
+                        _showEditMsg(err.detail || 'TMDB fetch failed.', false);
+                        fetchTmdbBtn.disabled = false;
+                        fetchTmdbBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">download</span> Fetch from TMDB';
+                    } else {
                         window.location.reload();
-                    } catch (e) {
-                        alert("Failed to save: " + e.message);
-                        saveBtn.innerText = "Save";
-                        saveBtn.disabled = false;
                     }
-                };
-            }
-
-            // --- Wire delete button for the whole movie / show ---
-            setupDelete(mediaId, currentMetadata.title || "This item", () => {
-                window.location.href = isShow ? "/libraries/shows" : "/libraries/movies";
+                } catch {
+                    _showEditMsg('Request failed.', false);
+                    fetchTmdbBtn.disabled = false;
+                    fetchTmdbBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">download</span> Fetch from TMDB';
+                }
             });
         }
+
+        // ── Open modal & populate ──────────────────────────────────────────────
+        editBtn.addEventListener('click', () => {
+            const d  = currentMetadata;
+            const xj = d.extra_json || {};
+
+            // Reset to Info tab
+            document.querySelectorAll('.edit-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+            document.querySelectorAll('.edit-tab-panel').forEach((p, i) => p.classList.toggle('hidden', i !== 0));
+
+            // Info tab
+            document.getElementById('edit-title').value         = d.title || '';
+            document.getElementById('edit-original-title').value = xj.original_title || '';
+            document.getElementById('edit-sort-title').value    = d.sort_title || '';
+            document.getElementById('edit-tagline').value       = xj.tagline || '';
+            document.getElementById('edit-overview').value      = d.overview || '';
+            document.getElementById('edit-release-date').value  = d.release_date ? d.release_date.slice(0, 10) : '';
+
+            // IDs tab
+            document.getElementById('edit-tmdb').value  = d.tmdb_id || xj.tmdb_id || '';
+            document.getElementById('edit-imdb').value  = xj.imdb_id || '';
+            document.getElementById('edit-tvdb').value  = xj.tvdb_id || '';
+
+            // Genres
+            _editGenres = Array.isArray(xj.genres) ? [...xj.genres] : [];
+            _renderGenres();
+
+            // Cast
+            _editCast = Array.isArray(xj.cast)
+                ? xj.cast.map(c => ({ name: c.name, role: c.role || null }))
+                : [];
+            _renderCast();
+
+            // Images
+            if (posterIn) {
+                posterIn.value = d.poster_url || '';
+                const pp = document.getElementById('edit-poster-preview');
+                if (pp) {
+                    pp.querySelector('img').src = d.poster_url || '';
+                    pp.style.display = d.poster_url ? 'block' : 'none';
+                }
+            }
+            if (backdropIn) {
+                backdropIn.value = d.backdrop_url || '';
+                const bp = document.getElementById('edit-backdrop-preview');
+                if (bp) {
+                    bp.querySelector('img').src = d.backdrop_url || '';
+                    bp.style.display = d.backdrop_url ? 'block' : 'none';
+                }
+            }
+
+            _hideEditMsg();
+            modal.classList.remove('hidden');
+        });
+
+        // ── Save ───────────────────────────────────────────────────────────────
+        const saveBtn = document.getElementById('saveEditModal');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const body = {
+                    title:          document.getElementById('edit-title').value.trim() || null,
+                    original_title: document.getElementById('edit-original-title').value.trim() || null,
+                    sort_title:     document.getElementById('edit-sort-title').value.trim() || null,
+                    tagline:        document.getElementById('edit-tagline').value.trim() || null,
+                    overview:       document.getElementById('edit-overview').value.trim() || null,
+                    release_date:   document.getElementById('edit-release-date').value || null,
+                    tmdb_id:        parseInt(document.getElementById('edit-tmdb').value) || null,
+                    imdb_id:        document.getElementById('edit-imdb').value.trim() || null,
+                    tvdb_id:        parseInt(document.getElementById('edit-tvdb').value) || null,
+                    poster_url:     posterIn  ? (posterIn.value.trim()   || null) : null,
+                    backdrop_url:   backdropIn ? (backdropIn.value.trim() || null) : null,
+                    genres:         _editGenres,
+                    cast:           _editCast,
+                    refresh_from_tmdb: false,
+                };
+
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">hourglass_top</span> Saving…';
+
+                try {
+                    const r = await fetch(`/api/v1/media/${mediaId}`, {
+                        method: 'PATCH',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (!r.ok) {
+                        const err = await r.json().catch(() => ({}));
+                        _showEditMsg(err.detail || 'Save failed.', false);
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">save</span> Save Changes';
+                    } else {
+                        window.location.reload();
+                    }
+                } catch {
+                    _showEditMsg('Request failed.', false);
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<span class="material-icons" style="font-size:1rem;">save</span> Save Changes';
+                }
+            });
+        }
+
+        // ── Delete button ──────────────────────────────────────────────────────
+        setupDelete(mediaId, currentMetadata.title || 'This item', () => {
+            window.location.href = isShow ? '/libraries/shows' : '/libraries/movies';
+        });
+
     } catch (e) {
-        console.error("Admin check failed", e);
+        console.error('Admin check failed', e);
     }
 }
 
