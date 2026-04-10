@@ -878,16 +878,21 @@ async function _checkMovieResume() {
 // --- Video Player Logic ---
 
 let plyr;
-const playerElement = document.getElementById("video-player");
-const videoContainer = document.getElementById("video-container");
 
-// Save progress when the video finishes playing
-if (playerElement) {
-    playerElement.addEventListener('ended', () => {
-        if (_progressMediaId) _saveProgress(_progressMediaId);
-        _stopProgressTracking();
-    });
-}
+// Lazy getters — always resolved at call time, never at parse time
+function _getPlayerEl() { return document.getElementById("video-player"); }
+function _getContainerEl() { return document.getElementById("video-container"); }
+
+// Wire up the 'ended' event once the DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+    const pe = _getPlayerEl();
+    if (pe) {
+        pe.addEventListener('ended', () => {
+            if (_progressMediaId) _saveProgress(_progressMediaId);
+            _stopProgressTracking();
+        });
+    }
+});
 
 // Save progress when navigating away (keepalive ensures the request completes)
 window.addEventListener('beforeunload', () => {
@@ -957,6 +962,8 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     currentSidx = targetS;
 
     // 1. Show Player UI
+    const videoContainer = _getContainerEl();
+    const playerElement  = _getPlayerEl();
     if (videoContainer) {
         videoContainer.style.display = "block";
         videoContainer.scrollIntoView({ behavior: "smooth", block: "center" });
