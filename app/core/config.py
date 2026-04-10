@@ -89,10 +89,3 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
 
 settings = Settings()
-
-# Startup diagnostic — shows in server console so key loading issues are obvious
-_env_path = os.path.join(_PROJECT_ROOT, ".env")
-print(f"[CONFIG] Project root : {_PROJECT_ROOT}")
-print(f"[CONFIG] .env path    : {_env_path}  (exists={os.path.exists(_env_path)})")
-print(f"[CONFIG] TMDB key     : {'SET (' + settings.TMDB_API_KEY[:6] + '...)' if settings.TMDB_API_KEY else 'MISSING'}")
-print(f"[CONFIG] OpenSubs key : {'SET' if settings.OPENSUBTITLES_API_KEY else 'MISSING'}")

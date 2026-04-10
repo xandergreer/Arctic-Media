@@ -274,7 +274,6 @@ async def update_media_item(
     # ── TMDB refresh ───────────────────────────────────────────────────────────
     if do_refresh:
         _tmdb_key = settings.TMDB_API_KEY or os.environ.get("TMDB_API_KEY", "")
-        print(f"[PATCH] TMDB key check: settings={repr(settings.TMDB_API_KEY)}, environ={repr(os.environ.get('TMDB_API_KEY', ''))[:8]}...")
         if not _tmdb_key:
             raise HTTPException(status_code=503, detail="TMDB API key is not configured on this server.")
         await db.flush()

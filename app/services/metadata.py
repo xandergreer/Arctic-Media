@@ -145,22 +145,34 @@ async def _search_tv(api_key: str, title: str) -> Optional[int]:
 
 # ── Details ───────────────────────────────────────────────────────────────────
 
+def _pack_cast(data: Dict[str, Any], limit: int = 15) -> list:
+    """Extract top cast members from a TMDB credits response."""
+    credits = data.get("credits") or {}
+    cast_list = credits.get("cast") or []
+    return [
+        {"name": m["name"], "role": m.get("character") or None}
+        for m in cast_list[:limit]
+        if m.get("name")
+    ]
+
+
 async def _movie_details(api_key: str, tmdb_id: int) -> Dict[str, Any]:
-    data = await _get(api_key, f"movie/{tmdb_id}", {})
+    data = await _get(api_key, f"movie/{tmdb_id}", {"append_to_response": "credits"})
     if not data:
         return {}
     info = _pack_common(data)
-    # Include canonical TMDB title so we can correct dirty filenames
     info["title"] = (data.get("title") or "").strip() or None
+    info["cast"] = _pack_cast(data)
     return info
 
 
 async def _tv_details(api_key: str, tmdb_id: int) -> Dict[str, Any]:
-    data = await _get(api_key, f"tv/{tmdb_id}", {})
+    data = await _get(api_key, f"tv/{tmdb_id}", {"append_to_response": "credits"})
     if not data:
         return {}
     info = _pack_common(data)
     info["title"] = (data.get("name") or "").strip() or None
+    info["cast"] = _pack_cast(data)
     return info
 
 

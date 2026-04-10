@@ -36,6 +36,33 @@ function _renderExternalLinks(data) {
     }
 }
 
+function _renderGenresDisplay(data) {
+    const section = document.getElementById('genres-section');
+    const list = document.getElementById('genres-list');
+    if (!section || !list) return;
+    const genres = (data.extra_json && data.extra_json.genres) || [];
+    if (!genres.length) return;
+    list.innerHTML = genres.map(g =>
+        `<span style="background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:0.25rem 0.75rem;font-size:0.8rem;color:var(--text-muted);">${g}</span>`
+    ).join('');
+    section.classList.remove('hidden');
+}
+
+function _renderCastDisplay(data) {
+    const section = document.getElementById('cast-section');
+    const list = document.getElementById('cast-list');
+    if (!section || !list) return;
+    const cast = (data.extra_json && data.extra_json.cast) || [];
+    if (!cast.length) return;
+    list.innerHTML = cast.map(c => `
+        <div style="min-width:8rem;max-width:12rem;">
+            <div style="font-size:0.875rem;font-weight:600;color:var(--text);">${c.name}</div>
+            ${c.role ? `<div style="font-size:0.75rem;color:var(--text-muted);">${c.role}</div>` : ''}
+        </div>
+    `).join('');
+    section.classList.remove('hidden');
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         const idInput = document.getElementById("media-id");
@@ -90,6 +117,8 @@ async function loadDetails() {
         if (els.title) els.title.innerText = data.title;
         if (els.overview) els.overview.innerText = data.overview || "No overview available.";
         _renderExternalLinks(data);
+        _renderGenresDisplay(data);
+        _renderCastDisplay(data);
 
         if (data.release_date && els.year) {
             els.year.innerText = new Date(data.release_date).getFullYear();
