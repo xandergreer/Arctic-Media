@@ -12,7 +12,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     titleEl.textContent = LIBRARY_TYPE === 'movies' ? 'Movies' : 'TV Shows';
 
     try {
-        const ep = LIBRARY_TYPE === 'movies' ? '/api/v1/media/movies' : '/api/v1/media/shows';
+        // Default sort matches the active chip ("Newly Added" = added_at DESC)
+        const ep = LIBRARY_TYPE === 'movies'
+            ? '/api/v1/media/movies?sort=added'
+            : '/api/v1/media/shows?sort=added';
         const res = await fetch(ep, { credentials: 'include' });
         if (!res.ok) throw new Error('Failed to fetch media');
         allItems = await res.json();
@@ -57,14 +60,34 @@ function renderGrid(items) {
 }
 
 // Sort support (called from library.html chip strip)
-window.sortGrid = function (mode) {
+window.sortGrid = async function (mode) {
+    // 'az' and 'year' can be done client-side since we already have all items.
+    // 'added' must be a server round-trip because added_at lives on MediaFile,
+    // not on the MediaItem objects returned by default.
+    if (mode === 'added') {
+        const ep = LIBRARY_TYPE === 'movies'
+            ? '/api/v1/media/movies?sort=added'
+            : '/api/v1/media/shows?sort=added';
+        try {
+            const res = await fetch(ep, { credentials: 'include' });
+            if (!res.ok) throw new Error('sort fetch failed');
+            const sorted = await res.json();
+            renderGrid(sorted);
+        } catch (err) {
+            console.error('sortGrid added:', err);
+        }
+        return;
+    }
+
     let sorted = [...allItems];
-    if (mode === 'az') sorted.sort((a, b) => a.title.localeCompare(b.title));
-    else if (mode === 'year') sorted.sort((a, b) => {
-        const ya = a.release_date ? new Date(a.release_date).getFullYear() : 0;
-        const yb = b.release_date ? new Date(b.release_date).getFullYear() : 0;
-        return yb - ya;
-    });
-    // 'added' = default DB order (already sorted by server)
+    if (mode === 'az') {
+        sorted.sort((a, b) => (a.sort_title || a.title).localeCompare(b.sort_title || b.title));
+    } else if (mode === 'year') {
+        sorted.sort((a, b) => {
+            const ya = a.release_date ? new Date(a.release_date).getFullYear() : 0;
+            const yb = b.release_date ? new Date(b.release_date).getFullYear() : 0;
+            return yb - ya;
+        });
+    }
     renderGrid(sorted);
 };

@@ -67,20 +67,55 @@ async def search_media(
         "total":  len(movies) + len(shows)
     }
 
+def _added_at_subquery():
+    """Subquery: latest MediaFile.added_at per media_item_id."""
+    return (
+        select(
+            MediaFile.media_item_id,
+            func.max(MediaFile.added_at).label("latest_added"),
+        )
+        .group_by(MediaFile.media_item_id)
+        .subquery()
+    )
+
 @router.get("/movies")
 async def get_movies(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
+    sort: str = Query("az", description="Sort mode: az | year | added"),
 ):
     """
-    Get a list of all movies, sorted by sort_title.
+    Get a list of all movies.
+    sort=az (default) — alphabetical by sort_title
+    sort=year        — newest release year first
+    sort=added       — most recently added file first
     """
-    query = select(MediaItem).where(
-        MediaItem.kind == MediaKind.MOVIE
-    ).order_by(MediaItem.sort_title).offset(skip).limit(limit)
-    
+    if sort == "added":
+        sub = _added_at_subquery()
+        query = (
+            select(MediaItem)
+            .join(sub, sub.c.media_item_id == MediaItem.id, isouter=True)
+            .where(MediaItem.kind == MediaKind.MOVIE)
+            .order_by(desc(sub.c.latest_added))
+            .offset(skip).limit(limit)
+        )
+    elif sort == "year":
+        query = (
+            select(MediaItem)
+            .where(MediaItem.kind == MediaKind.MOVIE)
+            .order_by(desc(MediaItem.release_date))
+            .offset(skip).limit(limit)
+        )
+    else:
+        query = (
+            select(MediaItem)
+            .where(MediaItem.kind == MediaKind.MOVIE)
+            .order_by(MediaItem.sort_title)
+            .offset(skip).limit(limit)
+        )
+
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -89,15 +124,39 @@ async def get_shows(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
+    sort: str = Query("az", description="Sort mode: az | year | added"),
 ):
     """
     Get a list of all TV Shows.
+    sort=az (default) — alphabetical by sort_title
+    sort=year        — newest release year first
+    sort=added       — most recently added file first
     """
-    query = select(MediaItem).where(
-        MediaItem.kind == MediaKind.SHOW
-    ).order_by(MediaItem.sort_title).offset(skip).limit(limit)
-    
+    if sort == "added":
+        sub = _added_at_subquery()
+        query = (
+            select(MediaItem)
+            .join(sub, sub.c.media_item_id == MediaItem.id, isouter=True)
+            .where(MediaItem.kind == MediaKind.SHOW)
+            .order_by(desc(sub.c.latest_added))
+            .offset(skip).limit(limit)
+        )
+    elif sort == "year":
+        query = (
+            select(MediaItem)
+            .where(MediaItem.kind == MediaKind.SHOW)
+            .order_by(desc(MediaItem.release_date))
+            .offset(skip).limit(limit)
+        )
+    else:
+        query = (
+            select(MediaItem)
+            .where(MediaItem.kind == MediaKind.SHOW)
+            .order_by(MediaItem.sort_title)
+            .offset(skip).limit(limit)
+        )
+
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -142,24 +201,33 @@ async def get_recently_added(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Get recently added movies and episodes.
+    Get recently added movies and shows, ordered by the most recent file added_at
+    (i.e. the file's mtime as recorded by the scanner — the true 'date added').
     """
-    # Movies
-    q_movies = select(MediaItem).where(
-        MediaItem.kind == MediaKind.MOVIE
-    ).order_by(desc(MediaItem.created_at)).limit(limit)
-    
-    # Shows (Recently Added)
-    q_shows = select(MediaItem).where(
-        MediaItem.kind == MediaKind.SHOW
-    ).order_by(desc(MediaItem.created_at)).limit(limit)
+    sub = _added_at_subquery()
+
+    q_movies = (
+        select(MediaItem)
+        .join(sub, sub.c.media_item_id == MediaItem.id, isouter=True)
+        .where(MediaItem.kind == MediaKind.MOVIE)
+        .order_by(desc(sub.c.latest_added))
+        .limit(limit)
+    )
+
+    q_shows = (
+        select(MediaItem)
+        .join(sub, sub.c.media_item_id == MediaItem.id, isouter=True)
+        .where(MediaItem.kind == MediaKind.SHOW)
+        .order_by(desc(sub.c.latest_added))
+        .limit(limit)
+    )
 
     res_movies = await db.execute(q_movies)
-    res_shows = await db.execute(q_shows)
-    
+    res_shows  = await db.execute(q_shows)
+
     return {
         "movies": res_movies.scalars().all(),
-        "shows": res_shows.scalars().all()
+        "shows":  res_shows.scalars().all()
     }
 
 @router.get("/{media_id}")
