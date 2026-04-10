@@ -1,15 +1,5 @@
 // Arctic Media 2.0 – Library View
 
-function getCookie(name) {
-    const v = `; ${document.cookie}`;
-    const p = v.split(`; ${name}=`);
-    if (p.length === 2) return p.pop().split(';').shift();
-}
-function getAuthHeaders() {
-    const t = getCookie('access_token');
-    return t ? { 'Authorization': `Bearer ${t}` } : {};
-}
-
 let allItems = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -23,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         const ep = LIBRARY_TYPE === 'movies' ? '/api/v1/media/movies' : '/api/v1/media/shows';
-        const res = await fetch(ep, { headers: getAuthHeaders() });
+        const res = await fetch(ep, { credentials: 'include' });
         if (!res.ok) throw new Error('Failed to fetch media');
         allItems = await res.json();
 

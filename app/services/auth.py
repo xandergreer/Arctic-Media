@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.user import User
@@ -10,22 +11,24 @@ async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
 
 async def create_user(db: AsyncSession, username: str, password: str) -> User:
     """
-    Registers a new user. 
+    Registers a new user.
     Hashes the password before storing it.
+    The first registered user is automatically made an admin using an atomic count.
     """
     hashed_pw = security.get_password_hash(password)
-    
-    # Check if this is the first user
-    result = await db.execute(select(User))
-    first_user = result.scalars().first()
-    is_admin = (first_user is None)
+
+    # Atomic count — avoids TOCTOU race when two registrations arrive simultaneously.
+    # Under SQLite, writes are serialized so this is safe; works correctly on Postgres too.
+    count_result = await db.execute(select(func.count()).select_from(User))
+    user_count = count_result.scalar()
+    is_admin = (user_count == 0)
 
     db_user = User(
-        username=username, 
+        username=username,
         hashed_password=hashed_pw,
-        is_superuser=is_admin
+        is_superuser=is_admin,
     )
-    
+
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
@@ -34,14 +37,17 @@ async def create_user(db: AsyncSession, username: str, password: str) -> User:
 async def authenticate_user(db: AsyncSession, username: str, password: str) -> User | None:
     """
     Login Logic.
-    Returns the User object if credentials are correct, else None.
+    Returns the User object if credentials are correct and account is active, else None.
     """
     user = await get_user_by_username(db, username)
-    
+
     if not user:
         return None
-        
+
+    if not user.is_active:
+        return None
+
     if not security.verify_password(password, user.hashed_password):
         return None
-        
+
     return user

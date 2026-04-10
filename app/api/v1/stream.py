@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 
 from app.core.database import get_db
+from app.core.security import verify_hls_token
 from app.models.media import MediaFile
 from app.models.user import User
 from app.api.deps import get_current_user_from_token
@@ -205,8 +206,14 @@ async def get_media_metadata(
     
     # Short-lived session
     async with AsyncSessionLocal() as db:
-        user = await get_current_user_from_token(token, db)
-        if not user: raise HTTPException(401, "Unauthorized")
+        # Accept: full access token, short-lived HLS token, or HttpOnly cookie
+        effective_token = token or request.cookies.get("access_token")
+        if not effective_token:
+            raise HTTPException(401, "Unauthorized")
+        if not verify_hls_token(effective_token):
+            user = await get_current_user_from_token(effective_token, db)
+            if not user:
+                raise HTTPException(401, "Unauthorized")
 
         if file_id:
             q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
@@ -234,6 +241,7 @@ async def get_media_metadata(
 async def get_subtitle(
     media_id: int,
     track_index: int,
+    request: Request,
     token: str = Query(None),
     file_id: Optional[int] = Query(None)
 ):
@@ -241,15 +249,18 @@ async def get_subtitle(
     Extract a subtitle track and convert to WebVTT on the fly.
     """
     from app.core.database import AsyncSessionLocal
-    
+
     # Use a short-lived session to fetch metadata
     media_path = None
-    
+
     async with AsyncSessionLocal() as db:
-        if not token:
+        effective_token = token or request.cookies.get("access_token")
+        if not effective_token:
             raise HTTPException(401, "Not authenticated")
-        user = await get_current_user_from_token(token, db)
-        if not user: raise HTTPException(401, "Unauthorized")
+        if not verify_hls_token(effective_token):
+            user = await get_current_user_from_token(effective_token, db)
+            if not user:
+                raise HTTPException(401, "Unauthorized")
         
         if file_id:
             q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
@@ -327,8 +338,13 @@ async def stream_video(
     
     # 1. Short-lived DB interaction
     async with AsyncSessionLocal() as db:
-        user = await get_current_user_from_token(token, db)
-        if not user: raise HTTPException(401, "Unauthorized")
+        effective_token = token or request.cookies.get("access_token")
+        if not effective_token:
+            raise HTTPException(401, "Unauthorized")
+        if not verify_hls_token(effective_token):
+            user = await get_current_user_from_token(effective_token, db)
+            if not user:
+                raise HTTPException(401, "Unauthorized")
 
         if file_id:
             q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
@@ -343,9 +359,12 @@ async def stream_video(
         file_path = media_file.path
     
     # DB Session is CLOSED. We hold no connections now.
-    
+
+    # Run ffprobe now (needed for both the fallback path and the info checks below).
+    info = await asyncio.to_thread(get_detailed_media_info, file_path)
+
     caps = browser_caps(request.headers.get("user-agent"))
-    
+
     # --- HLS FORCED REDIRECTION (As requested) ---
     # We redirect ALL video playback to HLS to ensure consistent seeking behavior.
     if not quality: # Only redirect default request. If user specifically asks for quality/direct, we might respect it later but for now force HLS.
@@ -496,9 +515,11 @@ async def stream_video(
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-    # Redirect stderr to file to prevent PIPE deadlock
+    # Redirect stderr to a per-stream temp file to prevent PIPE deadlock
+    # and avoid concurrent writes to a shared log.
     import tempfile
-    err_file = open(os.path.join(tempfile.gettempdir(), "arctic_ffmpeg_error.log"), "a")
+    err_fd, err_path = tempfile.mkstemp(prefix="arctic_ffmpeg_", suffix=".log")
+    err_file = os.fdopen(err_fd, "w")
     
     # USE SYNCHRONOUS POPEN
     process = subprocess.Popen(
@@ -518,15 +539,21 @@ async def stream_video(
                     break
                 yield chunk
         except Exception as e:
-             print(f"[Stream] Exception: {e}")
+            print(f"[Stream] Exception: {e}")
         finally:
-            try: 
+            try:
                 process.kill()
                 process.wait()
-            except: pass
-            
-            try: err_file.close()
-            except: pass
+            except Exception:
+                pass
+            try:
+                err_file.close()
+            except Exception:
+                pass
+            try:
+                os.unlink(err_path)
+            except Exception:
+                pass
 
     # Disable seeking for transcoding to prevent process loops
     headers = {"Accept-Ranges": "none"}

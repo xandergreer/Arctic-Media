@@ -138,16 +138,7 @@
         </div>
     </div>
 
-    <script nonce="{{ request.state.csp_nonce if request.state.csp_nonce else '' }}">
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-        function getAuthHeaders() {
-            const token = getCookie("access_token");
-            return token ? { 'Authorization': `Bearer ${token}` } : {};
-        }
+    <script>
         // Format code input (ABCD-1234)
         const codeInput = document.getElementById('user-code');
         const authBtn = document.getElementById('authorize-btn');
@@ -155,7 +146,7 @@
 
         function showMessage(text, type) {
             messageDiv.className = 'message ' + type;
-            messageDiv.innerHTML = text;
+            messageDiv.textContent = text;
         }
 
         authBtn.addEventListener('click', authorizeDevice);
@@ -172,9 +163,7 @@
         // Check login status
         async function checkLogin() {
             try {
-                // Try to get current user info
-                // If 401, not logged in
-                const response = await fetch('/api/v1/auth/me', { headers: getAuthHeaders() });
+                const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
                 if (response.ok) {
                     document.getElementById('login-prompt').style.display = 'none';
                     document.getElementById('pair-form').style.display = 'block';
@@ -207,10 +196,8 @@
                 // Assuming mounted without prefix or just check
                 const response = await fetch('/pair/activate', {
                     method: 'POST',
-                    headers: {
-                        ...getAuthHeaders(),
-                        'Content-Type': 'application/json',
-                    },
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_code: code })
                 });
 

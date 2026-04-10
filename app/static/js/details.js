@@ -76,13 +76,8 @@ let currentMetadata = {};
 
 async function loadDetails() {
     try {
-        // Verify Auth Helper
-        if (typeof getAuthHeaders !== "function") {
-            throw new Error("Auth helper missing (main.js not loaded?)");
-        }
-
         const res = await fetch(`/api/v1/media/${mediaId}`, {
-            headers: getAuthHeaders()
+            credentials: 'include'
         });
         if (!res.ok) throw new Error(`API Error ${res.status}`);
         const data = await res.json();
@@ -109,7 +104,7 @@ async function loadDetails() {
 
             // Fetch multiple files (versions/trailers)
             try {
-                const fRes = await fetch(`/api/v1/media/${mediaId}/files`, { headers: getAuthHeaders() });
+                const fRes = await fetch(`/api/v1/media/${mediaId}/files`, { credentials: 'include' });
                 if (fRes.ok) {
                     const files = await fRes.json();
                     if (files && files.length > 0) {
@@ -164,20 +159,13 @@ async function loadDetails() {
     }
 }
 
-function checkAdminAndSetupEdit() {
+async function checkAdminAndSetupEdit() {
     try {
-        const token = getCookie("access_token");
-        if (!token) return;
+        const meRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        if (!meRes.ok) return;
+        const me = await meRes.json();
 
-        // Simple JWT Parse (Base64)
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        const payload = JSON.parse(jsonPayload);
-
-        if (payload.is_superuser) {
+        if (me.is_superuser) {
             const editBtn = document.getElementById("editBtn");
             const modal = document.getElementById("editModal");
             const closeBtn = document.getElementById("closeEditModal");
@@ -228,10 +216,8 @@ function checkAdminAndSetupEdit() {
                     try {
                         const r = await fetch(`/api/v1/media/${mediaId}`, {
                             method: 'PATCH',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...getAuthHeaders()
-                            },
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(body)
                         });
 
@@ -286,7 +272,7 @@ function setupDelete(id, label, onSuccess) {
             try {
                 const r = await fetch(`/api/v1/media/${id}`, {
                     method: 'DELETE',
-                    headers: getAuthHeaders()
+                    credentials: 'include'
                 });
                 if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
                 deleteModal.classList.add("hidden");
@@ -303,7 +289,7 @@ function setupDelete(id, label, onSuccess) {
 // Show Specific Logic
 async function loadSeasons() {
     const res = await fetch(`/api/v1/media/shows/${mediaId}/seasons`, {
-        headers: getAuthHeaders()
+        credentials: 'include'
     });
     const seasons = await res.json();
 
@@ -335,7 +321,7 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
     if (els.episodeGrid) els.episodeGrid.innerHTML = "Loading...";
 
     const res = await fetch(`/api/v1/media/seasons/${seasonId}/episodes`, {
-        headers: getAuthHeaders()
+        credentials: 'include'
     });
     const episodes = await res.json();
 
@@ -343,12 +329,8 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
         // Detect admin to show per-episode delete buttons
         let isAdmin = false;
         try {
-            const token = getCookie("access_token");
-            if (token) {
-                const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-                const pl = JSON.parse(decodeURIComponent(window.atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-                isAdmin = pl.is_superuser === true;
-            }
+            const meR = await fetch('/api/v1/auth/me', { credentials: 'include' });
+            if (meR.ok) { const me = await meR.json(); isAdmin = !!me.is_superuser; }
         } catch (_) { }
 
         els.episodeGrid.innerHTML = episodes.map(ep => {
@@ -382,7 +364,8 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
             try {
                 const progRes = await fetch('/api/v1/history/batch', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ media_ids: epIds })
                 });
                 if (progRes.ok) {
@@ -418,7 +401,7 @@ window.openCastModal = async function (id, event) {
     list.innerHTML = 'Scanning local network for Roku devices... <span class="material-icons" style="vertical-align:middle;font-size:16px;">search</span>';
 
     try {
-        const res = await fetch('/api/v1/remote/devices', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/remote/devices', { credentials: 'include' });
         if (!res.ok) throw new Error("Failed to scan devices");
         const devices = await res.json();
 
@@ -448,7 +431,8 @@ window.castToDevice = async function (ip) {
     try {
         const res = await fetch('/api/v1/remote/cast', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ device_ip: ip, media_id: targetCastMediaId })
         });
         if (!res.ok) throw new Error('Cast command rejected');
@@ -465,7 +449,7 @@ window.deleteEpisode = async function (event, epId, epLabel, seasonId, seasonNum
     try {
         const r = await fetch(`/api/v1/media/${epId}`, {
             method: 'DELETE',
-            headers: getAuthHeaders()
+            credentials: 'include'
         });
         if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
         // Reload the season so counts stay correct
@@ -491,7 +475,7 @@ function _fmtTime(sec) {
 
 async function _fetchProgress(id) {
     try {
-        const res = await fetch(`/api/v1/history/${id}`, { headers: getAuthHeaders() });
+        const res = await fetch(`/api/v1/history/${id}`, { credentials: 'include' });
         if (res.ok) return await res.json();
     } catch (e) { }
     return null;
@@ -502,7 +486,8 @@ async function _saveProgress(id) {
     try {
         await fetch(`/api/v1/history/${id}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 position_seconds: plyr.currentTime,
                 duration_seconds: plyr.duration > 0 ? plyr.duration : null,
@@ -558,7 +543,8 @@ window.addEventListener('beforeunload', () => {
     fetch(`/api/v1/history/${_progressMediaId}`, {
         method: 'POST',
         keepalive: true,
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             position_seconds: plyr.currentTime,
             duration_seconds: plyr.duration > 0 ? plyr.duration : null,
@@ -590,7 +576,7 @@ let currentAidx = 0;
 let currentSidx = null;
 
 async function playStream(id, qualityStr = null, aidx = null, sidx = null, startTime = 0) {
-    const token = getCookie("access_token");
+    const token = await getStreamToken();
     if (!token) {
         alert("Login required.");
         window.location.href = "/login";
@@ -629,7 +615,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     try {
         let infoUrl = `/api/v1/stream/${id}/info?token=${token}`;
         if (window.currentFileId) infoUrl += `&file_id=${window.currentFileId}`;
-        const res = await fetch(infoUrl);
+        const res = await fetch(infoUrl, { credentials: 'include' });
         if (res.ok) info = await res.json();
     } catch (e) { console.error("Meta fetch error", e); }
 
@@ -676,8 +662,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
                 _startProgressTracking(id);
                 // Load text subtitle as WebVTT — browser renders it natively, no re-encode needed
                 if (_isTextSub) {
-                    const t2 = getCookie("access_token");
-                    let vttUrl = `/api/v1/stream/${id}/subtitle.vtt?sidx=${targetS}&token=${t2}`;
+                    let vttUrl = `/api/v1/stream/${id}/subtitle.vtt?sidx=${targetS}&token=${token}`;
                     if (window.currentFileId) vttUrl += `&file_id=${window.currentFileId}`;
                     _loadVttTrack(vttUrl);
                 }
@@ -820,7 +805,7 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
                     // Text sub: extract + render as WebVTT — no stream restart, no black screen
                     _removeVttTracks();
                     currentSidx = newSidx;
-                    const tok = getCookie("access_token");
+                    const tok = await getStreamToken();
                     let vttUrl = `/api/v1/stream/${mediaId}/subtitle.vtt?sidx=${newSidx}&token=${tok}`;
                     if (window.currentFileId) vttUrl += `&file_id=${window.currentFileId}`;
                     _loadVttTrack(vttUrl);
@@ -988,10 +973,7 @@ function _subPoll(mediaId, btn) {
     if (_subPollTimer) clearInterval(_subPollTimer);
     _subPollTimer = setInterval(async () => {
         try {
-            const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
-            const res = await fetch('/api/v1/subtitles/' + mediaId + '/status', {
-                headers: token ? { Authorization: 'Bearer ' + token } : {}
-            });
+            const res = await fetch('/api/v1/subtitles/' + mediaId + '/status', { credentials: 'include' });
             if (!res.ok) return;
             const data = await res.json();
             const overall = data.overall; // 'none','active','partial','exists'
@@ -1015,10 +997,9 @@ window.requestSubtitles = async function () {
     _subSetState(btn, 'pending');
 
     try {
-        const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
         const res = await fetch('/api/v1/subtitles/' + mediaId + '/download', {
             method: 'POST',
-            headers: token ? { Authorization: 'Bearer ' + token } : {}
+            credentials: 'include',
         });
         if (!res.ok) {
             _subSetState(btn, 'error');
@@ -1037,10 +1018,7 @@ window.requestSubtitles = async function () {
     const mediaId = document.getElementById('media-id')?.value;
     if (!btn || !mediaId) return;
     try {
-        const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
-        const res = await fetch('/api/v1/subtitles/' + mediaId + '/status', {
-            headers: token ? { Authorization: 'Bearer ' + token } : {}
-        });
+        const res = await fetch('/api/v1/subtitles/' + mediaId + '/status', { credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
         const overall = data.overall;

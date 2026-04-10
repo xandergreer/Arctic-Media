@@ -343,7 +343,7 @@ async def scan_library(library_id: int):
             await _scan_shows(db, library, known_paths, tmdb_cache)
 
         # Record scan completion time for mtime-based incremental skipping next run
-        library.last_scanned_at = datetime.datetime.utcnow()
+        library.last_scanned_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         await db.commit()
 
         print(f"[SCAN] Finished: {library.name} - re-titling stale items")

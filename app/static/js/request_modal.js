@@ -1,11 +1,6 @@
 // Arctic Media – Make a Request modal
 
 (function () {
-    function getCookieRM(name) {
-        var v = '; ' + document.cookie;
-        var p = v.split('; ' + name + '=');
-        if (p.length === 2) return p.pop().split(';').shift();
-    }
 
     function openRequestModal() {
         var libType = window.LIBRARY_TYPE || '';
@@ -38,12 +33,10 @@
         btn.textContent = 'Sending\u2026';
         errEl.style.display = 'none';
         try {
-            var token = getCookieRM('access_token');
-            var headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = 'Bearer ' + token;
             var res = await fetch('/api/v1/requests', {
                 method: 'POST',
-                headers: headers,
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg })
             });
             if (!res.ok) {

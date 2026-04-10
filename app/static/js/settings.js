@@ -1,17 +1,5 @@
 // Arctic Media – Settings Page
 
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-function getAuthHeaders() {
-    const token = getCookie("access_token");
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
-
 // ─── Scan Progress Panel ───────────────────────────────────────────────────────
 
 let _pollTimer = null;
@@ -117,7 +105,7 @@ function dismissScanPanel() {
 
 async function _poll() {
     try {
-        const res = await fetch('/api/v1/scan/status', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/scan/status', { credentials: 'include' });
         if (res.status === 401) { _stopPoll(); return; }
         if (!res.ok) return;
         const data = await res.json();
@@ -144,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const customDomainInput = document.getElementById("custom-domain");
 
     if (customDomainInput) {
-        fetch("/api/v1/settings/custom_domain", { headers: getAuthHeaders() })
+        fetch("/api/v1/settings/custom_domain", { credentials: 'include' })
             .then(res => res.ok ? res.json() : { value: "" })
             .then(data => { if (data && data.value) customDomainInput.value = data.value; })
             .catch(() => {});
@@ -161,7 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const res = await fetch("/api/v1/settings", {
                     method: "POST",
-                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: "custom_domain", value: domain }),
                 });
                 if (res.ok) {
@@ -192,7 +181,8 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const res = await fetch("/api/v1/libraries", {
                     method: "POST",
-                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, path, type }),
                 });
                 if (res.ok) {
@@ -211,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const libId = e.currentTarget.getAttribute('data-id');
             if (!confirm('Are you sure? This removes it from the database.')) return;
             try {
-                const res = await fetch(`/api/v1/libraries/${libId}`, { method: 'DELETE', headers: getAuthHeaders() });
+                const res = await fetch(`/api/v1/libraries/${libId}`, { method: 'DELETE', credentials: 'include' });
                 if (res.ok) window.location.reload();
             } catch { alert('Failed to delete.'); }
         });
@@ -225,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const res = await fetch(`/api/v1/scan/library/${libId}`, {
                     method: 'POST',
-                    headers: getAuthHeaders(),
+                    credentials: 'include',
                 });
                 const data = await res.json();
 
@@ -258,7 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const res = await fetch('/api/v1/scan/run', {
                     method: 'POST',
-                    headers: getAuthHeaders(),
+                    credentials: 'include',
                 });
                 const data = await res.json();
 
@@ -294,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Resume polling if a scan is already running (page was reloaded mid-scan)
     (async () => {
         try {
-            const res = await fetch('/api/v1/scan/status', { headers: getAuthHeaders() });
+            const res = await fetch('/api/v1/scan/status', { credentials: 'include' });
             if (!res.ok) return;
             const data = await res.json();
             if (data.scanning && data.libraries.length) {
@@ -325,10 +315,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (newPw.length < 6) { show('New password must be at least 6 characters.', false); return; }
 
             try {
-                const params = new URLSearchParams({ current_password: current, new_password: newPw });
-                const res = await fetch(`/api/v1/auth/change-password?${params}`, {
+                const res = await fetch('/api/v1/auth/change-password', {
                     method: 'POST',
-                    headers: getAuthHeaders(),
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_password: current, new_password: newPw }),
                 });
                 const data = await res.json();
                 if (!res.ok) { show(data.detail || 'Failed.', false); return; }

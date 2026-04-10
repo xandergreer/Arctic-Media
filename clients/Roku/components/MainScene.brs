@@ -1,5 +1,7 @@
 sub init()
-    m.pageStack = []
+    m.pageStack  = []
+    m.videoTask  = invalid
+
     m.top.observeField("navRequest",    "onNavRequest")
     m.top.observeField("launchContent", "onLaunchContent")
     m.top.backgroundColor = "0x0A0A1AFF"
@@ -13,18 +15,12 @@ sub init()
     end if
 end sub
 
-' -------------------------------------------------------
-' Navigation
-' -------------------------------------------------------
+' ── Navigation ────────────────────────────────────────────────────────────
 
 sub pushPage(pageName as string, params as dynamic)
     page = CreateObject("roSGNode", pageName)
     if page = invalid then return
-
-    if params <> invalid
-        page.params = params
-    end if
-
+    if params <> invalid then page.params = params
     page.observeField("navRequest", "onNavRequest")
     m.top.appendChild(page)
     page.setFocus(true)
@@ -48,9 +44,7 @@ sub clearAndPush(pageName as string, params as dynamic)
     pushPage(pageName, params)
 end sub
 
-' -------------------------------------------------------
-' Handle nav requests from child pages
-' -------------------------------------------------------
+' ── Nav request dispatcher ────────────────────────────────────────────────
 
 sub onNavRequest(event as object)
     req = event.getData()
@@ -68,31 +62,84 @@ sub onNavRequest(event as object)
         pushPage("SeasonPage", req)
 
     else if action = "play"
+        ' VideoPage uses SceneGraph Video node (guaranteed to work).
+        ' Swap for runVideoTask(req) to test native roVideoScreen OSD instead.
         pushPage("VideoPage", req)
 
     else if action = "back"
-        if m.pageStack.count() <= 1
-            ' At root — do nothing (let user use Roku home button)
-        else
-            popPage()
-        end if
+        if m.pageStack.count() > 1 then popPage()
+
+    else if action = "search"
+        pushPage("SearchPage", invalid)
 
     else if action = "signout"
         ClearAuth()
-        serverUrl = GetReg("server_url")
-        clearAndPush("PairingPage", {serverUrl: serverUrl})
+        clearAndPush("PairingPage", {serverUrl: GetReg("server_url")})
 
     end if
 end sub
 
-' -------------------------------------------------------
-' ECP deep-link (cast from iOS)
-' -------------------------------------------------------
+' ── Video Task (roVideoScreen with native OSD) ────────────────────────────
+
+sub runVideoTask(req as object)
+    ' Stop any existing task
+    if m.videoTask <> invalid
+        m.videoTask.control = "stop"
+        m.videoTask = invalid
+    end if
+
+    task = CreateObject("roSGNode", "VideoTask")
+    task.mediaId    = req.mediaId
+    task.title      = req.title
+    task.hlsUrl     = req.url
+    task.startSec   = req.position
+    if req.episodeList <> invalid then task.episodes   = req.episodeList
+    if req.episodeIdx  <> invalid then task.episodeIdx = req.episodeIdx
+    task.observeField("done",    "onVideoTaskDone")
+    task.observeField("nextIdx", "onVideoTaskNext")
+    task.control = "run"
+    m.videoTask = task
+end sub
+
+sub onVideoTaskDone(event as object)
+    if event.getData() = true
+        m.videoTask = invalid
+        ' Restore focus to the top page in our stack
+        if m.pageStack.count() > 0
+            m.pageStack[m.pageStack.count() - 1].setFocus(true)
+        end if
+    end if
+end sub
+
+sub onVideoTaskNext(event as object)
+    nextIdx = event.getData()
+    if nextIdx < 0 then return
+    ' The task already has the episode list — just restart with new index
+    if m.videoTask = invalid then return
+    episodes = m.videoTask.episodes
+    if episodes = invalid then return
+    if nextIdx >= episodes.count() then return
+
+    ep = episodes[nextIdx]
+    serverUrl = GetReg("server_url")
+    token     = GetReg("access_token")
+    req = {
+        action:      "play"
+        mediaId:     ep.id
+        title:       ep.title
+        url:         BuildHlsUrl(serverUrl, token, ep.id)
+        position:    0.0
+        episodeList: episodes
+        episodeIdx:  nextIdx
+    }
+    runVideoTask(req)
+end sub
+
+' ── ECP deep-link (cast from iOS) ─────────────────────────────────────────
 
 sub onLaunchContent(event as object)
     content = event.getData()
     if content = invalid then return
-
     token     = GetReg("access_token")
     serverUrl = GetReg("server_url")
     if token = "" or serverUrl = "" then return
@@ -105,13 +152,10 @@ sub onLaunchContent(event as object)
     end if
     if mediaId = 0 then return
 
-    hlsUrl = BuildHlsUrl(serverUrl, token, mediaId)
-    req = {
-        action:   "play"
+    runVideoTask({
         mediaId:  mediaId
         title:    "Loading…"
-        url:      hlsUrl
+        url:      BuildHlsUrl(serverUrl, token, mediaId)
         position: 0.0
-    }
-    pushPage("VideoPage", req)
+    })
 end sub

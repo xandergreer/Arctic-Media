@@ -4,6 +4,7 @@ sub init()
     m.tabMovies   = m.top.findNode("tabMovies")
     m.tabShows    = m.top.findNode("tabShows")
     m.tabSettings = m.top.findNode("tabSettings")
+    m.tabSearch   = m.top.findNode("tabSearch")
     m.tabLine     = m.top.findNode("tabLine")
 
     ' Views
@@ -26,19 +27,22 @@ sub init()
     m.moviesRowGroup   = m.top.findNode("moviesRowGroup")
     m.showsRowGroup    = m.top.findNode("showsRowGroup")
 
-    ' Tab positions: [Home, Movies, Shows, Settings]
-    m.tabLineX = [370, 530, 690, 890]
-    m.tabLineW = [70,  90,  120, 110]
+    ' Tab positions: [Home, Movies, Shows, Settings, Search]
+    m.tabLineX = [370, 530, 690, 890, 1070]
+    m.tabLineW = [70,  90,  120, 110,  90]
 
-    ' Flat grid config
-    m.movieGrid.itemSize    = [182, 270]
-    m.movieGrid.itemSpacing = [18, 24]
-    m.movieGrid.numRows     = 3
-    m.movieGrid.wrap        = false
-    m.showGrid.itemSize    = [182, 270]
-    m.showGrid.itemSpacing = [18, 24]
-    m.showGrid.numRows     = 3
-    m.showGrid.wrap        = false
+    ' Custom grid config: 8 cols × 230px stride = 1840px (x40→1880)
+    ' 3 visible rows × 300px stride = 900px (y126→1026)
+    m.numGridCols   = 8
+    m.gridStrideX   = 230
+    m.gridStrideY   = 300
+    m.movieRowGroups = []
+    m.showRowGroups  = []
+    m.movieRowItems  = []
+    m.showRowItems   = []
+    m.gridFocusRow   = 0
+    m.gridFocusCol   = 0
+    m.gridScrollTop  = 0
 
     m.serverUrl = GetReg("server_url").Trim()
     m.token     = GetReg("access_token")
@@ -96,9 +100,6 @@ sub init()
     m.homeRowStride = invalid
     m.homeRowWidth  = invalid
 
-    m.movieGrid.observeField("itemSelected", "onMovieGridSelected")
-    m.showGrid.observeField("itemSelected",  "onShowGridSelected")
-
     m.top.setFocus(true)
     updateTabs()
 
@@ -116,6 +117,7 @@ sub updateTabs()
     m.tabMovies.color   = "0x555555FF"
     m.tabShows.color    = "0x555555FF"
     m.tabSettings.color = "0x555555FF"
+    m.tabSearch.color   = "0x555555FF"
 
     if m.activeIdx = 0
         m.tabHome.color = "0xFFFFFFFF"
@@ -125,6 +127,8 @@ sub updateTabs()
         m.tabShows.color = "0xFFFFFFFF"
     else if m.activeIdx = 3
         m.tabSettings.color = "0xFFFFFFFF"
+    else if m.activeIdx = 4
+        m.tabSearch.color = "0xFFFFFFFF"
     end if
 
     m.tabLine.translation = [m.tabLineX[m.activeIdx], 104]
@@ -153,7 +157,7 @@ end sub
 
 sub loadMovies()
     task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/media/movies?skip=0&limit=200"
+    task.url   = m.serverUrl + "/api/v1/media/movies?skip=0&limit=100"
     task.token = m.token
     task.observeField("resultArr", "onMoviesResult")
     task.observeField("apiError",  "onMoviesError")
@@ -163,7 +167,7 @@ end sub
 
 sub loadShows()
     task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/media/shows?skip=0&limit=200"
+    task.url   = m.serverUrl + "/api/v1/media/shows?skip=0&limit=100"
     task.token = m.token
     task.observeField("resultArr", "onShowsResult")
     task.observeField("apiError",  "onShowsError")
@@ -241,6 +245,8 @@ end sub
 
 sub buildHomeRows()
     if m.homeRowsBuilt then return
+    if m.continueRows = invalid then return  ' wait for CW data
+    if m.movieItems = invalid then return    ' wait for movies data
 
     hasCW     = m.continueRows <> invalid and m.continueRows.count() > 0
     hasMovies = m.movieItems   <> invalid
@@ -486,17 +492,15 @@ sub scrollHomeRow(rowIdx as integer)
 end sub
 
 ' -------------------------------------------------------
-' Flat grid builders (Movies / Shows tabs)
+' Custom grid builders (Movies / Shows tabs)
 ' -------------------------------------------------------
 
 sub buildMovieGrid()
     if m.movieGridBuilt then return
     if m.movieItems = invalid then return
-    root = CreateObject("roSGNode", "ContentNode")
-    for each media in m.movieItems
-        root.appendChild(createMediaNode(media))
-    end for
-    m.movieGrid.content = root
+    m.movieRowGroups = []
+    m.movieRowItems  = []
+    buildCustomGrid(m.movieGrid, m.movieItems, m.movieRowGroups, m.movieRowItems)
     m.movieGridBuilt = true
     m.loadingLabel.visible = false
 end sub
@@ -504,29 +508,98 @@ end sub
 sub buildShowGrid()
     if m.showGridBuilt then return
     if m.showItems = invalid then return
-    root = CreateObject("roSGNode", "ContentNode")
-    for each media in m.showItems
-        root.appendChild(createMediaNode(media))
-    end for
-    m.showGrid.content = root
+    m.showRowGroups = []
+    m.showRowItems  = []
+    buildCustomGrid(m.showGrid, m.showItems, m.showRowGroups, m.showRowItems)
     m.showGridBuilt = true
     m.loadingLabel.visible = false
 end sub
 
-sub onMovieGridSelected(event as object)
-    idx = event.getData()
-    if idx = invalid then return
-    item = m.movieGrid.content.getChild(idx)
-    if item = invalid then return
-    navigateToItem(item)
+sub buildCustomGrid(container as object, items as object, rowGroups as object, rowItems as object)
+    while container.getChildCount() > 0
+        container.removeChildIndex(0)
+    end while
+    maxItems   = 100
+    numCols    = m.numGridCols
+    i          = 0
+    rowIdx     = 0
+    curGroup   = invalid
+    curRowList = invalid
+    for each media in items
+        if i >= maxItems then exit for
+        if i mod numCols = 0
+            curGroup             = CreateObject("roSGNode", "Group")
+            curGroup.translation = [0, rowIdx * m.gridStrideY]
+            isVisible            = (rowIdx < 3)
+            curGroup.visible     = isVisible
+            curGroup.addFields({postersLoaded: isVisible})
+            curRowList           = []
+            container.appendChild(curGroup)
+            rowGroups.push(curGroup)
+            rowItems.push(curRowList)
+            rowIdx = rowIdx + 1
+        end if
+        tile             = CreateObject("roSGNode", "PosterItem")
+        tile.translation = [(i mod numCols) * m.gridStrideX, 0]
+        tile.focusPercent = 0.0
+        curGroup.appendChild(tile)
+        curRowList.push(media)
+        ' Only fire poster requests for the 3 initially-visible rows
+        if (rowIdx - 1) < 3
+            tile.itemContent = createMediaNode(media)
+        end if
+        i = i + 1
+    end for
 end sub
 
-sub onShowGridSelected(event as object)
-    idx = event.getData()
-    if idx = invalid then return
-    item = m.showGrid.content.getChild(idx)
-    if item = invalid then return
-    navigateToItem(item)
+function activeGridRowGroups() as object
+    if m.activeIdx = 1 then return m.movieRowGroups
+    return m.showRowGroups
+end function
+
+function activeGridRowItems() as object
+    if m.activeIdx = 1 then return m.movieRowItems
+    return m.showRowItems
+end function
+
+sub setGridItemFocus(row as integer, col as integer, pct as float)
+    rows = activeGridRowGroups()
+    if row < 0 or row >= rows.count() then return
+    rg = rows[row]
+    if rg = invalid then return
+    tile = rg.getChild(col)
+    if tile <> invalid then tile.focusPercent = pct
+end sub
+
+sub scrollGrid(newTop as integer)
+    rows        = activeGridRowGroups()
+    rowItemsArr = activeGridRowItems()
+    if rows.count() = 0 then return
+    m.gridScrollTop = newTop
+    for i = 0 to rows.count() - 1
+        rg = rows[i]
+        if rg = invalid then
+        else
+            displayRow = i - newTop
+            if displayRow >= 0 and displayRow < 3
+                rg.visible     = true
+                rg.translation = [0, displayRow * m.gridStrideY]
+                ' Lazy-load poster images the first time a row scrolls into view
+                if not rg.postersLoaded and rowItemsArr <> invalid and i < rowItemsArr.count()
+                    rowMediaList = rowItemsArr[i]
+                    for j = 0 to rg.getChildCount() - 1
+                        tile = rg.getChild(j)
+                        if tile <> invalid and j < rowMediaList.count()
+                            tile.itemContent = createMediaNode(rowMediaList[j])
+                        end if
+                    end for
+                    rg.postersLoaded = true
+                end if
+            else
+                rg.visible = false
+            end if
+        end if
+    end for
 end sub
 
 sub navigateToItem(item as object)
@@ -747,6 +820,80 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     end if
 
+    ' ── Custom grid navigation (Movies / Shows tabs) ─────────────────
+    if (m.activeIdx = 1 or m.activeIdx = 2) and m.inContent
+        rows = activeGridRowGroups()
+
+        if key = "up"
+            if m.gridFocusRow > 0
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 0.0)
+                m.gridFocusRow = m.gridFocusRow - 1
+                maxCol = rows[m.gridFocusRow].getChildCount() - 1
+                if m.gridFocusCol > maxCol then m.gridFocusCol = maxCol
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 1.0)
+                if m.gridFocusRow < m.gridScrollTop then scrollGrid(m.gridFocusRow)
+            else
+                setGridItemFocus(0, m.gridFocusCol, 0.0)
+                m.inContent          = false
+                m.headerHint.visible = true
+                m.gridHint.visible   = false
+            end if
+            return true
+        end if
+
+        if key = "down"
+            if m.gridFocusRow < rows.count() - 1
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 0.0)
+                m.gridFocusRow = m.gridFocusRow + 1
+                maxCol = rows[m.gridFocusRow].getChildCount() - 1
+                if m.gridFocusCol > maxCol then m.gridFocusCol = maxCol
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 1.0)
+                if m.gridFocusRow >= m.gridScrollTop + 3 then scrollGrid(m.gridScrollTop + 1)
+            end if
+            return true
+        end if
+
+        if key = "left"
+            if m.gridFocusCol > 0
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 0.0)
+                m.gridFocusCol = m.gridFocusCol - 1
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 1.0)
+            end if
+            return true
+        end if
+
+        if key = "right"
+            maxCol = rows[m.gridFocusRow].getChildCount() - 1
+            if m.gridFocusCol < maxCol
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 0.0)
+                m.gridFocusCol = m.gridFocusCol + 1
+                setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 1.0)
+            end if
+            return true
+        end if
+
+        if key = "OK"
+            rg = rows[m.gridFocusRow]
+            if rg <> invalid
+                tile = rg.getChild(m.gridFocusCol)
+                if tile <> invalid and tile.itemContent <> invalid
+                    navigateToItem(tile.itemContent)
+                end if
+            end if
+            return true
+        end if
+
+        if key = "back"
+            setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 0.0)
+            m.inContent          = false
+            m.headerHint.visible = true
+            m.gridHint.visible   = false
+            return true
+        end if
+
+        return true
+    end if
+
     ' ── Tab bar navigation ───────────────────────────────
     if not m.inContent
         if key = "back" then return true
@@ -760,7 +907,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
 
         if key = "right"
-            if m.activeIdx < 3
+            if m.activeIdx < 4
                 m.activeIdx = m.activeIdx + 1
                 updateTabs()
                 if m.activeIdx = 1 then buildMovieGrid()
@@ -770,6 +917,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
 
         if key = "down" or key = "OK"
+            if m.activeIdx = 4
+                m.top.navRequest = {action: "search"}
+                return true
+            end if
             if m.activeIdx = 3
                 m.inContent          = true
                 m.settFocusIdx       = 0
@@ -793,11 +944,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 m.inContent          = true
                 m.headerHint.visible = false
                 m.gridHint.visible   = true
-                if m.activeIdx = 1
-                    m.movieGrid.setFocus(true)
-                else if m.activeIdx = 2
-                    m.showGrid.setFocus(true)
-                end if
+                m.gridFocusRow  = 0
+                m.gridFocusCol  = 0
+                m.gridScrollTop = 0
+                scrollGrid(0)
+                setGridItemFocus(0, 0, 1.0)
             end if
             return true
         end if

@@ -208,13 +208,17 @@ async def update_media_item(
     if media_data.backdrop_url is not None:
         item.backdrop_url = media_data.backdrop_url if media_data.backdrop_url else None
         
+    do_refresh = media_data.refresh_from_tmdb
     if media_data.tmdb_id is not None:
         meta = dict(item.extra_json) if item.extra_json else {}
+        old_tmdb_id = meta.get("tmdb_id")
         meta["tmdb_id"] = media_data.tmdb_id
         item.extra_json = meta
-    
-    # Refresh from TMDB if requested
-    if media_data.refresh_from_tmdb:
+        # Auto-refresh when a new TMDB ID is explicitly set — user entered it, they expect data
+        if media_data.tmdb_id != old_tmdb_id:
+            do_refresh = True
+
+    if do_refresh:
         await refresh_item_metadata(db, item)
         # For shows, also cascade refresh to all episodes
         if item.kind == MediaKind.SHOW:

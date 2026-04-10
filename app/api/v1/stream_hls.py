@@ -13,9 +13,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Adapt imports to current project structure
 from app.core.database import AsyncSessionLocal, get_db
+from app.core.security import create_hls_token, verify_hls_token
 from app.models.user import User
 from app.api.deps import get_current_user_from_token
 from app.api.v1.stream import get_detailed_media_info # Import helper from stream.py
+
+
+async def _require_stream_auth(token: Optional[str], db: AsyncSession) -> str:
+    """Accept either a full access token (validated via DB) or a short-lived HLS token.
+    Returns the username on success, raises HTTPException on failure."""
+    if not token:
+        raise HTTPException(401, "Not authenticated")
+    # Try the short-lived HLS-scoped token first (no DB hit needed)
+    username = verify_hls_token(token)
+    if username:
+        return username
+    # Fall back to full access token (DB lookup)
+    user = await get_current_user_from_token(token, db)
+    if not user:
+        raise HTTPException(401, "Invalid token")
+    return user.username
 # Models - assumming similar structure, checking imports
 # In V2: from .models import MediaItem, MediaFile
 # In V1 (current): app/models.py? Let's check imports in stream.py
@@ -87,6 +104,34 @@ class TranscodeJob:
 
 _JOBS: Dict[str, TranscodeJob] = {}
 _ITEM_JOB: Dict[int, str] = {}
+
+# Kill transcode jobs idle for longer than this (seconds)
+_JOB_IDLE_TIMEOUT = 600  # 10 minutes
+
+
+async def _reap_idle_jobs() -> None:
+    """Background task: kill FFmpeg processes that haven't served a segment recently."""
+    while True:
+        await asyncio.sleep(60)
+        now = time.time()
+        stale = [jid for jid, job in list(_JOBS.items()) if now - job.last_access > _JOB_IDLE_TIMEOUT]
+        for jid in stale:
+            job = _JOBS.pop(jid, None)
+            if job is None:
+                continue
+            _ITEM_JOB.pop(job.item_id, None)
+            try:
+                if job.proc and job.proc.returncode is None:
+                    job.proc.terminate()
+                    try:
+                        await asyncio.wait_for(asyncio.to_thread(job.proc.wait), timeout=5)
+                    except asyncio.TimeoutError:
+                        with contextlib.suppress(Exception):
+                            job.proc.kill()
+            except Exception:
+                pass
+            shutil.rmtree(job.workdir, ignore_errors=True)
+            print(f"[HLS] Reaped idle job {jid}")
 
 def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0) -> str:
     h = hashlib.sha1()
@@ -255,9 +300,7 @@ async def get_master_playlist(
     db: AsyncSession = Depends(get_db)
 ):
     """Proper HLS master playlist. AVPlayer and AVAssetDownloadURLSession both need this."""
-    if token:
-        user = await get_current_user_from_token(token, db)
-        if not user: raise HTTPException(401, "Invalid Token")
+    _ = await _require_stream_auth(token, db)
 
     q = (select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
          if file_id else select(MediaFile).where(MediaFile.media_item_id == media_id))
@@ -300,11 +343,12 @@ async def get_media_playlist(
     t: float = Query(0),
     db: AsyncSession = Depends(get_db)
 ):
-    # Verify User
-    if token:
-         user = await get_current_user_from_token(token, db)
-         if not user: raise HTTPException(401, "Invalid Token")
-    
+    # Verify user and capture username for HLS token generation
+    auth_username = await _require_stream_auth(token, db)
+
+    # Issue a short-lived HLS-scoped token for segment URLs
+    hls_token = create_hls_token(auth_username)
+
     # Get File Info from DB
     if file_id:
         q = select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
@@ -388,7 +432,7 @@ async def get_media_playlist(
             seg_dur_actual = min(seg_dur, remaining)
             seg_name = f"seg_{i:05d}.ts"
             lines.append(f"#EXTINF:{seg_dur_actual:.6f},")
-            lines.append(f"{base_url}/{seg_name}?token={token}")
+            lines.append(f"{base_url}/{seg_name}?token={hls_token}")
         lines.append("#EXT-X-ENDLIST")
         return Response(
             "\n".join(lines),
@@ -402,7 +446,7 @@ async def get_media_playlist(
     new_lines = []
     for line in content.splitlines():
         if line.endswith(".ts"):
-            new_lines.append(f"{base_url}/{line}?token={token}")
+            new_lines.append(f"{base_url}/{line}?token={hls_token}")
         else:
             new_lines.append(line)
         if line.startswith('#EXT-X-MEDIA-SEQUENCE') and not already_has_type:
@@ -422,10 +466,7 @@ async def get_subtitle_vtt(
     db: AsyncSession = Depends(get_db),
 ):
     """Extract an embedded or sidecar text subtitle track and return it as WebVTT."""
-    if token:
-        user = await get_current_user_from_token(token, db)
-        if not user:
-            raise HTTPException(401, "Invalid Token")
+    _ = await _require_stream_auth(token, db)
 
     q = (select(MediaFile).where(MediaFile.id == file_id, MediaFile.media_item_id == media_id)
          if file_id else select(MediaFile).where(MediaFile.media_item_id == media_id))
@@ -477,13 +518,12 @@ async def get_hls_segment(
     job_id: str,
     segment: str,
     token: str = Query(None),
-    db: AsyncSession = Depends(get_db),
 ):
     if not token:
         raise HTTPException(401, "Not authenticated")
-    user = await get_current_user_from_token(token, db)
-    if not user:
-        raise HTTPException(401, "Invalid token")
+    username = verify_hls_token(token)
+    if not username:
+        raise HTTPException(401, "Invalid or expired HLS token")
 
     job = _JOBS.get(job_id)
     if not job:

@@ -40,7 +40,9 @@ def _get_or_create_secret_key() -> str:
 
     key = secrets.token_hex(32)
     os.makedirs(os.path.dirname(key_file), exist_ok=True)
-    with open(key_file, "w") as f:
+    # Write with owner-only permissions (rw-------) before writing the secret
+    fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
         f.write(key)
     return key
 

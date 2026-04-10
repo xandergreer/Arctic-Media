@@ -8,57 +8,90 @@
     <script type="text/brightscript" uri="pkg:/components/VideoPage.brs" />
     <children>
         <Rectangle color="0x000000FF" width="1920" height="1080" />
-        <Video id="video"
-               translation="[0, 0]"
-               width="1920"
-               height="1080"
-               enableTrickPlay="true"
-               />
+        <Video id="video" translation="[0,0]" width="1920" height="1080" enableTrickPlay="false" />
 
-        <!-- ═══ OSD OVERLAY ═══ -->
+        <!-- ═══ OSD ═══ -->
         <Group id="osd" visible="false">
 
-            <!-- Top bar: title + state -->
-            <Rectangle color="0x000000D0" width="1920" height="90" translation="[0, 0]" />
-            <Label id="osdTitle" translation="[60, 26]" width="1580"
+            <!-- TOP BAR: title + state only -->
+            <Rectangle color="0x000000C8" width="1920" height="72" translation="[0,0]" />
+            <Label id="osdTitle" translation="[40, 22]" width="1300"
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" />
-            <Label id="osdState" translation="[1700, 26]" width="200"
-                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" />
+            <Label id="osdState" translation="[1360, 22]" width="520"
+                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" horizAlign="right" />
 
-            <!-- Bottom bar: seek + time -->
-            <Rectangle color="0x000000D0" width="1920" height="124" translation="[0, 956]" />
+            <!-- BOTTOM OVERLAY -->
+            <Rectangle color="0x000000C8" width="1920" height="226" translation="[0, 854]" />
+
+            <!-- Transport buttons — 4 equal buttons, D-pad left/right navigates, OK activates
+                 Total width: 4×150 + 3×24 = 672px, centred: x_start = (1920-672)/2 = 624 -->
+
+            <!-- Btn 0: - 10s -->
+            <Rectangle id="osdBtn0Bg"  color="0x1E2E4EFF" width="150" height="48" translation="[624, 872]" />
+            <Label     id="osdBtn0Lbl" translation="[624, 887]" text="- 10s"
+                       font="font:SmallBoldSystemFont" color="0xBBBBBBFF" width="150" horizAlign="center" />
+
+            <!-- Btn 1: Play / Pause -->
+            <Rectangle id="osdPlayBg"   color="0x4A9FFFFF" width="150" height="48" translation="[798, 872]" />
+            <Label     id="osdPlayIcon" translation="[798, 887]" text="PAUSE"
+                       font="font:SmallBoldSystemFont" color="0x000000FF" width="150" horizAlign="center" />
+
+            <!-- Btn 2: + 30s -->
+            <Rectangle id="osdBtn2Bg"  color="0x1E2E4EFF" width="150" height="48" translation="[972, 872]" />
+            <Label     id="osdBtn2Lbl" translation="[972, 887]" text="+ 30s"
+                       font="font:SmallBoldSystemFont" color="0xBBBBBBFF" width="150" horizAlign="center" />
+
+            <!-- Btn 3: CC toggle -->
+            <Rectangle id="osdBtn3Bg"  color="0x1E2E4EFF" width="150" height="48" translation="[1146, 872]" />
+            <Label     id="osdBtn3Lbl" translation="[1146, 887]" text="CC: Off"
+                       font="font:SmallBoldSystemFont" color="0xBBBBBBFF" width="150" horizAlign="center" />
 
             <!-- Seek bar -->
-            <Rectangle id="seekBg"   translation="[60, 980]"  width="1800" height="8"  color="0x3A3A55FF" />
-            <Rectangle id="seekFill" translation="[60, 980]"  width="0"    height="8"  color="0x4A9FFFFF" />
-            <!-- Seek dot (thumb) -->
-            <Rectangle id="seekDot"  translation="[52, 975]"  width="18"   height="18" color="0x4A9FFFFF" />
+            <Rectangle id="seekBg"   translation="[60, 934]"  width="1800" height="6"  color="0x3A3A55FF" />
+            <Rectangle id="seekFill" translation="[60, 934]"  width="0"    height="6"  color="0x4A9FFFFF" />
+            <Rectangle id="seekDot"  translation="[52, 929]"  width="16"   height="16" color="0x4A9FFFFF" />
 
             <!-- Time labels -->
-            <Label id="osdCurrentTime" translation="[60, 1004]"   width="220"
+            <Label id="osdCurrentTime" translation="[60,  958]" width="220"
                    font="font:SmallSystemFont" color="0xFFFFFFFF" />
-            <Label id="osdTotalTime"   translation="[1700, 1004]"  width="220"
+            <Label id="osdTotalTime"   translation="[1700,958]" width="220"
                    font="font:SmallSystemFont" color="0x888888FF" />
 
             <!-- Hint -->
-            <Label translation="[60, 1048]"
-                   text="OK = play/pause     Left = -10s     Right = +30s     Back = close"
-                   font="font:SmallSystemFont" color="0x44444488" width="900" />
+            <Label translation="[60, 1006]"
+                   text="Left / Right = navigate     OK = select     * = subtitles     Back = exit"
+                   font="font:SmallSystemFont" color="0x2A2A4AFF" width="1800" horizAlign="center" />
+        </Group>
+
+        <!-- ═══ SUBTITLE PANEL ═══ -->
+        <Group id="subtitlePanel" visible="false">
+            <Rectangle color="0x080818F2" width="500" height="286" translation="[710, 380]" />
+            <Rectangle color="0x4A9FFFFF" width="500" height="4"   translation="[710, 380]" />
+            <Label translation="[734, 400]" text="SUBTITLES"
+                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="460" />
+            <Rectangle id="subItem0" color="0x152840FF" width="460" height="58" translation="[730, 438]" />
+            <Label     id="subLabel0" translation="[754, 457]" text="Off"
+                       font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="420" />
+            <Rectangle id="subItem1" color="0x0A0A20FF" width="460" height="58" translation="[730, 506]" />
+            <Label     id="subLabel1" translation="[754, 525]" text="On (Captions)"
+                       font="font:SmallBoldSystemFont" color="0xCCCCCCFF" width="420" />
+            <Label translation="[730, 596]"
+                   text="Up / Down = navigate     OK = select     Back = close"
+                   font="font:SmallSystemFont" color="0x444466FF" width="460" />
         </Group>
 
         <!-- ═══ AUTOPLAY COUNTDOWN ═══ -->
         <Group id="autoplayPanel" visible="false">
-            <Rectangle color="0x000000E8" width="620" height="180" translation="[1280, 820]" />
-            <Rectangle color="0x4A9FFFFF" width="4" height="180" translation="[1280, 820]" />
-            <Label translation="[1298, 836]" text="UP NEXT"
-                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="580" />
-            <Label id="autoplayTitle" translation="[1298, 868]" text=""
-                   font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="580" wrap="true" />
-            <Label id="autoplayLabel" translation="[1298, 948]" text=""
-                   font="font:SmallSystemFont" color="0x888888FF" width="580" />
-            <Label translation="[1298, 974]"
-                   text="OK = play now     Back = cancel"
-                   font="font:SmallSystemFont" color="0x44444488" width="580" />
+            <Rectangle color="0x000000E8" width="600" height="168" translation="[1296, 836]" />
+            <Rectangle color="0x4A9FFFFF" width="4"   height="168" translation="[1296, 836]" />
+            <Label translation="[1314, 852]" text="UP NEXT"
+                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="560" />
+            <Label id="autoplayTitle" translation="[1314, 882]" text=""
+                   font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="560" wrap="true" />
+            <Label id="autoplayLabel" translation="[1314, 952]" text=""
+                   font="font:SmallSystemFont" color="0x888888FF" width="560" />
+            <Label translation="[1314, 978]" text="OK = now     Back = cancel"
+                   font="font:SmallSystemFont" color="0x44444488" width="560" />
         </Group>
     </children>
 </component>

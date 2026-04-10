@@ -50,6 +50,7 @@ from app.models.settings import ServerSetting
 from app.models.history import WatchHistory
 from app.models.invite import InviteCode
 from app.models.request import MediaRequest
+from app.models.pairing import PairingCode
 
 # Setup Templates
 templates = Jinja2Templates(directory=resource_path("app/templates"))
@@ -76,7 +77,7 @@ async def lifespan(app: FastAPI):
         from app.models.settings import ServerSetting
         from sqlalchemy import insert
         await conn.execute(
-            text("INSERT OR IGNORE INTO server_settings (key, value, created_at) VALUES ('open_registration', 'true', datetime('now'))")
+            text("INSERT OR IGNORE INTO server_settings (key, value, created_at) VALUES ('open_registration', 'false', datetime('now'))")
         )
 
     print("Database tables verified/created.")
@@ -85,6 +86,10 @@ async def lifespan(app: FastAPI):
     from app.services import subtitles as sub_svc
     asyncio.create_task(sub_svc.run_worker())
 
+    # Start HLS idle-job reaper
+    from app.api.v1.stream_hls import _reap_idle_jobs
+    asyncio.create_task(_reap_idle_jobs())
+
     yield
     
     print("Shutting down... Closing Database connection.")
@@ -92,14 +97,40 @@ async def lifespan(app: FastAPI):
     
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-# Add CORS Middleware
+# CORS — restrict to origins listed in CORS_ORIGINS env var (space/comma-separated),
+# defaulting to localhost only.  Set CORS_ORIGINS="*" only for development.
+_raw_origins = os.environ.get("CORS_ORIGINS", "http://localhost:8000 http://127.0.0.1:8000")
+_allowed_origins = [o.strip() for o in _raw_origins.replace(",", " ").split() if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Only add CSP to HTML responses to avoid breaking HLS/video streams
+    ct = response.headers.get("content-type", "")
+    if "text/html" in ct:
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "media-src 'self' blob:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none';"
+        )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

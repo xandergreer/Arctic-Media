@@ -351,21 +351,28 @@ async def toggle_superuser(
     return {"id": user.id, "username": user.username, "is_superuser": user.is_superuser}
 
 
+from pydantic import BaseModel as _BaseModel, Field as _Field
+
+class _CreateUserBody(_BaseModel):
+    username: str = _Field(..., min_length=1, max_length=64)
+    password: str = _Field(..., min_length=6, max_length=128)
+    is_superuser: bool = False
+
+
 @router.post("/users")
 async def create_user(
-    username: str,
-    password: str,
-    is_superuser: bool = False,
+    body: _CreateUserBody,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_active_superuser),
 ):
     """Create a new user account. Superuser only."""
+    username = body.username
+    password = body.password
+    is_superuser = body.is_superuser
     from app.services import auth as auth_service
     existing = await auth_service.get_user_by_username(db, username)
     if existing:
         raise HTTPException(status_code=400, detail="Username already taken.")
-    if len(password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
     user = await auth_service.create_user(db, username, password)
     if is_superuser:
         user.is_superuser = True
@@ -388,14 +395,7 @@ async def reset_user_password(
         raise HTTPException(status_code=404, detail="User not found.")
 
     from app.core.security import get_password_hash
-    # 8-char password: 2 words from a tiny wordlist + 2 digits — memorable and typeable
-    adjectives = ["red", "blue", "fast", "cold", "warm", "bold", "calm", "dark"]
-    nouns      = ["fox", "cat", "sun", "sky", "oak", "ice", "bay", "arc"]
-    new_password = (
-        secrets.choice(adjectives)
-        + secrets.choice(nouns)
-        + str(secrets.randbelow(90) + 10)  # 10–99
-    )
+    new_password = secrets.token_urlsafe(16)
     user.hashed_password = get_password_hash(new_password)
     await db.commit()
     return {"username": user.username, "new_password": new_password}
@@ -433,7 +433,7 @@ async def list_invites(
         select(ServerSetting).where(ServerSetting.key == "open_registration")
     )
     setting_row = setting.scalar_one_or_none()
-    open_reg = (setting_row is None) or (setting_row.value == "true")
+    open_reg = setting_row is not None and setting_row.value == "true"
 
     result = await db.execute(
         select(InviteCode).order_by(InviteCode.created_at.desc())
@@ -456,7 +456,7 @@ async def list_invites(
             if u2_row:
                 used_by_name = u2_row.username
 
-        expired = c.expires_at is not None and c.expires_at < datetime.utcnow()
+        expired = c.expires_at is not None and c.expires_at < datetime.now(timezone.utc).replace(tzinfo=None)
         out.append({
             "id": c.id,
             "code": c.code,

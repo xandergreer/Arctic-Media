@@ -13,37 +13,9 @@ const DEVICE_ICONS = {
     unknown: 'device_unknown',
 };
 
-function getAuthHeaders() {
-    const v = `; ${document.cookie}`;
-    const p = v.split(`; access_token=`);
-    if (p.length === 2) return { 'Authorization': `Bearer ${p.pop().split(';').shift()}` };
-    return {};
-}
-
-function isAdmin() {
-    try {
-        const token = getCookie('access_token'); // getCookie from main.js handles = in token correctly
-        if (!token) return false;
-        const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(decodeURIComponent(
-            atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
-        ));
-        return payload.is_superuser === true;
-    } catch { return false; }
-}
-
 async function loadLive() {
-    if (!isAdmin()) {
-        document.getElementById('viewer-grid').innerHTML = `
-            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
-                <span class="material-icons" style="font-size:3rem;display:block;margin-bottom:1rem;">lock</span>
-                <p>Admin access required.</p>
-            </div>`;
-        return;
-    }
-
     try {
-        const res = await fetch('/api/v1/admin/live', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/admin/live', { credentials: 'include' });
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         renderViewers(data.viewers);
@@ -187,11 +159,13 @@ const style = document.createElement('style');
 style.textContent = `@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }`;
 document.head.appendChild(style);
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (!isAdmin()) {
-        window.location.replace('/');
-        return;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const r = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        if (!r.ok) { window.location.replace('/'); return; }
+        const me = await r.json();
+        if (!me.is_superuser) { window.location.replace('/'); return; }
+    } catch { window.location.replace('/'); return; }
     loadLive();
     startAutoRefresh();
 });

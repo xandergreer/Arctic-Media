@@ -17,7 +17,7 @@ async function loadRequests() {
         <p>Loading…</p>
     </div>`;
     try {
-        const res = await fetch('/api/v1/admin/requests', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/admin/requests', { credentials: 'include' });
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         renderRequests(data);
@@ -86,7 +86,8 @@ async function updateRequestStatus(id, status) {
     try {
         const res = await fetch(`/api/v1/admin/requests/${id}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status })
         });
         if (!res.ok) throw new Error((await res.json()).detail || 'Failed');

@@ -7,7 +7,7 @@ async function loadInvites() {
         <p>Loading…</p>
     </div>`;
     try {
-        const res = await fetch('/api/v1/admin/invites', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/admin/invites', { credentials: 'include' });
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         renderInvites(data);
@@ -126,7 +126,7 @@ async function setOpenRegistration(enabled) {
     try {
         await fetch(`/api/v1/admin/invites/settings?open_registration=${enabled}`, {
             method: 'PATCH',
-            headers: getAuthHeaders(),
+            credentials: 'include',
         });
         // Refresh to update status text
         loadInvites();
@@ -140,7 +140,7 @@ async function generateInvite() {
     try {
         const res = await fetch('/api/v1/admin/invites', {
             method: 'POST',
-            headers: getAuthHeaders(),
+            credentials: 'include',
         });
         if (!res.ok) throw new Error();
         loadInvites();
@@ -153,7 +153,7 @@ async function deleteInvite(inviteId) {
     try {
         const res = await fetch(`/api/v1/admin/invites/${inviteId}`, {
             method: 'DELETE',
-            headers: getAuthHeaders(),
+            credentials: 'include',
         });
         if (!res.ok) throw new Error();
         const row = document.getElementById(`invite-row-${inviteId}`);

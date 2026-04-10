@@ -21,33 +21,13 @@
     const show = () => modal?.classList.remove('hidden');
     const hide = () => modal?.classList.add('hidden');
 
-    // Helper: Get Cookie (Duplicated from main.js to keep this file self-contained)
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-    }
-
-    // Helper: Auth Headers
-    function getAuthHeaders() {
-        const token = getCookie("access_token");
-        return token ? { 'Authorization': `Bearer ${token}` } : {};
-    }
-
     // Fetch API: Get Roots
     async function loadRoots() {
         set(listEl, '<div style="color:var(--text-muted);padding:0.5rem;">Loading drives...</div>');
 
-        // Pre-check: must have a token
-        const token = getCookie('access_token');
-        if (!token) {
-            set(listEl, '<div style="color:#f87171;padding:0.5rem;">Not logged in — please log in as admin first.</div>');
-            return;
-        }
-
         try {
             const res = await fetch('/api/v1/system/fs/roots', {
-                headers: getAuthHeaders()
+                credentials: 'include'
             });
             if (!res.ok) {
                 let detail = res.statusText;
@@ -138,7 +118,7 @@
             // Encode path param
             const url = `/api/v1/system/fs/ls?path=${encodeURIComponent(path)}&include_files=false`;
             const res = await fetch(url, {
-                headers: getAuthHeaders()
+                credentials: 'include'
             });
 
             if (!res.ok) {

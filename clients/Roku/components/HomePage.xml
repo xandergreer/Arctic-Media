@@ -26,6 +26,7 @@
         <Label id="tabMovies"   translation="[530, 34]" text="Movies"   color="0x555555FF" font="font:SmallBoldSystemFont" width="160" />
         <Label id="tabShows"    translation="[690, 34]" text="TV Shows" color="0x555555FF" font="font:SmallBoldSystemFont" width="200" />
         <Label id="tabSettings" translation="[890, 34]" text="Settings" color="0x555555FF" font="font:SmallBoldSystemFont" width="200" />
+        <Label id="tabSearch"   translation="[1070, 34]" text="Search"   color="0x555555FF" font="font:SmallBoldSystemFont" width="160" />
 
         <!-- Active tab underline -->
         <Rectangle id="tabLine" color="0x4A9FFFFF" width="60" height="3" translation="[370, 104]" />
@@ -43,20 +44,10 @@
         </Group>
 
         <!-- ═══ MOVIES VIEW ═══ -->
-        <MarkupGrid id="movieGrid"
-                    translation="[40, 126]"
-                    itemComponentName="PosterItem"
-                    numColumns="8"
-                    visible="false"
-                    />
+        <Group id="movieGrid" translation="[40, 126]" visible="false" />
 
         <!-- ═══ TV SHOWS VIEW ═══ -->
-        <MarkupGrid id="showGrid"
-                    translation="[40, 126]"
-                    itemComponentName="PosterItem"
-                    numColumns="8"
-                    visible="false"
-                    />
+        <Group id="showGrid" translation="[40, 126]" visible="false" />
 
         <!-- ═══ SETTINGS VIEW ═══ -->
         <Group id="settingsView" visible="false">

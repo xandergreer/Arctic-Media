@@ -1,19 +1,12 @@
 // Arctic Media 2.0 – Home Page
 
-function getAuthHeaders() {
-    const v = `; ${document.cookie}`;
-    const p = v.split(`; access_token=`);
-    if (p.length === 2) return { 'Authorization': `Bearer ${p.pop().split(';').shift()}` };
-    return {};
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     const loading = document.getElementById('loading');
 
     try {
         const [recentRes, continueRes] = await Promise.all([
-            fetch('/api/v1/media/recently-added?limit=12', { headers: getAuthHeaders() }),
-            fetch('/api/v1/history', { headers: getAuthHeaders() }),
+            fetch('/api/v1/media/recently-added?limit=12', { credentials: 'include' }),
+            fetch('/api/v1/history', { credentials: 'include' }),
         ]);
 
         if (!recentRes.ok) throw new Error('Failed to load dashboard');

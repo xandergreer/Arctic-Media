@@ -44,7 +44,7 @@ async function _refreshMetrics() {
     if (!panel) { stopServerMetrics(); return; }
 
     try {
-        const res = await fetch('/api/v1/admin/server/metrics', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/admin/server/metrics', { credentials: 'include' });
         if (!res.ok) {
             panel.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">
                 <span class="material-icons" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;color:#f87171;">error_outline</span>
@@ -142,7 +142,7 @@ async function loadServer() {
     </div>`;
 
     try {
-        const res = await fetch('/api/v1/admin/server', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/admin/server', { credentials: 'include' });
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         renderServer(data);

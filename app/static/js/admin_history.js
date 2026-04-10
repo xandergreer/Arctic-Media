@@ -7,7 +7,7 @@ async function loadHistory() {
         <p>Loading…</p>
     </div>`;
     try {
-        const res = await fetch('/api/v1/admin/history', { headers: getAuthHeaders() });
+        const res = await fetch('/api/v1/admin/history', { credentials: 'include' });
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         renderHistory(data);
