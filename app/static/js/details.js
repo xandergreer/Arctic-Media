@@ -112,7 +112,7 @@ async function _renderMediaInfo(mediaId) {
             if (v.profile) rows.push(['Profile', v.profile]);
             if (v.width && v.height) rows.push(['Resolution', `${v.width}×${v.height}`]);
             if (v.framerate) rows.push(['Framerate', `${v.framerate} fps`]);
-            if (v.bitrate) rows.push(['Bitrate', `${(v.bitrate / 1_000_000).toFixed(1)} Mbps`]);
+            if (v.bitrate) rows.push(['Bitrate', `${(v.bitrate / 1000000).toFixed(1)} Mbps`]);
             if (v.pix_fmt) rows.push(['Pixel Format', v.pix_fmt]);
             if (rows.length) cards.push(_miCard('Video', rows));
         }
