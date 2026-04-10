@@ -1012,10 +1012,10 @@ select.form-control {
 }
 
 /* ── Edit Metadata Modal ────────────────────────────────────── */
-.edit-modal-content {
+.modal-content.edit-modal-content {
     max-width: 680px;
     width: 95vw;
-    padding: 0;
+    padding: 0 !important;
     display: flex;
     flex-direction: column;
     max-height: 90vh;
@@ -1023,15 +1023,25 @@ select.form-control {
 
 .edit-modal-header {
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    gap: 1rem;
+}
+
+.edit-modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex: 1;
 }
 
 .edit-tabs {
     display: flex;
+    flex-direction: row;
     border-bottom: 1px solid var(--border);
     padding: 0 1.25rem;
     flex-shrink: 0;
@@ -1045,6 +1055,8 @@ select.form-control {
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
+    border-radius: 0;
+    outline: none;
     color: var(--text-muted);
     cursor: pointer;
     font-size: 0.875rem;
@@ -1074,6 +1086,7 @@ select.form-control {
 
 .edit-modal-footer {
     display: flex;
+    flex-direction: row;
     justify-content: flex-end;
     gap: 0.75rem;
     padding: 1rem 1.5rem;
