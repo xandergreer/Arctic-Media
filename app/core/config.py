@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
 
     class Config:
-        env_file = ".env"
+        # Resolve .env relative to this file's location (project root), not the CWD
+        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
 
 settings = Settings()
