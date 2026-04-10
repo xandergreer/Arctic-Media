@@ -6,6 +6,7 @@ import httpx
 from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.library import Library
 from app.models.media import MediaItem, MediaKind
@@ -195,18 +196,21 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
             item.poster_url = details.get("poster")
             item.backdrop_url = details.get("backdrop")
             item.overview = details.get("overview")
+            item.tmdb_id = tmdb_id
             meta.update(details)
             item.extra_json = meta
+            flag_modified(item, "extra_json")
             print(f"  [META] Movie: {item.title} -> TMDB {tmdb_id}")
             return True
 
         elif item.kind == MediaKind.SHOW:
-            tmdb_id = meta.get("tmdb_id") or await _search_tv(api_key, item.title)
+            tmdb_id = meta.get("tmdb_id") or item.tmdb_id or await _search_tv(api_key, item.title)
             if not tmdb_id:
                 print(f"  [META] No TMDB match for show: {item.title}")
                 return False
             details = await _tv_details(api_key, tmdb_id)
             if not details:
+                print(f"  [META] TMDB returned no details for show ID {tmdb_id}")
                 return False
 
             tmdb_title = details.get("title")
@@ -218,8 +222,10 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
             item.poster_url = details.get("poster")
             item.backdrop_url = details.get("backdrop")
             item.overview = details.get("overview")
+            item.tmdb_id = tmdb_id
             meta.update(details)
             item.extra_json = meta
+            flag_modified(item, "extra_json")
             print(f"  [META] Show: {item.title} -> TMDB {tmdb_id}")
             return True
 

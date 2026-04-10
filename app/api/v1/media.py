@@ -176,9 +176,11 @@ async def get_media_item(
         raise HTTPException(status_code=404, detail="Media not found")
     return item
 
+from sqlalchemy.orm.attributes import flag_modified
 from app.schemas.media import MediaUpdate
 from app.services.metadata import refresh_item_metadata, refresh_show_episodes
 from app.models.media import MediaKind
+from app.core.config import settings
 
 @router.patch("/{media_id}")
 async def update_media_item(
@@ -213,14 +215,19 @@ async def update_media_item(
         meta = dict(item.extra_json) if item.extra_json else {}
         old_tmdb_id = meta.get("tmdb_id")
         meta["tmdb_id"] = media_data.tmdb_id
+        item.tmdb_id = media_data.tmdb_id          # set the direct column too
         item.extra_json = meta
-        # Auto-refresh when a new TMDB ID is explicitly set — user entered it, they expect data
+        flag_modified(item, "extra_json")           # ensure SQLAlchemy tracks the JSON change
         if media_data.tmdb_id != old_tmdb_id:
             do_refresh = True
 
     if do_refresh:
-        await refresh_item_metadata(db, item)
-        # For shows, also cascade refresh to all episodes
+        if not settings.TMDB_API_KEY:
+            raise HTTPException(status_code=503, detail="TMDB API key is not configured on this server.")
+        await db.flush()  # write pending changes before metadata service reads the item
+        refreshed = await refresh_item_metadata(db, item)
+        if not refreshed:
+            raise HTTPException(status_code=502, detail="TMDB lookup failed — check the TMDB ID and try again.")
         if item.kind == MediaKind.SHOW:
             await refresh_show_episodes(db, item)
 

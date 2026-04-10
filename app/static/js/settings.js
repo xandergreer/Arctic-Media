@@ -208,34 +208,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- RESCAN SINGLE LIBRARY ---
+    async function _triggerLibraryScan(libId, force = false) {
+        const url = `/api/v1/scan/library/${libId}${force ? '?force=true' : ''}`;
+        const res = await fetch(url, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (data.status === 'already_running') {
+            _startPolling(_getScanPanel()
+                ? []
+                : [{ library_id: parseInt(libId), library_name: data.library || `Library ${libId}`, status: 'scanning', started_at: null, finished_at: null, error: null }]
+            );
+        } else {
+            _startPolling([{
+                library_id: data.library_id || parseInt(libId),
+                library_name: data.library || `Library ${libId}`,
+                status: 'pending',
+                started_at: null,
+                finished_at: null,
+                error: null,
+            }]);
+        }
+    }
+
     document.querySelectorAll('.rescan-lib-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const libId = e.currentTarget.getAttribute('data-id');
             e.currentTarget.disabled = true;
             try {
-                const res = await fetch(`/api/v1/scan/library/${libId}`, {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-                const data = await res.json();
-
-                if (data.status === 'already_running') {
-                    // Just attach to the running scan
-                    _startPolling(_getScanPanel()
-                        ? [] // panel already showing, poll will fill it
-                        : [{ library_id: parseInt(libId), library_name: data.library || `Library ${libId}`, status: 'scanning', started_at: null, finished_at: null, error: null }]
-                    );
-                } else {
-                    _startPolling([{
-                        library_id: data.library_id || parseInt(libId),
-                        library_name: data.library || `Library ${libId}`,
-                        status: 'pending',
-                        started_at: null,
-                        finished_at: null,
-                        error: null,
-                    }]);
-                }
+                await _triggerLibraryScan(libId, false);
             } catch { alert('Failed to start rescan.'); }
+            e.currentTarget.disabled = false;
+        });
+    });
+
+    document.querySelectorAll('.force-rescan-lib-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const libId = e.currentTarget.getAttribute('data-id');
+            if (!confirm('Force rescan ignores the mtime cache and re-checks every folder — useful if files were copied with old timestamps. Continue?')) return;
+            e.currentTarget.disabled = true;
+            try {
+                await _triggerLibraryScan(libId, true);
+            } catch { alert('Failed to start force rescan.'); }
             e.currentTarget.disabled = false;
         });
     });

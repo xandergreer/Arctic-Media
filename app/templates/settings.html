@@ -59,6 +59,11 @@
                         title="Rescan this library">
                         <span class="material-icons" style="font-size:0.9rem;">sync</span>
                     </button>
+                    <button class="btn btn-ghost btn-sm force-rescan-lib-btn" data-id="{{ lib.id }}"
+                        title="Force rescan — ignores mtime cache, re-checks every folder"
+                        style="opacity:0.6;">
+                        <span class="material-icons" style="font-size:0.9rem;">sync_problem</span>
+                    </button>
                     <button class="btn btn-danger btn-sm delete-lib-btn" data-id="{{ lib.id }}" title="Remove library">
                         <span class="material-icons" style="font-size:0.9rem;">delete</span>
                     </button>

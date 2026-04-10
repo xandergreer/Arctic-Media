@@ -93,8 +93,13 @@ async def rescan_library(
     library_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user = Depends(get_current_active_superuser),
+    force: bool = False,
 ):
-    """Start a single library rescan in the background. Returns immediately."""
+    """
+    Start a single library rescan in the background. Returns immediately.
+    Pass ?force=true to ignore mtime caching and re-walk every folder.
+    Useful when files were copied with preserved timestamps (e.g. from another drive).
+    """
     result = await db.execute(select(Library).where(Library.id == library_id))
     lib = result.scalar_one_or_none()
     if not lib:
@@ -102,6 +107,11 @@ async def rescan_library(
 
     if _scan_state.get(library_id, {}).get("status") in ("pending", "scanning"):
         return {"status": "already_running", "library": lib.name}
+
+    if force:
+        lib.last_scanned_at = None
+        await db.commit()
+        print(f"[SCAN] Force rescan: cleared last_scanned_at for '{lib.name}'")
 
     _scan_state[library_id] = {
         "library_id": library_id,
@@ -114,4 +124,4 @@ async def rescan_library(
 
     asyncio.create_task(_run_scan(library_id, lib.name))
 
-    return {"status": "started", "library": lib.name, "library_id": library_id}
+    return {"status": "started", "library": lib.name, "library_id": library_id, "force": force}
