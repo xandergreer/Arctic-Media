@@ -110,26 +110,33 @@ async def register_user(
     password = body.password
     invite_code = body.invite_code
 
-    # Check whether open registration is enabled
-    setting = await db.execute(
-        select(ServerSetting).where(ServerSetting.key == "open_registration")
-    )
-    setting_row = setting.scalar_one_or_none()
-    open_reg = setting_row is not None and setting_row.value == "true"
+    # If no users exist yet, always allow registration (first-run setup)
+    from app.models.user import User as UserModel
+    from sqlalchemy import func
+    user_count_result = await db.execute(select(func.count()).select_from(UserModel))
+    is_first_user = user_count_result.scalar() == 0
 
-    if not open_reg:
-        if not invite_code:
-            raise HTTPException(status_code=403, detail="Registration is invite-only. An invite code is required.")
-        invite = await db.execute(
-            select(InviteCode).where(InviteCode.code == invite_code)
+    if not is_first_user:
+        # Check whether open registration is enabled
+        setting = await db.execute(
+            select(ServerSetting).where(ServerSetting.key == "open_registration")
         )
-        invite_row = invite.scalar_one_or_none()
-        if not invite_row:
-            raise HTTPException(status_code=400, detail="Invalid invite code.")
-        if invite_row.used_at is not None:
-            raise HTTPException(status_code=400, detail="Invite code has already been used.")
-        if invite_row.expires_at and invite_row.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
-            raise HTTPException(status_code=400, detail="Invite code has expired.")
+        setting_row = setting.scalar_one_or_none()
+        open_reg = setting_row is not None and setting_row.value == "true"
+
+        if not open_reg:
+            if not invite_code:
+                raise HTTPException(status_code=403, detail="Registration is invite-only. An invite code is required.")
+            invite = await db.execute(
+                select(InviteCode).where(InviteCode.code == invite_code)
+            )
+            invite_row = invite.scalar_one_or_none()
+            if not invite_row:
+                raise HTTPException(status_code=400, detail="Invalid invite code.")
+            if invite_row.used_at is not None:
+                raise HTTPException(status_code=400, detail="Invite code has already been used.")
+            if invite_row.expires_at and invite_row.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+                raise HTTPException(status_code=400, detail="Invite code has expired.")
 
     existing_user = await auth_service.get_user_by_username(db, username)
     if existing_user:
@@ -137,8 +144,13 @@ async def register_user(
 
     new_user = await auth_service.create_user(db, username, password)
 
+    # First user on a fresh server is automatically an admin
+    if is_first_user:
+        new_user.is_superuser = True
+        await db.commit()
+
     # Mark invite as used
-    if not open_reg and invite_code:
+    if not is_first_user and not open_reg and invite_code:
         invite_row.used_by_id = new_user.id
         invite_row.used_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await db.commit()

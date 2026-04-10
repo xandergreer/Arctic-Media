@@ -10,11 +10,20 @@ MAIN_SCRIPT = "gui_main.py"
 def build():
     print(f"Building {APP_NAME}...")
 
+    # ── Pre-flight checks (BEFORE touching anything on disk) ──────────────────
+    if not os.path.exists(".env"):
+        print("\nERROR: .env file not found in project root.")
+        print("Create a .env file with your API keys before building:")
+        print("  TMDB_API_KEY=...")
+        print("  OPENSUBTITLES_API_KEY=...")
+        print("  SUBDL_API_KEY=...")
+        raise SystemExit(1)
+
     # Install all dependencies into the current venv before bundling
     print("Installing dependencies from requirements.txt...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
     print("Dependencies installed.")
-    
+
     # Clean previous build — but PRESERVE the database and any runtime files
     DB_NAME = "arctic_media.db"
     preserved: list[tuple[str, bytes]] = []  # (relative path inside dist/, bytes)
@@ -40,15 +49,6 @@ def build():
     babelfish_data  = os.path.join(os.path.dirname(_babelfish.__file__), "data")
     guessit_config  = os.path.join(os.path.dirname(_guessit.__file__), "config")
     guessit_data    = os.path.join(os.path.dirname(_guessit.__file__), "data")
-
-    # Ensure .env exists before bundling — it carries the API keys
-    if not os.path.exists(".env"):
-        print("\nERROR: .env file not found in project root.")
-        print("Create a .env file with your API keys before building:")
-        print("  TMDB_API_KEY=...")
-        print("  OPENSUBTITLES_API_KEY=...")
-        print("  SUBDL_API_KEY=...")
-        raise SystemExit(1)
 
     # PyInstaller Arguments
     args = [
