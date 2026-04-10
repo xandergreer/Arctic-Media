@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import re
 import asyncio
 import logging
@@ -171,7 +172,7 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
     Also corrects the stored title to the TMDB canonical name.
     Returns True if updated.
     """
-    api_key = settings.TMDB_API_KEY
+    api_key = settings.TMDB_API_KEY or os.environ.get("TMDB_API_KEY", "")
     if not api_key:
         return False
 
@@ -236,7 +237,7 @@ async def refresh_item_metadata(session: AsyncSession, item: MediaItem) -> bool:
 
 
 async def refresh_show_episodes(session: AsyncSession, show: MediaItem) -> int:
-    api_key = settings.TMDB_API_KEY
+    api_key = settings.TMDB_API_KEY or os.environ.get("TMDB_API_KEY", "")
     if not api_key:
         return 0
 
@@ -293,7 +294,7 @@ async def enrich_library(session: AsyncSession, library_id: int):
     Phase 1 (movies + shows) runs concurrently via asyncio.gather.
     Phase 4 (season episode batches) also runs concurrently.
     """
-    api_key = settings.TMDB_API_KEY
+    api_key = settings.TMDB_API_KEY or os.environ.get("TMDB_API_KEY", "")
     if not api_key:
         print("  [META] Skipping enrichment: no TMDB API key.")
         return
