@@ -41,6 +41,15 @@ def build():
     guessit_config  = os.path.join(os.path.dirname(_guessit.__file__), "config")
     guessit_data    = os.path.join(os.path.dirname(_guessit.__file__), "data")
 
+    # Ensure .env exists before bundling — it carries the API keys
+    if not os.path.exists(".env"):
+        print("\nERROR: .env file not found in project root.")
+        print("Create a .env file with your API keys before building:")
+        print("  TMDB_API_KEY=...")
+        print("  OPENSUBTITLES_API_KEY=...")
+        print("  SUBDL_API_KEY=...")
+        raise SystemExit(1)
+
     # PyInstaller Arguments
     args = [
         MAIN_SCRIPT,
@@ -49,6 +58,7 @@ def build():
         '--windowed', # No console for GUI
         '--clean',
         '--icon=icons/app.ico',
+        '--add-data=.env;.',
         '--add-data=app/templates;app/templates',
         '--add-data=app/static;app/static',
         '--add-data=icons;icons',
