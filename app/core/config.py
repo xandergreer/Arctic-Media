@@ -1,14 +1,14 @@
 import os
 import secrets
 import sys
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
 from dotenv import load_dotenv
 
 # Explicitly load .env from project root using an absolute path,
 # so it works regardless of the working directory the server is launched from.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-load_dotenv(os.path.join(_PROJECT_ROOT, ".env"), override=False)
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"), override=True)
 
 def _get_data_dir() -> str:
     """Return a writable data directory for this installation."""
@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     Secrets are never hardcoded — they come from environment variables,
     a .env file (not committed), or are auto-generated on first run.
     """
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(_PROJECT_ROOT, ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     PROJECT_NAME: str = "Arctic Media 2.0"
 
     # Absolute path so the server subprocess always finds the real DB
@@ -73,8 +79,5 @@ class Settings(BaseSettings):
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
     ALGORITHM: str = "HS256"
-
-    class Config:
-        env_file = ".env"
 
 settings = Settings()
