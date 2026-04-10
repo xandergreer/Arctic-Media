@@ -7,7 +7,7 @@ a = Analysis(
     ['gui_main.py'],
     pathex=[],
     binaries=[('bin/ffmpeg.exe', 'bin'), ('bin/ffprobe.exe', 'bin')],
-    datas=[('app/templates', 'app/templates'), ('app/static', 'app/static'), ('icons', 'icons')],
+    datas=[('app/templates', 'app/templates'), ('app/static', 'app/static'), ('icons', 'icons'), ('.env', '.')],
     hiddenimports=_app_hidden + ['psutil', 'guessit', 'rebulk', 'babelstone', 'uvicorn.logging', 'uvicorn.loops', 'uvicorn.loops.auto', 'uvicorn.protocols', 'uvicorn.protocols.http', 'uvicorn.protocols.http.auto', 'uvicorn.lifespan', 'uvicorn.lifespan.on', 'engineio.async_drivers.aiohttp', 'sqlalchemy.sql.default_comparator', 'aiosqlite', 'sqlalchemy.dialects.sqlite.aiosqlite', 'pystray', 'PIL', 'tkinter', 'gui_main', 'passlib.handlers.argon2', 'passlib.handlers.bcrypt', 'argon2', 'bcrypt'],
     hookspath=[],
     hooksconfig={},

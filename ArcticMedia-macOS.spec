@@ -10,6 +10,7 @@ a = Analysis(
         ('app', 'app'),  # Include app directory (templates, static, etc.)
         ('icons', 'icons'),  # Include icons
         ('roku', 'roku'),  # Include roku module
+        ('.env', '.'),  # Bundle API keys
     ],
     hiddenimports=[
         'tkinter',
