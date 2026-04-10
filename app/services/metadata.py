@@ -320,7 +320,7 @@ async def enrich_library(session: AsyncSession, library_id: int):
     # so previously half-enriched items get filled in on subsequent scans.
     async def _enrich_one(item: MediaItem):
         meta = dict(item.extra_json) if item.extra_json else {}
-        if meta.get("tmdb_id") and item.poster_url and item.overview and item.backdrop_url:
+        if meta.get("tmdb_id") and item.poster_url and item.overview and item.backdrop_url and meta.get("cast"):
             return  # fully enriched
         await refresh_item_metadata(session, item)
 
