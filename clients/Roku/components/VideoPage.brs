@@ -322,8 +322,8 @@ end sub
 sub doSaveProgress()
     if m.mediaId = 0 then return
     if m.lastPos <= 0 then return
-    posInt = Int(m.lastPos * 10)
-    durInt = Int(m.totalDur * 10)
+    posInt = Int(m.lastPos)
+    durInt = Int(m.totalDur)
     q = Chr(34)
     body = "{" + q + "position_seconds" + q + ":" + posInt.ToStr() + "," + q + "duration_seconds" + q + ":" + durInt.ToStr() + "}"
     task = CreateObject("roSGNode", "ApiTask")

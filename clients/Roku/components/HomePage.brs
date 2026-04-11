@@ -81,8 +81,10 @@ sub init()
 
     ' State
     m.continueRows   = invalid
-    m.movieItems     = invalid
-    m.showItems      = invalid
+    m.movieItems     = invalid   ' A-Z list for the Movies grid tab
+    m.showItems      = invalid   ' A-Z list for the Shows grid tab
+    m.recentMovies   = invalid   ' sort=added for home "Recently Added" row
+    m.recentShows    = invalid   ' sort=added for home "Recently Added" row
     m.activeIdx      = 0
     m.inContent      = false
     m.homeRowsBuilt  = false
@@ -104,6 +106,8 @@ sub init()
     updateTabs()
 
     loadContinueWatching()
+    loadRecentMovies()
+    loadRecentShows()
     loadMovies()
     loadShows()
 end sub
@@ -157,7 +161,7 @@ end sub
 
 sub loadMovies()
     task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/media/movies?skip=0&limit=100"
+    task.url   = m.serverUrl + "/api/v1/media/movies?skip=0&limit=100&sort=az"
     task.token = m.token
     task.observeField("resultArr", "onMoviesResult")
     task.observeField("apiError",  "onMoviesError")
@@ -167,12 +171,32 @@ end sub
 
 sub loadShows()
     task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/media/shows?skip=0&limit=100"
+    task.url   = m.serverUrl + "/api/v1/media/shows?skip=0&limit=100&sort=az"
     task.token = m.token
     task.observeField("resultArr", "onShowsResult")
     task.observeField("apiError",  "onShowsError")
     task.control = "run"
     m.showsTask = task
+end sub
+
+sub loadRecentMovies()
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/movies?skip=0&limit=20&sort=added"
+    task.token = m.token
+    task.observeField("resultArr", "onRecentMoviesResult")
+    task.observeField("apiError",  "onRecentMoviesError")
+    task.control = "run"
+    m.recentMoviesTask = task
+end sub
+
+sub loadRecentShows()
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/shows?skip=0&limit=20&sort=added"
+    task.token = m.token
+    task.observeField("resultArr", "onRecentShowsResult")
+    task.observeField("apiError",  "onRecentShowsError")
+    task.control = "run"
+    m.recentShowsTask = task
 end sub
 
 sub onContinueResult(event as object)
@@ -198,10 +222,7 @@ end sub
 sub onMoviesResult(event as object)
     m.movieItems     = event.getData()
     m.movieGridBuilt = false
-    if not m.inContent
-        m.homeRowsBuilt = false
-        if m.activeIdx = 0 then buildHomeRows()
-    end if
+    ' Grid tab: rebuild grid if Movies tab is active
     if m.activeIdx = 1 then buildMovieGrid()
 end sub
 
@@ -211,19 +232,12 @@ sub onMoviesError(event as object)
         return
     end if
     m.movieItems = []
-    if not m.inContent
-        m.homeRowsBuilt = false
-        if m.activeIdx = 0 then buildHomeRows()
-    end if
 end sub
 
 sub onShowsResult(event as object)
     m.showItems     = event.getData()
     m.showGridBuilt = false
-    if not m.inContent
-        m.homeRowsBuilt = false
-        if m.activeIdx = 0 then buildHomeRows()
-    end if
+    ' Grid tab: rebuild grid if Shows tab is active
     if m.activeIdx = 2 then buildShowGrid()
 end sub
 
@@ -233,6 +247,43 @@ sub onShowsError(event as object)
         return
     end if
     m.showItems = []
+end sub
+
+' Recently-added data — drives home page rows only (sort=added, limit=20)
+sub onRecentMoviesResult(event as object)
+    m.recentMovies  = event.getData()
+    if not m.inContent
+        m.homeRowsBuilt = false
+        if m.activeIdx = 0 then buildHomeRows()
+    end if
+end sub
+
+sub onRecentMoviesError(event as object)
+    if event.getData() = "Unauthorized"
+        m.top.navRequest = {action: "signout"}
+        return
+    end if
+    m.recentMovies = []
+    if not m.inContent
+        m.homeRowsBuilt = false
+        if m.activeIdx = 0 then buildHomeRows()
+    end if
+end sub
+
+sub onRecentShowsResult(event as object)
+    m.recentShows = event.getData()
+    if not m.inContent
+        m.homeRowsBuilt = false
+        if m.activeIdx = 0 then buildHomeRows()
+    end if
+end sub
+
+sub onRecentShowsError(event as object)
+    if event.getData() = "Unauthorized"
+        m.top.navRequest = {action: "signout"}
+        return
+    end if
+    m.recentShows = []
     if not m.inContent
         m.homeRowsBuilt = false
         if m.activeIdx = 0 then buildHomeRows()
@@ -245,12 +296,12 @@ end sub
 
 sub buildHomeRows()
     if m.homeRowsBuilt then return
-    if m.continueRows = invalid then return  ' wait for CW data
-    if m.movieItems = invalid then return    ' wait for movies data
+    if m.continueRows  = invalid then return  ' wait for CW data
+    if m.recentMovies  = invalid then return  ' wait for recently-added movies
 
     hasCW     = m.continueRows <> invalid and m.continueRows.count() > 0
-    hasMovies = m.movieItems   <> invalid
-    hasShows  = m.showItems    <> invalid
+    hasMovies = m.recentMovies <> invalid and m.recentMovies.count() > 0
+    hasShows  = m.recentShows  <> invalid and m.recentShows.count() > 0
 
     ' Reset row arrays
     m.homeRowGroups = []
@@ -301,7 +352,7 @@ sub buildHomeRows()
         m.homeRowLabels.push(m.labelMovies)
         m.homeRowStride.push(218)
         m.homeRowWidth.push(182)
-        populateRowGroup(m.moviesRowGroup, m.movieItems, "PosterItem", false)
+        populateRowGroup(m.moviesRowGroup, m.recentMovies, "PosterItem", false)
         nextY = nextY + 26 + 220 + 30
     else
         m.labelMovies.visible    = false
@@ -348,13 +399,13 @@ sub buildCategoryRow()
         cn.addFields({kind: cat.kind, bgColor: cat.bgColor})
 
         posterUrl = ""
-        if cat.kind = "movies" and m.movieItems <> invalid and m.movieItems.count() > 0
-            firstItem = m.movieItems[0]
+        if cat.kind = "movies" and m.recentMovies <> invalid and m.recentMovies.count() > 0
+            firstItem = m.recentMovies[0]
             if firstItem.poster_url <> invalid
                 posterUrl = ResolveUrl(m.serverUrl, firstItem.poster_url)
             end if
-        else if cat.kind = "shows" and m.showItems <> invalid and m.showItems.count() > 0
-            firstItem = m.showItems[0]
+        else if cat.kind = "shows" and m.recentShows <> invalid and m.recentShows.count() > 0
+            firstItem = m.recentShows[0]
             if firstItem.poster_url <> invalid
                 posterUrl = ResolveUrl(m.serverUrl, firstItem.poster_url)
             end if

@@ -1,7 +1,7 @@
 title=Arctic Media
 major_version=1
 minor_version=0
-build_version=0
+build_version=3
 mm_icon_focus_hd=pkg:/images/app_icon_hd.png
 mm_icon_focus_sd=pkg:/images/app_icon_sd.png
 ui_resolutions=fhd

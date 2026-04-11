@@ -9,41 +9,60 @@
     <children>
         <!-- Background -->
         <Rectangle color="0x080818FF" width="1920" height="1080" />
-        <!-- Blurred backdrop poster -->
+        <!-- Blurred backdrop -->
         <Poster id="backdrop" width="1920" height="1080" opacity="0.14" loadDisplayMode="scaleToZoom" />
 
-        <!-- Poster (portrait 2:3) -->
-        <Poster id="poster" translation="[60, 80]" width="256" height="384" loadDisplayMode="scaleToZoom" />
+        <!-- Poster (portrait 2:3) — 220x330 -->
+        <Poster id="poster" translation="[60, 80]" width="220" height="330" loadDisplayMode="scaleToZoom" />
 
         <!-- Title -->
-        <Label id="titleLabel" translation="[376, 80]" width="1490"
-               font="font:LargeBoldSystemFont" color="0xFFFFFFFF" wrap="true" />
+        <Label id="titleLabel" translation="[340, 80]" width="1100"
+               font="font:LargeBoldSystemFont" color="0xFFFFFFFF" wrap="true" numLines="2" />
 
         <!-- Meta: year · type -->
-        <Label id="metaLabel" translation="[376, 200]" width="900"
+        <Label id="metaLabel" translation="[340, 190]" width="900"
                font="font:SmallSystemFont" color="0x4A9FFFFF" />
 
         <!-- Divider -->
-        <Rectangle translation="[376, 228]" width="720" height="2" color="0x1C1C3AFF" />
+        <Rectangle translation="[340, 218]" width="900" height="2" color="0x1C1C3AFF" />
 
-        <!-- Overview -->
-        <Label id="overviewLabel" translation="[376, 242]" width="1460"
-               font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" />
+        <!-- Overview (max 4 lines) -->
+        <Label id="overviewLabel" translation="[340, 232]" width="920"
+               font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" numLines="4" />
+
+        <!-- Genres -->
+        <Label id="genresLabel" translation="[340, 394]" width="900"
+               font="font:SmallSystemFont" color="0x888888FF" />
 
         <!-- Play button -->
-        <Rectangle id="playBtn"  translation="[376, 504]" width="190" height="56" color="0x4A9FFFFF" />
-        <Label id="playBtnLabel" translation="[392, 522]" text="Play"
-               color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="165" />
+        <Rectangle id="playBtn"      translation="[340, 436]" width="188" height="52" color="0x4A9FFFFF" />
+        <Label     id="playBtnLabel" translation="[356, 453]"
+                   text="Play" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="165" />
 
         <!-- Browse Episodes button (TV shows only) -->
-        <Rectangle id="episodesBtn"  translation="[584, 504]" width="260" height="56"
+        <Rectangle id="episodesBtn"      translation="[546, 436]" width="260" height="52"
                    color="0x1A2A4AFF" visible="false" />
-        <Label id="episodesBtnLabel" translation="[598, 522]" text="Browse Episodes"
-               color="0xCCCCCCFF" font="font:SmallBoldSystemFont" width="242" visible="false" />
+        <Label     id="episodesBtnLabel" translation="[558, 453]"
+                   text="Browse Episodes" color="0xCCCCCCFF"
+                   font="font:SmallBoldSystemFont" width="242" visible="false" />
+
+        <!-- Cast section -->
+        <Label id="castSectionLabel" translation="[60, 524]"
+               text="Cast" font="font:SmallBoldSystemFont"
+               color="0x4A9FFFFF" width="200" visible="false" />
+        <!-- Cast row: children built dynamically in BRS -->
+        <Group id="castRow" translation="[60, 554]" />
+
+        <!-- Similar section -->
+        <Label id="similarSectionLabel" translation="[60, 714]"
+               text="More Like This" font="font:SmallBoldSystemFont"
+               color="0x4A9FFFFF" width="300" visible="false" />
+        <!-- Similar row: children built dynamically in BRS -->
+        <Group id="similarRow" translation="[60, 746]" />
 
         <!-- Hint -->
-        <Label translation="[376, 600]"
-               text="Back = return     Left / Right = switch     OK = select"
-               color="0x33334AFF" font="font:SmallSystemFont" width="900" />
+        <Label id="hintLabel" translation="[60, 950]"
+               text="Back=return   Left/Right=switch   OK=select"
+               color="0x33334AFF" font="font:SmallSystemFont" width="1200" />
     </children>
 </component>

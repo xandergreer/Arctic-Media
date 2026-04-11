@@ -24,18 +24,46 @@ def build():
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
     print("Dependencies installed.")
 
-    # Clean previous build — but PRESERVE the database and any runtime files
+    # Clean previous build — but PRESERVE the database and any runtime files.
+    #
+    # SQLite WAL mode uses THREE files: arctic_media.db, arctic_media.db-wal,
+    # arctic_media.db-shm.  Saving only the .db file and discarding the -wal
+    # file loses every transaction that was written to the WAL but not yet
+    # checkpointed into the main database — which includes TMDB cast/genre
+    # data written during the most recent scan.
+    #
+    # Fix: checkpoint the WAL first (flushes all data into the .db file and
+    # truncates the WAL), then copy only the clean .db file.
     DB_NAME = "arctic_media.db"
     preserved: list[tuple[str, bytes]] = []  # (relative path inside dist/, bytes)
 
     if os.path.exists("dist"):
-        # Back up everything we need to survive the wipe
-        for fname in [DB_NAME]:
-            fpath = os.path.join("dist", fname)
-            if os.path.exists(fpath):
-                with open(fpath, "rb") as f:
-                    preserved.append((fname, f.read()))
-                print(f"  Preserving {fname} ({os.path.getsize(fpath):,} bytes)")
+        db_path = os.path.join("dist", DB_NAME)
+        if os.path.exists(db_path):
+            # Checkpoint the WAL so all committed data ends up in the .db file.
+            # This is safe to do even if the WAL / SHM files are absent.
+            try:
+                import sqlite3
+                con = sqlite3.connect(db_path)
+                con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                con.close()
+                print(f"  WAL checkpoint complete for {DB_NAME}")
+            except Exception as wal_err:
+                print(f"  WARNING: WAL checkpoint failed ({wal_err}) — copying all WAL files as fallback")
+
+            # Back up the main DB (WAL is now truncated so all data is here)
+            with open(db_path, "rb") as f:
+                preserved.append((DB_NAME, f.read()))
+            print(f"  Preserving {DB_NAME} ({os.path.getsize(db_path):,} bytes)")
+
+            # Also preserve .secret_key if it exists next to the exe
+            for extra in [".secret_key"]:
+                ep = os.path.join("dist", extra)
+                if os.path.exists(ep):
+                    with open(ep, "rb") as f:
+                        preserved.append((extra, f.read()))
+                    print(f"  Preserving {extra}")
+
         try:
             shutil.rmtree("dist")
         except PermissionError as e:

@@ -146,7 +146,6 @@ async function loadServer() {
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         renderServer(data);
-        _startMetricsPolling();
     } catch (e) {
         el.innerHTML = `<div style="text-align:center;padding:3rem 2rem;color:var(--text-muted);">
             <span class="material-icons" style="font-size:2rem;display:block;margin-bottom:0.5rem;">error_outline</span>
@@ -232,5 +231,90 @@ function renderServer(data) {
         <h3 style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:1rem;">Libraries</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem;">
             ${libCards || '<p style="color:var(--text-muted)">No libraries configured.</p>'}
+        </div>
+
+        <h3 style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:2rem 0 1rem;">Database</h3>
+        <div id="db-info-panel" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;">
+            <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">Loading…</div>
         </div>`;
+
+    // Kick off live metrics loop now that the panel is in the DOM
+    if (_metricsTimer) clearInterval(_metricsTimer);
+    _refreshMetrics();
+    _metricsTimer = setInterval(_refreshMetrics, 4000);
+
+    // Load DB info
+    _loadDbInfo();
+}
+
+async function _loadDbInfo() {
+    const panel = document.getElementById('db-info-panel');
+    if (!panel) return;
+    try {
+        const res = await fetch('/api/v1/admin/db/info', { credentials: 'include' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        const walWarning = d.wal_size_bytes > 0
+            ? `<div style="margin-top:0.75rem;padding:0.6rem 0.8rem;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.3);border-radius:var(--radius-sm);font-size:0.8rem;color:#fb923c;">
+                <span class="material-icons" style="font-size:13px;vertical-align:middle;margin-right:4px;">warning</span>
+                WAL file has ${_fmtBytes(d.wal_size_bytes)} of uncommitted writes.
+                The backup below will flush these automatically.
+               </div>`
+            : '';
+        panel.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem;">Database file</div>
+                    <div style="font-family:monospace;font-size:0.82rem;word-break:break-all;color:var(--text-sub);">${d.db_path}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.4rem;">${_fmtBytes(d.db_size_bytes)}</div>
+                    ${walWarning}
+                </div>
+                <div style="flex-shrink:0;">
+                    <button id="db-backup-btn" class="btn btn-primary"
+                            style="display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;padding:0.5rem 1.1rem;"
+                            onclick="_downloadDbBackup()">
+                        <span class="material-icons" style="font-size:16px;">download</span>
+                        Backup Database
+                    </button>
+                    <div id="db-backup-msg" style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;text-align:right;"></div>
+                </div>
+            </div>`;
+    } catch (e) {
+        panel.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;">Could not load database info: ${e.message}</div>`;
+    }
+}
+
+async function _downloadDbBackup() {
+    const btn = document.getElementById('db-backup-btn');
+    const msg = document.getElementById('db-backup-msg');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons" style="font-size:16px;animation:spin 1s linear infinite;">sync</span> Checkpointing…';
+    }
+    if (msg) msg.textContent = '';
+    try {
+        const res = await fetch('/api/v1/admin/db/backup', { credentials: 'include' });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: res.statusText }));
+            throw new Error(err.detail || res.statusText);
+        }
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `arctic_media_backup_${new Date().toISOString().slice(0, 10)}.db`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        if (msg) { msg.textContent = 'Download started ✓'; msg.style.color = 'var(--primary)'; }
+        setTimeout(_loadDbInfo, 1200);
+    } catch (e) {
+        if (msg) { msg.textContent = `Error: ${e.message}`; msg.style.color = '#f87171'; }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons" style="font-size:16px;">download</span> Backup Database';
+        }
+    }
 }

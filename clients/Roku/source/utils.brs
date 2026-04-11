@@ -70,8 +70,8 @@ sub SaveProgress(mediaId as integer, posSec as float, durSec as float)
     serverUrl = GetReg("server_url")
     token     = GetReg("access_token")
     q = Chr(34)
-    posInt = Int(posSec * 10)
-    durInt = Int(durSec * 10)
+    posInt = Int(posSec)
+    durInt = Int(durSec)
     body = "{" + q + "position_seconds" + q + ":" + posInt.ToStr() + "," + q + "duration_seconds" + q + ":" + durInt.ToStr() + "}"
     HttpPost(serverUrl + "/api/v1/history/" + mediaId.ToStr(), token, body)
 end sub

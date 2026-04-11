@@ -670,6 +670,89 @@ async def get_history_stats(
     }
 
 
+@router.get("/db/backup")
+async def backup_database(
+    _: User = Depends(get_current_active_superuser),
+):
+    """
+    Stream a WAL-checkpointed copy of the SQLite database as a binary download.
+    The checkpoint ensures all pending WAL transactions are included — safe to
+    copy, restore, or archive without needing to also copy -wal / -shm files.
+    """
+    import sqlite3
+    import tempfile
+    from fastapi.responses import FileResponse
+    from app.core.config import _get_db_path
+
+    db_path = _get_db_path()
+    if not os.path.exists(db_path):
+        raise HTTPException(status_code=404, detail="Database file not found.")
+
+    # Write a clean checkpoint copy into a temp file
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+
+    try:
+        # sqlite3.connect + backup() is the safest way to get a hot-copy that
+        # includes the WAL without interrupting live connections.
+        src = sqlite3.connect(db_path)
+        dst = sqlite3.connect(tmp.name)
+        src.backup(dst)
+        dst.close()
+        src.close()
+    except Exception as exc:
+        os.unlink(tmp.name)
+        raise HTTPException(status_code=500, detail=f"Backup failed: {exc}")
+
+    return FileResponse(
+        tmp.name,
+        media_type="application/octet-stream",
+        filename="arctic_media_backup.db",
+        background=None,
+    )
+
+
+@router.post("/db/restore")
+async def restore_database(
+    _: User = Depends(get_current_active_superuser),
+):
+    """
+    NOT implemented as a file-upload endpoint — restoring an SQLite DB while
+    async connections are live is not safe.  Instead, stop the server, replace
+    the file at the path returned by /admin/db/info, then restart.
+    """
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            "Live restore is not supported. "
+            "Stop the server, replace the database file, then restart. "
+            "Use GET /admin/db/backup to download a safe checkpoint copy first."
+        ),
+    )
+
+
+@router.get("/db/info")
+async def database_info(
+    _: User = Depends(get_current_active_superuser),
+):
+    """Return the database file path and size so the admin knows where to put a restored copy."""
+    from app.core.config import _get_db_path
+    db_path = _get_db_path()
+    size = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+    wal_path = db_path + "-wal"
+    wal_size = os.path.getsize(wal_path) if os.path.exists(wal_path) else 0
+    return {
+        "db_path": db_path,
+        "db_size_bytes": size,
+        "wal_path": wal_path,
+        "wal_size_bytes": wal_size,
+        "note": (
+            "WAL size > 0 means recent writes exist only in the WAL file. "
+            "Use GET /admin/db/backup which checkpoints and consolidates both automatically."
+        ),
+    }
+
+
 @router.patch("/invites/settings")
 async def update_invite_settings(
     open_registration: bool,
