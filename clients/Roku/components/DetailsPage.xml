@@ -7,61 +7,66 @@
     <script type="text/brightscript" uri="pkg:/source/utils.brs" />
     <script type="text/brightscript" uri="pkg:/components/DetailsPage.brs" />
     <children>
-        <!-- Background -->
+        <!-- Static background (never scrolls) -->
         <Rectangle color="0x080818FF" width="1920" height="1080" />
-        <!-- Blurred backdrop -->
-        <Poster id="backdrop" width="1920" height="1080" opacity="0.14" loadDisplayMode="scaleToZoom" />
+        <Poster id="backdrop" width="1920" height="1080" opacity="0.07" loadDisplayMode="scaleToZoom" />
 
-        <!-- Poster (portrait 2:3) — 220x330 -->
-        <Poster id="poster" translation="[60, 80]" width="220" height="330" loadDisplayMode="scaleToZoom" />
+        <!-- ═══ Scrollable content group ═══ -->
+        <Group id="scrollGroup">
 
-        <!-- Title -->
-        <Label id="titleLabel" translation="[340, 80]" width="1100"
-               font="font:LargeBoldSystemFont" color="0xFFFFFFFF" wrap="true" numLines="2" />
+            <!-- Poster — 240×360 -->
+            <Poster id="poster" translation="[60, 70]" width="240" height="360" loadDisplayMode="scaleToZoom" />
 
-        <!-- Meta: year · type -->
-        <Label id="metaLabel" translation="[340, 190]" width="900"
-               font="font:SmallSystemFont" color="0x4A9FFFFF" />
+            <!-- Title -->
+            <Label id="titleLabel" translation="[360, 70]" width="1080"
+                   font="font:LargeBoldSystemFont" color="0xFFFFFFFF" wrap="true" numLines="2" />
 
-        <!-- Divider -->
-        <Rectangle translation="[340, 218]" width="900" height="2" color="0x1C1C3AFF" />
+            <!-- Meta: year · type -->
+            <Label id="metaLabel" translation="[360, 200]" width="900"
+                   font="font:SmallSystemFont" color="0x4A9FFFFF" />
 
-        <!-- Overview (max 4 lines) -->
-        <Label id="overviewLabel" translation="[340, 232]" width="920"
-               font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" numLines="4" />
+            <!-- Divider -->
+            <Rectangle translation="[360, 234]" width="880" height="1" color="0x1C1C3AFF" />
 
-        <!-- Genres -->
-        <Label id="genresLabel" translation="[340, 394]" width="900"
-               font="font:SmallSystemFont" color="0x888888FF" />
+            <!-- Overview (max 4 lines) — starts 18px below divider -->
+            <Label id="overviewLabel" translation="[360, 254]" width="900"
+                   font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" numLines="4" />
 
-        <!-- Play button -->
-        <Rectangle id="playBtn"      translation="[340, 436]" width="188" height="52" color="0x4A9FFFFF" />
-        <Label     id="playBtnLabel" translation="[356, 453]"
-                   text="Play" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="165" />
+            <!-- Genres — 254 + 4×32 + 52 gap = 434 -->
+            <Label id="genresLabel" translation="[360, 434]" width="900"
+                   font="font:SmallSystemFont" color="0x888888FF" />
 
-        <!-- Browse Episodes button (TV shows only) -->
-        <Rectangle id="episodesBtn"      translation="[546, 436]" width="260" height="52"
-                   color="0x1A2A4AFF" visible="false" />
-        <Label     id="episodesBtnLabel" translation="[558, 453]"
-                   text="Browse Episodes" color="0xCCCCCCFF"
-                   font="font:SmallBoldSystemFont" width="242" visible="false" />
+            <!-- Play button — 56px below genres -->
+            <Rectangle id="playBtn"      translation="[360, 500]" width="210" height="58" color="0x4A9FFFFF" />
+            <Label     id="playBtnLabel" translation="[380, 519]"
+                       text="Play" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="180" />
 
-        <!-- Cast section -->
-        <Label id="castSectionLabel" translation="[60, 524]"
-               text="Cast" font="font:SmallBoldSystemFont"
-               color="0x4A9FFFFF" width="200" visible="false" />
-        <!-- Cast row: children built dynamically in BRS -->
-        <Group id="castRow" translation="[60, 554]" />
+            <!-- Browse Episodes button (TV shows only) -->
+            <Rectangle id="episodesBtn"      translation="[588, 500]" width="290" height="58"
+                       color="0x1A2A4AFF" visible="false" />
+            <Label     id="episodesBtnLabel" translation="[604, 519]"
+                       text="Browse Episodes" color="0xCCCCCCFF"
+                       font="font:SmallBoldSystemFont" width="268" visible="false" />
 
-        <!-- Similar section -->
-        <Label id="similarSectionLabel" translation="[60, 714]"
-               text="More Like This" font="font:SmallBoldSystemFont"
-               color="0x4A9FFFFF" width="300" visible="false" />
-        <!-- Similar row: children built dynamically in BRS -->
-        <Group id="similarRow" translation="[60, 746]" />
+            <!-- ── Cast section — 80px below play button bottom ── -->
+            <!-- play bottom = 500+58=558, cast label at 558+80=638 -->
+            <Label id="castSectionLabel" translation="[60, 638]"
+                   text="Cast" font="font:SmallBoldSystemFont"
+                   color="0x4A9FFFFF" width="200" opacity="0" />
+            <!-- Cast row: built dynamically; cards are 190×250 + 2-line name + role -->
+            <Group id="castRow" translation="[60, 684]" />
 
-        <!-- Hint -->
-        <Label id="hintLabel" translation="[60, 950]"
+            <!-- ── Similar section — pushed to 2200 so it's always off-screen until scrolled to ── -->
+            <Label id="similarSectionLabel" translation="[60, 2200]"
+                   text="More Like This" font="font:SmallBoldSystemFont"
+                   color="0x4A9FFFFF" width="300" opacity="0" />
+            <!-- Similar row: built dynamically; cards are 200×300 + 2-line title -->
+            <Group id="similarRow" translation="[60, 2246]" />
+
+        </Group>
+
+        <!-- Hint — pinned to bottom, never scrolls -->
+        <Label id="hintLabel" translation="[60, 1052]"
                text="Back=return   Left/Right=switch   OK=select"
                color="0x33334AFF" font="font:SmallSystemFont" width="1200" />
     </children>

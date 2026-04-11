@@ -46,8 +46,8 @@ router = APIRouter(prefix="/stream", tags=["stream"])
 # ──────────────────────────────────────────────────────────────────────────────
 # Config & Globals
 # ──────────────────────────────────────────────────────────────────────────────
-HLS_SEG_DUR = 4.0                  # Standard segment duration
-DEFAULT_GOP = 48                   # GOP size
+HLS_SEG_DUR = 6.0                  # Segment duration — 6s gives the transcoder more headroom
+DEFAULT_GOP = 48                   # GOP size (~2 s at 24 fps; 3 GOPs per segment)
 TRANSCODE_ROOT = Path(tempfile.gettempdir()) / "arctic_hls"
 TRANSCODE_ROOT.mkdir(parents=True, exist_ok=True)
 STREAM_AUDIENCE = "stream-segment"
@@ -315,8 +315,11 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
             "-hls_list_size", "0", # Keep all segments in playlist for seeking
             "-hls_segment_filename", str(job.workdir / "seg_%05d.ts"),
             "-hls_segment_type", "mpegts",
-            "-hls_flags", "independent_segments",
-            "-start_number", str(job.start_seg),  # name output files from this index
+            # temp_file: FFmpeg writes seg_NNNNN.ts.tmp then atomically renames
+            # to seg_NNNNN.ts only when the segment is fully flushed — eliminates
+            # the race where we serve a partial segment and Roku stutters.
+            "-hls_flags", "independent_segments+temp_file",
+            "-start_number", str(job.start_seg),
         ])
         
         # Annex B filter for TS copy mode (h264_mp4toannexb for H.264, hevc_mp4toannexb for H.265)
@@ -611,15 +614,16 @@ async def get_hls_segment(
             pass
 
     # In fake-VOD mode the player may request a segment before ffmpeg has produced it.
-    # Poll up to 60 s for the segment to appear rather than returning 404 immediately.
+    # Poll up to 60 s for the segment to appear.
+    # With -hls_flags temp_file, ffmpeg writes seg_NNNNN.ts.tmp and renames to
+    # seg_NNNNN.ts atomically when complete — so a file that exists is fully written.
     if not seg_path.exists():
         for _ in range(120):  # 60 s
             await asyncio.sleep(0.5)
-            if seg_path.exists() and seg_path.stat().st_size > 0:
+            if seg_path.exists():  # temp_file guarantees completeness on appearance
                 break
-            # If ffmpeg exited without writing this segment, stop waiting
             if job.proc and job.proc.returncode is not None:
-                break
+                break  # ffmpeg exited — segment will never appear
 
     if not seg_path.exists():
         raise HTTPException(404, "Segment not found")

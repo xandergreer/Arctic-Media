@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component name="HomePage" extends="Group">
     <interface>
-        <field id="navRequest" type="assocarray" alwaysNotify="true" />
-        <field id="params"     type="assocarray" />
+        <field id="navRequest"        type="assocarray" alwaysNotify="true" />
+        <field id="params"            type="assocarray" />
+        <field id="onReturnedToHome"  type="boolean"    alwaysNotify="true" />
     </interface>
     <script type="text/brightscript" uri="pkg:/source/utils.brs" />
     <script type="text/brightscript" uri="pkg:/components/HomePage.brs" />

@@ -3,14 +3,6 @@ sub init()
     m.osd            = m.top.findNode("osd")
     m.osdTitle       = m.top.findNode("osdTitle")
     m.osdState       = m.top.findNode("osdState")
-    m.osdBtn0Bg      = m.top.findNode("osdBtn0Bg")
-    m.osdBtn0Lbl     = m.top.findNode("osdBtn0Lbl")
-    m.osdPlayBg      = m.top.findNode("osdPlayBg")
-    m.osdPlayIcon    = m.top.findNode("osdPlayIcon")
-    m.osdBtn2Bg      = m.top.findNode("osdBtn2Bg")
-    m.osdBtn2Lbl     = m.top.findNode("osdBtn2Lbl")
-    m.osdBtn3Bg      = m.top.findNode("osdBtn3Bg")
-    m.osdBtn3Lbl     = m.top.findNode("osdBtn3Lbl")
     m.seekFill       = m.top.findNode("seekFill")
     m.seekDot        = m.top.findNode("seekDot")
     m.osdCurrentTime = m.top.findNode("osdCurrentTime")
@@ -18,9 +10,13 @@ sub init()
     m.subtitlePanel  = m.top.findNode("subtitlePanel")
     m.subItems       = [m.top.findNode("subItem0"), m.top.findNode("subItem1")]
     m.subLabels      = [m.top.findNode("subLabel0"), m.top.findNode("subLabel1")]
-    m.autoplayPanel  = m.top.findNode("autoplayPanel")
-    m.autoplayTitle  = m.top.findNode("autoplayTitle")
-    m.autoplayLabel  = m.top.findNode("autoplayLabel")
+    m.autoplayPanel        = m.top.findNode("autoplayPanel")
+    m.autoplayTitle        = m.top.findNode("autoplayTitle")
+    m.autoplayLabel        = m.top.findNode("autoplayLabel")
+    m.autoplayCountdownBar = m.top.findNode("autoplayCountdownBar")
+    m.seekOverlay      = m.top.findNode("seekOverlay")
+    m.seekDeltaLabel   = m.top.findNode("seekDeltaLabel")
+    m.seekPosLabel     = m.top.findNode("seekPosLabel")
 
     m.serverUrl  = GetReg("server_url")
     m.token      = GetReg("access_token")
@@ -30,17 +26,17 @@ sub init()
     m.osdVisible = false
     m.videoSetup = false
 
-    m.episodeList      = invalid
-    m.episodeIdx       = -1
-    m.autoplayIdx      = -1
-    m.autoplaySecs     = 0
-    m.autoplaying      = false
+    m.episodeList  = invalid
+    m.episodeIdx   = -1
+    m.autoplayIdx  = -1
+    m.autoplaySecs = 0
+    m.autoplaying  = false
+    m.upNextShown  = false
+    m.seekAccum    = 0
+
     m.ccEnabled        = (GetReg("subtitles") = "On")
     m.subtitleMenuOpen = false
     m.subFocusIdx      = 0
-    m.btnFocus         = 1   ' 0=-10s, 1=play/pause, 2=+30s, 3=CC
-
-    updateCCDisplay()
 
     m.hideTimer = CreateObject("roSGNode", "Timer")
     m.hideTimer.duration = 5
@@ -58,6 +54,11 @@ sub init()
     m.autoplayTimer.repeat   = true
     m.autoplayTimer.observeField("fire", "onAutoplayTimer")
 
+    m.seekHideTimer = CreateObject("roSGNode", "Timer")
+    m.seekHideTimer.duration = 2
+    m.seekHideTimer.repeat   = false
+    m.seekHideTimer.observeField("fire", "onSeekHideTimer")
+
     m.top.observeField("params", "onParams")
 end sub
 
@@ -66,9 +67,14 @@ sub onParams(event as object)
     if p = invalid then return
     m.mediaId = p.mediaId
     m.osdTitle.text = p.title
+    m.upNextShown = false
 
     if p.episodeList <> invalid then m.episodeList = p.episodeList
     if p.episodeIdx  <> invalid then m.episodeIdx  = p.episodeIdx
+
+    ' Seed total duration from params so the seek bar is correct from frame 1
+    durParam = p.durationSeconds
+    if durParam <> invalid and durParam > 0 then m.totalDur = durParam
 
     cn = CreateObject("roSGNode", "ContentNode")
     cn.url          = p.url
@@ -79,6 +85,7 @@ sub onParams(event as object)
     if not m.videoSetup
         m.video.observeField("state",    "onStateChange")
         m.video.observeField("position", "onPositionChange")
+        m.video.observeField("duration", "onDurationChange")
         m.videoSetup = true
     end if
 
@@ -102,40 +109,6 @@ sub applySubtitlePref()
         m.video.captionMode = "On"
     else
         m.video.captionMode = "Off"
-    end if
-end sub
-
-sub updateCCDisplay()
-    if m.ccEnabled
-        m.osdBtn3Lbl.text = "CC: On"
-    else
-        m.osdBtn3Lbl.text = "CC: Off"
-    end if
-end sub
-
-' -------------------------------------------------------
-' Transport button focus (4 buttons: 0=-10s 1=play 2=+30s 3=CC)
-' -------------------------------------------------------
-
-sub updateBtnFocus()
-    A_BG  = "0x4A9FFFFF"
-    I_BG  = "0x1E2E4EFF"
-    A_TXT = "0x000000FF"
-    I_TXT = "0xBBBBBBFF"
-
-    m.osdBtn0Bg.color  = I_BG  : m.osdBtn0Lbl.color  = I_TXT
-    m.osdPlayBg.color  = I_BG  : m.osdPlayIcon.color  = I_TXT
-    m.osdBtn2Bg.color  = I_BG  : m.osdBtn2Lbl.color   = I_TXT
-    m.osdBtn3Bg.color  = I_BG  : m.osdBtn3Lbl.color   = I_TXT
-
-    if m.btnFocus = 0
-        m.osdBtn0Bg.color = A_BG : m.osdBtn0Lbl.color = A_TXT
-    else if m.btnFocus = 1
-        m.osdPlayBg.color = A_BG : m.osdPlayIcon.color = A_TXT
-    else if m.btnFocus = 2
-        m.osdBtn2Bg.color = A_BG : m.osdBtn2Lbl.color = A_TXT
-    else
-        m.osdBtn3Bg.color = A_BG : m.osdBtn3Lbl.color = A_TXT
     end if
 end sub
 
@@ -181,21 +154,48 @@ sub applySubtitleSelection()
         SetReg("subtitles", "Off")
     end if
     applySubtitlePref()
-    updateCCDisplay()
-    updateBtnFocus()
 end sub
 
-sub toggleCC()
-    m.ccEnabled = not m.ccEnabled
-    if m.ccEnabled
-        SetReg("subtitles", "On")
+' -------------------------------------------------------
+' Seek overlay
+' -------------------------------------------------------
+
+sub showSeekOverlay(delta as integer)
+    m.seekAccum = m.seekAccum + delta
+
+    absDelta = m.seekAccum
+    if absDelta < 0 then absDelta = -absDelta
+
+    if m.seekAccum < 0 then
+        m.seekDeltaLabel.text = "<< " + FormatSeekDelta(absDelta)
     else
-        SetReg("subtitles", "Off")
+        m.seekDeltaLabel.text = ">>" + " " + FormatSeekDelta(absDelta)
     end if
-    applySubtitlePref()
-    updateCCDisplay()
-    updateBtnFocus()
+
+    posStr = FormatVideoTime(Int(m.lastPos))
+    if m.totalDur > 0 then
+        m.seekPosLabel.text = posStr + "  /  " + FormatVideoTime(Int(m.totalDur))
+    else
+        m.seekPosLabel.text = posStr
+    end if
+
+    m.seekOverlay.visible = true
+    m.seekHideTimer.control = "stop"
+    m.seekHideTimer.control = "start"
 end sub
+
+sub onSeekHideTimer(event as object)
+    m.seekOverlay.visible = false
+    m.seekAccum = 0
+end sub
+
+function FormatSeekDelta(secs as integer) as string
+    if secs < 60 then return secs.ToStr() + "s"
+    mins = secs \ 60
+    s    = secs mod 60
+    if s < 10 then return mins.ToStr() + ":0" + s.ToStr()
+    return mins.ToStr() + ":" + s.ToStr()
+end function
 
 ' -------------------------------------------------------
 ' Seek helper
@@ -219,7 +219,12 @@ sub onStateChange(event as object)
     if s = "playing" then m.top.setFocus(true)
     if s = "finished"
         doSaveProgress()
-        checkAutoplay()
+        if m.autoplaying
+            m.autoplayTimer.control = "stop"
+            playNext()
+        else
+            checkAutoplay()
+        end if
         return
     end if
     if s = "error" then exitPlayer()
@@ -244,7 +249,7 @@ end sub
 
 sub startAutoplayCountdown(nextIdx as integer)
     m.autoplayIdx  = nextIdx
-    m.autoplaySecs = 5
+    m.autoplaySecs = 15
     m.autoplaying  = true
     nextEp = m.episodeList[nextIdx]
     m.autoplayTitle.text = nextEp.title
@@ -264,22 +269,29 @@ sub onAutoplayTimer(event as object)
 end sub
 
 sub updateAutoplayLabel()
-    m.autoplayLabel.text = "Playing in " + m.autoplaySecs.ToStr() + "..."
+    m.autoplayLabel.text = "Playing in " + m.autoplaySecs.ToStr() + "s..."
+    barW = Int(m.autoplaySecs / 15.0 * 556)
+    if barW < 0 then barW = 0
+    m.autoplayCountdownBar.width = barW
 end sub
 
 sub playNext()
     m.autoplaying = false
+    m.upNextShown = false
     m.autoplayPanel.visible = false
     nextEp       = m.episodeList[m.autoplayIdx]
     m.episodeIdx = m.autoplayIdx
     m.mediaId    = nextEp.id
     m.lastPos    = 0.0
     m.totalDur   = 0.0
+    if nextEp.duration_seconds <> invalid and nextEp.duration_seconds > 0 then
+        m.totalDur = nextEp.duration_seconds
+    end if
     m.osdTitle.text       = nextEp.title
     m.osdCurrentTime.text = "0:00"
     m.osdTotalTime.text   = ""
     m.seekFill.width      = 0
-    m.seekDot.translation = [52, 929]
+    m.seekDot.translation = [53, 914]
     hlsUrl = BuildHlsUrl(m.serverUrl, m.token, m.mediaId)
     cn = CreateObject("roSGNode", "ContentNode")
     cn.url          = hlsUrl
@@ -294,16 +306,34 @@ end sub
 
 sub cancelAutoplay()
     m.autoplaying = false
+    m.upNextShown = false
     m.autoplayTimer.control = "stop"
     m.autoplayPanel.visible = false
     exitPlayer()
 end sub
 
+sub onDurationChange(event as object)
+    dur = event.getData()
+    if dur = invalid then return
+    if dur > m.totalDur then m.totalDur = dur
+end sub
+
 sub onPositionChange(event as object)
     m.lastPos = event.getData()
-    dur = m.video.duration
-    if dur = invalid then return
-    if dur > 0 then m.totalDur = dur
+
+    ' Show Up Next toast when ≤5s remain (only for episodes with a next episode)
+    if not m.autoplaying and not m.upNextShown and m.totalDur > 30 then
+        remaining = m.totalDur - m.lastPos
+        if remaining > 0 and remaining <= 5 then
+            if m.episodeList <> invalid then
+                nextIdx = m.episodeIdx + 1
+                if nextIdx < m.episodeList.count() then
+                    m.upNextShown = true
+                    startAutoplayCountdown(nextIdx)
+                end if
+            end if
+        end if
+    end if
 end sub
 
 sub onSaveTimer(event as object)
@@ -315,6 +345,7 @@ sub exitPlayer()
     if m.osdTimer      <> invalid then m.osdTimer.control      = "stop"
     if m.hideTimer     <> invalid then m.hideTimer.control     = "stop"
     if m.autoplayTimer <> invalid then m.autoplayTimer.control = "stop"
+    if m.seekHideTimer <> invalid then m.seekHideTimer.control = "stop"
     doSaveProgress()
     m.top.navRequest = {action: "back"}
 end sub
@@ -342,7 +373,6 @@ sub showOsd()
     m.osdVisible  = true
     m.osd.visible = true
     updateOsd()
-    updateBtnFocus()
     m.hideTimer.control = "stop"
     m.hideTimer.control = "start"
 end sub
@@ -351,7 +381,6 @@ sub hideOsd()
     m.osdVisible  = false
     m.osd.visible = false
     m.hideTimer.control = "stop"
-    m.btnFocus = 1
 end sub
 
 sub onHideTimer(event as object)
@@ -380,21 +409,18 @@ sub updateOsd()
         if pct > 1.0 then pct = 1.0
         fillW = Int(pct * 1800)
         m.seekFill.width      = fillW
-        m.seekDot.translation = [52 + fillW, 929]
+        m.seekDot.translation = [53 + fillW, 914]
     end if
 
     state = m.video.state
     if state = "paused"
-        m.osdState.text    = "PAUSED"
-        m.osdState.color   = "0x4A9FFFFF"
-        m.osdPlayIcon.text = "PLAY"
+        m.osdState.text  = "PAUSED"
+        m.osdState.color = "0x4A9FFFFF"
     else if state = "buffering" or state = "connecting"
-        m.osdState.text    = "BUFFERING"
-        m.osdState.color   = "0xFFAA00FF"
-        m.osdPlayIcon.text = "..."
+        m.osdState.text  = "BUFFERING"
+        m.osdState.color = "0xFFAA00FF"
     else
-        m.osdState.text    = ""
-        m.osdPlayIcon.text = "PAUSE"
+        m.osdState.text = ""
     end if
 end sub
 
@@ -405,7 +431,7 @@ end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    ' ── Subtitle panel captures all keys ──
+    ' ── Subtitle panel captures all keys ──────────────────
     if m.subtitleMenuOpen
         if key = "back"
             closeSubtitleMenu()
@@ -426,7 +452,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     end if
 
-    ' ── Back ──
+    ' ── Back ──────────────────────────────────────────────
     if key = "back"
         if m.autoplaying
             cancelAutoplay()
@@ -441,106 +467,66 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     end if
 
-    ' ── Autoplay countdown ──
+    ' ── Autoplay: OK plays next immediately ───────────────
     if (key = "OK" or key = "play") and m.autoplaying
         m.autoplayTimer.control = "stop"
         playNext()
         return true
     end if
 
-    ' ── Options (*): full subtitle panel ──
+    ' ── Options: open subtitle panel ──────────────────────
     if key = "options"
         showOsd()
         openSubtitleMenu()
         return true
     end if
 
-    ' ── Left: navigate buttons left, or seek if OSD hidden ──
+    ' ── Left: seek backward 10s ───────────────────────────
     if key = "left"
-        if not m.osdVisible
-            showOsd()
-            m.btnFocus = 0
-            updateBtnFocus()
-        else if m.btnFocus > 0
-            m.btnFocus = m.btnFocus - 1
-            updateBtnFocus()
-            m.hideTimer.control = "stop"
-            m.hideTimer.control = "start"
-        else
-            seekBy(-10)
-            m.hideTimer.control = "stop"
-            m.hideTimer.control = "start"
-        end if
+        seekBy(-10)
+        showSeekOverlay(-10)
+        showOsd()
         return true
     end if
 
-    ' ── Right: navigate buttons right, or seek if OSD hidden ──
+    ' ── Right: seek forward 10s ───────────────────────────
     if key = "right"
-        if not m.osdVisible
-            showOsd()
-            m.btnFocus = 2
-            updateBtnFocus()
-        else if m.btnFocus < 3
-            m.btnFocus = m.btnFocus + 1
-            updateBtnFocus()
-            m.hideTimer.control = "stop"
-            m.hideTimer.control = "start"
-        else
-            seekBy(30)
-            m.hideTimer.control = "stop"
-            m.hideTimer.control = "start"
-        end if
+        seekBy(10)
+        showSeekOverlay(10)
+        showOsd()
         return true
     end if
 
-    ' ── OK: activate focused button ──
+    ' ── OK / Play: toggle play/pause ──────────────────────
     if key = "OK" or key = "play"
-        if not m.osdVisible
-            showOsd()
-            return true
-        end if
-        if m.btnFocus = 0
-            seekBy(-10)
-        else if m.btnFocus = 2
-            seekBy(30)
-        else if m.btnFocus = 3
-            toggleCC()
+        if m.video.state = "paused"
+            m.video.control = "resume"
         else
-            if m.video.state = "paused"
-                m.video.control = "resume"
-            else
-                m.video.control = "pause"
-            end if
-            updateOsd()
+            m.video.control = "pause"
         end if
-        m.hideTimer.control = "stop"
-        m.hideTimer.control = "start"
+        showOsd()
+        updateOsd()
         return true
     end if
 
-    ' ── Up/Down: show OSD, reset focus to play button ──
+    ' ── Up / Down: show OSD ───────────────────────────────
     if key = "up" or key = "down"
-        if not m.osdVisible
-            showOsd()
-        else
-            m.btnFocus = 1
-            updateBtnFocus()
-            m.hideTimer.control = "stop"
-            m.hideTimer.control = "start"
-        end if
+        showOsd()
         return true
     end if
 
-    ' ── Physical FF/RW: seek 60s ──
+    ' ── Physical FF / RW: seek 60s ────────────────────────
     if key = "rev"
         seekBy(-60)
-        if not m.osdVisible then showOsd()
+        showSeekOverlay(-60)
+        showOsd()
         return true
     end if
 
     if key = "fwd"
         seekBy(60)
-        if not m.osdVisible then showOsd()
+        showSeekOverlay(60)
+        showOsd()
         return true
     end if
 

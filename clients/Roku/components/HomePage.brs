@@ -94,6 +94,7 @@ sub init()
     ' Home row nav state (populated by buildHomeRows)
     m.numHomeRows   = 0
     m.activeHomeRow = 0
+    m.homeScrollY   = 0
     m.rowFocusIdx   = []
     m.rowScrollX    = []
     m.homeRowGroups = invalid
@@ -102,6 +103,7 @@ sub init()
     m.homeRowStride = invalid
     m.homeRowWidth  = invalid
 
+    m.top.observeField("onReturnedToHome", "onReturnedToHome")
     m.top.setFocus(true)
     updateTabs()
 
@@ -219,6 +221,13 @@ sub onContinueError(event as object)
     end if
 end sub
 
+sub onReturnedToHome(event as object)
+    if not event.getData() then return   ' ignore false fires
+    ' Silently refresh Continue Watching when returning from content.
+    ' onContinueResult will reset homeRowsBuilt and rebuild rows with fresh CW data.
+    loadContinueWatching()
+end sub
+
 sub onMoviesResult(event as object)
     m.movieItems     = event.getData()
     m.movieGridBuilt = false
@@ -298,6 +307,7 @@ sub buildHomeRows()
     if m.homeRowsBuilt then return
     if m.continueRows  = invalid then return  ' wait for CW data
     if m.recentMovies  = invalid then return  ' wait for recently-added movies
+    if m.recentShows   = invalid then return  ' wait for recently-added shows
 
     hasCW     = m.continueRows <> invalid and m.continueRows.count() > 0
     hasMovies = m.recentMovies <> invalid and m.recentMovies.count() > 0
@@ -320,8 +330,14 @@ sub buildHomeRows()
     m.homeRowWidth.push(320)
     buildCategoryRow()
 
+    ' PosterItem is 270px tall. Each row section = 38 (label) + 270 (poster) + 60 (gap) = 368px.
     ' Y cursor starts after category row (174 + 180 + 50 gap)
+    ROW_STRIDE = 368   ' label + poster height + breathing room
     nextY = 404
+
+    ' Reset homeView scroll
+    m.homeScrollY = 0
+    m.homeView.translation = [0, 0]
 
     ' ── Continue Watching ───────────────────────────────
     if hasCW
@@ -335,7 +351,7 @@ sub buildHomeRows()
         m.homeRowStride.push(218)
         m.homeRowWidth.push(182)
         populateRowGroup(m.cwRowGroup, m.continueRows, "PosterItem", true)
-        nextY = nextY + 38 + 270 + 50
+        nextY = nextY + ROW_STRIDE
     else
         m.labelCW.visible    = false
         m.cwRowGroup.visible = false
@@ -353,15 +369,29 @@ sub buildHomeRows()
         m.homeRowStride.push(218)
         m.homeRowWidth.push(182)
         populateRowGroup(m.moviesRowGroup, m.recentMovies, "PosterItem", false)
-        nextY = nextY + 26 + 220 + 30
+        nextY = nextY + ROW_STRIDE
     else
         m.labelMovies.visible    = false
         m.moviesRowGroup.visible = false
     end if
 
-    ' Shows accessible via TV Shows tab — not shown on home to preserve spacing
-    m.labelShows.visible    = false
-    m.showsRowGroup.visible = false
+    ' ── Recently Added TV Shows ──────────────────────────────
+    if hasShows
+        m.labelShows.translation    = [40, nextY]
+        m.labelShows.visible        = true
+        m.showsRowGroup.translation = [40, nextY + 38]
+        m.showsRowGroup.visible     = true
+        m.homeRowGroups.push(m.showsRowGroup)
+        m.homeRowTypes.push("poster")
+        m.homeRowLabels.push(m.labelShows)
+        m.homeRowStride.push(218)
+        m.homeRowWidth.push(182)
+        populateRowGroup(m.showsRowGroup, m.recentShows, "PosterItem", false)
+        nextY = nextY + ROW_STRIDE
+    else
+        m.labelShows.visible    = false
+        m.showsRowGroup.visible = false
+    end if
 
     m.numHomeRows = m.homeRowGroups.count()
 
@@ -451,12 +481,31 @@ function makeCWNode(cw as object) as object
     posterUrl = ""
     if cw.poster_url <> invalid then posterUrl = ResolveUrl(m.serverUrl, cw.poster_url)
     item.hdPosterUrl = posterUrl
+
+    pct = 0
+    pp = cw.progress_pct
+    if pp <> invalid then pct = pp
+
+    epLabel = ""
+    sn = cw.season_number
+    en = cw.episode_number
+    if sn <> invalid and en <> invalid then
+        epLabel = "S" + sn.ToStr() + " E" + en.ToStr()
+    else if en <> invalid then
+        epLabel = "E" + en.ToStr()
+    end if
+
     item.addFields({
-        mediaId:  cw.media_id
-        kind:     cw.kind
-        showId:   cw.show_id
-        position: cw.position_seconds
+        mediaId:      cw.media_id
+        kind:         cw.kind
+        showId:       cw.show_id
+        progressPct:  pct
+        episodeLabel: epLabel
     })
+    item.addFields({position: cw.position_seconds})
+    durSec = 0.0
+    if cw.duration_seconds <> invalid then durSec = cw.duration_seconds
+    item.addFields({durationSeconds: durSec})
     return item
 end function
 
@@ -514,6 +563,31 @@ sub activateHomeRow(rowIdx as integer)
     newPoster = m.homeRowGroups[rowIdx].getChild(m.rowFocusIdx[rowIdx])
     if newPoster <> invalid then newPoster.focusPercent = 1.0
     updateRowLabels()
+    scrollHomeToRow(rowIdx)
+end sub
+
+sub scrollHomeToRow(rowIdx as integer)
+    if m.homeRowLabels = invalid then return
+    SCREEN_TOP    = 120   ' just below the tab bar
+    SCREEN_BOTTOM = 1040  ' just above the hint label
+
+    rowLabel = m.homeRowLabels[rowIdx]
+    rowGroup = m.homeRowGroups[rowIdx]
+    labelY   = rowLabel.translation[1]
+    rowBot   = rowGroup.translation[1] + 270 + 30   ' PosterItem height + buffer
+
+    ' Scroll up if the row bottom would be off the bottom of the screen
+    if rowBot + m.homeScrollY > SCREEN_BOTTOM
+        m.homeScrollY = SCREEN_BOTTOM - rowBot
+    end if
+    ' Scroll back down if the label would be above the visible area
+    if labelY + m.homeScrollY < SCREEN_TOP
+        m.homeScrollY = SCREEN_TOP - labelY
+    end if
+    ' Never scroll past the natural top position
+    if m.homeScrollY > 0 then m.homeScrollY = 0
+
+    m.homeView.translation = [0, m.homeScrollY]
 end sub
 
 sub clearHomeAllFocus()
@@ -661,17 +735,14 @@ sub navigateToItem(item as object)
         nav = {action: "details", mediaId: mediaId, title: item.title, kind: kind, posterUrl: item.hdPosterUrl, overview: item.overview, year: item.year}
         m.top.navRequest = nav
     else if kind = "episode"
-        showId = item.showId
-        if showId <> invalid and showId <> 0
-            nav = {action: "episodes", showId: showId, title: item.title}
-            m.top.navRequest = nav
-        else
-            position = 0.0
-            if item.position <> invalid then position = item.position
-            hlsUrl = BuildHlsUrl(m.serverUrl, m.token, mediaId)
-            nav = {action: "play", mediaId: mediaId, title: item.title, url: hlsUrl, position: position}
-            m.top.navRequest = nav
-        end if
+        posSec = 0.0
+        if item["position"] <> invalid then posSec = item["position"]
+        durSec = 0.0
+        if item.durationSeconds <> invalid then durSec = item.durationSeconds
+        hlsUrl = BuildHlsUrl(m.serverUrl, m.token, mediaId)
+        nav = {action: "play", mediaId: mediaId, title: item.title, url: hlsUrl, durationSeconds: durSec}
+        nav["position"] = posSec
+        m.top.navRequest = nav
     else if kind = "show"
         nav = {action: "details", mediaId: mediaId, title: item.title, kind: kind, posterUrl: item.hdPosterUrl, overview: item.overview, year: item.year}
         m.top.navRequest = nav

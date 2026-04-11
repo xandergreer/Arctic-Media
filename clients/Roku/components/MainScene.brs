@@ -32,7 +32,12 @@ sub popPage()
     top = m.pageStack.pop()
     m.top.removeChild(top)
     if m.pageStack.count() > 0
-        m.pageStack[m.pageStack.count() - 1].setFocus(true)
+        prevPage = m.pageStack[m.pageStack.count() - 1]
+        prevPage.setFocus(true)
+        ' Notify HomePage to refresh Continue Watching row
+        if prevPage.hasField("onReturnedToHome")
+            prevPage.onReturnedToHome = true
+        end if
     end if
 end sub
 

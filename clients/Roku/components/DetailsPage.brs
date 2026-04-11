@@ -12,9 +12,11 @@ sub init()
     m.similarIdx    = 0
     m.numCast       = 0
     m.numSimilar    = 0
-    m.castData      = []
-    m.similarData   = []
+    m.castData        = []
+    m.similarData     = []
+    m.durationSeconds = 0.0
 
+    m.scrollGroup         = m.top.findNode("scrollGroup")
     m.poster              = m.top.findNode("poster")
     m.backdrop            = m.top.findNode("backdrop")
     m.titleLabel          = m.top.findNode("titleLabel")
@@ -126,7 +128,6 @@ sub onDetailResult(event as object)
     if data = invalid then return
 
     ' Back-fill poster / overview / year for items reached via similar row
-    ' (those params only have id, title, kind — the rest comes from the API)
     if m.posterUri = "" then
         pu = data.poster_url
         if pu <> invalid and pu <> "" then
@@ -144,7 +145,6 @@ sub onDetailResult(event as object)
     if rd <> invalid and Len(rd) >= 4 then
         yr = Left(rd, 4)
         if Instr(1, m.metaLabel.text, yr) = 0 then
-            ' Year not yet in meta — prepend it
             if m.metaLabel.text <> "" then
                 m.metaLabel.text = yr + "  ·  " + m.metaLabel.text
             else
@@ -152,6 +152,9 @@ sub onDetailResult(event as object)
             end if
         end if
     end if
+
+    durSec = data.duration_seconds
+    if durSec <> invalid and durSec > 0 then m.durationSeconds = durSec
 
     extra = data.extra_json
     if extra = invalid then return
@@ -177,7 +180,6 @@ sub onDetailResult(event as object)
 end sub
 
 sub onDetailError(event as object)
-    ' Silently ignore — basic info from params is already displayed
 end sub
 
 sub onSimilarResult(event as object)
@@ -200,9 +202,10 @@ end sub
 ' ── Cast row builder ───────────────────────────────────────────────────────
 
 sub buildCastRow(castArr as object)
-    CARD_W   = 110
-    CARD_H   = 165
-    STRIDE   = 128      ' card width + 18px gap
+    CARD_W   = 190
+    CARD_H   = 250
+    STRIDE   = 220      ' card width + 30px gap
+    BDR      = 10       ' border thickness — thick enough to see around photos
     MAX_CAST = 12
 
     limit = castArr.count()
@@ -212,22 +215,24 @@ sub buildCastRow(castArr as object)
         actor = castArr[i]
         if actor = invalid then exit for
 
-        card = CreateObject("roSGNode", "Group")
+        card             = CreateObject("roSGNode", "Group")
         card.id          = "castCard_" + i.ToStr()
         card.translation = [i * STRIDE, 0]
 
-        ' Background rectangle (changes color on focus)
-        bg       = CreateObject("roSGNode", "Rectangle")
-        bg.id    = "castBg_" + i.ToStr()
-        bg.width  = CARD_W
-        bg.height = CARD_H
-        bg.color  = "0x1A2A4AFF"
+        ' Border rectangle — 4px larger on all sides, sits behind the photo
+        ' Default dark, highlighted = bright blue
+        bg              = CreateObject("roSGNode", "Rectangle")
+        bg.id           = "castBg_" + i.ToStr()
+        bg.translation  = [-BDR, -BDR]
+        bg.width        = CARD_W + BDR * 2
+        bg.height       = CARD_H + BDR * 2
+        bg.color        = "0x0D1A2EFF"
         card.appendChild(bg)
 
-        ' Profile photo
-        prof             = CreateObject("roSGNode", "Poster")
-        prof.width       = CARD_W
-        prof.height      = CARD_H
+        ' Profile photo — sits on top of bg, exposing 4px border around edges
+        prof                 = CreateObject("roSGNode", "Poster")
+        prof.width           = CARD_W
+        prof.height          = CARD_H
         prof.loadDisplayMode = "scaleToZoom"
         photoUrl = actor.photo
         if photoUrl <> invalid and photoUrl <> "" then
@@ -235,20 +240,22 @@ sub buildCastRow(castArr as object)
         end if
         card.appendChild(prof)
 
-        ' Actor name
+        ' Actor name (2 lines)
         nameLabel             = CreateObject("roSGNode", "Label")
-        nameLabel.translation = [0, CARD_H + 5]
+        nameLabel.id          = "castName_" + i.ToStr()
+        nameLabel.translation = [0, CARD_H + 10]
         nameLabel.width       = CARD_W
-        nameLabel.numLines    = 1
-        nameLabel.font        = "font:SmallSystemFont"
-        nameLabel.color       = "0xFFFFFFFF"
+        nameLabel.numLines    = 2
+        nameLabel.wrap        = true
+        nameLabel.font        = "font:SmallBoldSystemFont"
+        nameLabel.color       = "0xBBBBBBFF"
         actorName = actor.name
         if actorName <> invalid then nameLabel.text = actorName
         card.appendChild(nameLabel)
 
         ' Role / character
         roleLabel             = CreateObject("roSGNode", "Label")
-        roleLabel.translation = [0, CARD_H + 26]
+        roleLabel.translation = [0, CARD_H + 58]
         roleLabel.width       = CARD_W
         roleLabel.numLines    = 1
         roleLabel.font        = "font:SmallSystemFont"
@@ -262,7 +269,7 @@ sub buildCastRow(castArr as object)
 
     m.numCast = limit
     if limit > 0 then
-        m.castSectionLabel.visible = true
+        m.castSectionLabel.opacity = 1.0
         m.castIdx = 0
     end if
 
@@ -272,9 +279,10 @@ end sub
 ' ── Similar row builder ────────────────────────────────────────────────────
 
 sub buildSimilarRow(items as object)
-    CARD_W  = 130
-    CARD_H  = 195
-    STRIDE  = 150      ' card width + 20px gap
+    CARD_W  = 200
+    CARD_H  = 300       ' proper 2:3 poster ratio
+    STRIDE  = 232       ' card width + 32px gap
+    BDR     = 10        ' border thickness
     MAX_SIM = 11
 
     limit = items.count()
@@ -288,31 +296,32 @@ sub buildSimilarRow(items as object)
         card.id          = "simCard_" + i.ToStr()
         card.translation = [i * STRIDE, 0]
 
-        ' Poster image
-        p                = CreateObject("roSGNode", "Poster")
-        p.width          = CARD_W
-        p.height         = CARD_H
-        p.loadDisplayMode = "scaleToZoom"
+        ' Border rectangle — 4px around card, hidden by default
+        simBdr              = CreateObject("roSGNode", "Rectangle")
+        simBdr.id           = "simBorder_" + i.ToStr()
+        simBdr.translation  = [-BDR, -BDR]
+        simBdr.width        = CARD_W + BDR * 2
+        simBdr.height       = CARD_H + BDR * 2
+        simBdr.color        = "0x0D1A2EFF"
+        card.appendChild(simBdr)
+
+        ' Poster image — sits on top of border
+        p                    = CreateObject("roSGNode", "Poster")
+        p.width              = CARD_W
+        p.height             = CARD_H
+        p.loadDisplayMode    = "scaleToZoom"
         posterUrl = item.poster_url
         if posterUrl <> invalid and posterUrl <> "" then
             p.uri = ResolveUrl(m.serverUrl, posterUrl)
         end if
         card.appendChild(p)
 
-        ' Highlight border overlay (opacity 0 = hidden)
-        border         = CreateObject("roSGNode", "Rectangle")
-        border.id      = "simBorder_" + i.ToStr()
-        border.width   = CARD_W
-        border.height  = CARD_H
-        border.color   = "0x4A9FFF40"
-        border.opacity = 0.0
-        card.appendChild(border)
-
-        ' Title label
+        ' Title label (2 lines)
         titleLbl             = CreateObject("roSGNode", "Label")
-        titleLbl.translation = [0, CARD_H + 5]
+        titleLbl.translation = [0, CARD_H + 10]
         titleLbl.width       = CARD_W
-        titleLbl.numLines    = 1
+        titleLbl.numLines    = 2
+        titleLbl.wrap        = true
         titleLbl.font        = "font:SmallSystemFont"
         titleLbl.color       = "0xCCCCCCFF"
         itemTitle = item.title
@@ -324,9 +333,27 @@ sub buildSimilarRow(items as object)
 
     m.numSimilar = limit
     if limit > 0 then
-        m.similarSectionLabel.visible = true
+        m.similarSectionLabel.opacity = 1.0
         m.similarIdx = 0
     end if
+end sub
+
+' ── Scroll helper ──────────────────────────────────────────────────────────
+'
+'  Section Y positions in scrollGroup (matches XML):
+'    0 = buttons    → scroll to 0   (info panel fully visible)
+'    1 = cast       → castSectionLabel Y=638  → scroll 478 so label sits at Y=160
+'    2 = similar    → similarSectionLabel Y=2200 → scroll 2040 so label sits at Y=160
+
+sub scrollToSection(section as integer)
+    LABEL_TARGET_Y = 160
+    scrollY = 0
+    if section = 1 then
+        scrollY = 638 - LABEL_TARGET_Y    ' = 478
+    else if section = 2 then
+        scrollY = 2200 - LABEL_TARGET_Y   ' = 2040
+    end if
+    m.scrollGroup.translation = [0, -scrollY]
 end sub
 
 ' ── Highlight helpers ──────────────────────────────────────────────────────
@@ -350,24 +377,28 @@ sub highlightCast(idx as integer)
     clearCastHighlight()
     m.castIdx = idx
     bg = m.top.findNode("castBg_" + idx.ToStr())
-    if bg <> invalid then bg.color = "0x4A9FFF50"
+    if bg <> invalid then bg.color = "0x4A9FFFFF"
+    nm = m.top.findNode("castName_" + idx.ToStr())
+    if nm <> invalid then nm.color = "0x4A9FFFFF"
 end sub
 
 sub clearCastHighlight()
     bg = m.top.findNode("castBg_" + m.castIdx.ToStr())
-    if bg <> invalid then bg.color = "0x1A2A4AFF"
+    if bg <> invalid then bg.color = "0x0D1A2EFF"
+    nm = m.top.findNode("castName_" + m.castIdx.ToStr())
+    if nm <> invalid then nm.color = "0xBBBBBBFF"
 end sub
 
 sub highlightSimilar(idx as integer)
     clearSimilarHighlight()
     m.similarIdx = idx
-    border = m.top.findNode("simBorder_" + idx.ToStr())
-    if border <> invalid then border.opacity = 0.8
+    simBdr = m.top.findNode("simBorder_" + idx.ToStr())
+    if simBdr <> invalid then simBdr.color = "0x4A9FFFFF"
 end sub
 
 sub clearSimilarHighlight()
-    border = m.top.findNode("simBorder_" + m.similarIdx.ToStr())
-    if border <> invalid then border.opacity = 0.0
+    simBdr = m.top.findNode("simBorder_" + m.similarIdx.ToStr())
+    if simBdr <> invalid then simBdr.color = "0x0D1A2EFF"
 end sub
 
 sub focusSection(section as integer)
@@ -381,12 +412,13 @@ sub focusSection(section as integer)
     else if section = 2 then
         highlightSimilar(m.similarIdx)
     end if
+    scrollToSection(section)
     updateHint()
 end sub
 
 sub updateHint()
     if m.numCast > 0 or m.numSimilar > 0 then
-        m.hintLabel.text = "Back=return   Left/Right=switch   Up/Down=sections   OK=select"
+        m.hintLabel.text = "Back=return   Up/Down=sections   Left/Right=scroll   OK=select"
     else
         m.hintLabel.text = "Back=return   Left/Right=switch   OK=select"
     end if
@@ -458,7 +490,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 req = {action: "episodes", showId: m.mediaId, title: m.title, posterUrl: m.posterUri}
                 m.top.navRequest = req
             else
-                req = {action: "play", mediaId: m.mediaId, title: m.title, url: m.hlsUrl}
+                req = {action: "play", mediaId: m.mediaId, title: m.title, url: m.hlsUrl, durationSeconds: m.durationSeconds}
                 req["position"] = m.savedPosition
                 m.top.navRequest = req
             end if
@@ -474,7 +506,6 @@ function onKeyEvent(key as string, press as boolean) as boolean
             highlightCast(m.castIdx + 1)
             return true
         end if
-        ' OK on cast — info only, no action
         if key = "OK" then return true
 
     else if m.focusSection = 2 then

@@ -177,15 +177,20 @@ sub onEpisodeSelected(event as object)
     mediaId = ep.id
     hlsUrl = BuildHlsUrl(m.serverUrl, m.token, mediaId)
 
-    m.top.navRequest = {
-        action:      "play"
-        mediaId:     mediaId
-        title:       ep.title
-        url:         hlsUrl
-        position:    0.0
-        episodeList: m.episodes
-        episodeIdx:  idx
+    durSec = 0.0
+    if ep.duration_seconds <> invalid then durSec = ep.duration_seconds
+
+    nav = {
+        action:          "play"
+        mediaId:         mediaId
+        title:           ep.title
+        url:             hlsUrl
+        durationSeconds: durSec
+        episodeList:     m.episodes
+        episodeIdx:      idx
     }
+    nav["position"] = 0.0
+    m.top.navRequest = nav
 end sub
 
 ' -------------------------------------------------------

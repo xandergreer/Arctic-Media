@@ -12,6 +12,13 @@
                    translation="[-2, -2]" opacity="0" />
         <Poster id="poster" width="182" height="270" loadDisplayMode="scaleToZoom" />
         <Poster id="cornerMask" uri="pkg:/images/corner_poster.png" width="182" height="270" />
+        <!-- Progress bar (CW items only) -->
+        <Rectangle id="progressBg"   translation="[0, 256]" width="182" height="8" color="0x000000AA" opacity="0" />
+        <Rectangle id="progressFill" translation="[0, 256]" width="1"   height="8" color="0x4A9FFFFF" opacity="0" />
+        <!-- Episode badge (CW items only) -->
+        <Rectangle id="epBadgeBg" translation="[0, 0]" width="72" height="22" color="0x000000AA" opacity="0" />
+        <Label id="epBadge" translation="[5, 3]" width="66" height="18"
+               font="font:SmallSystemFont" color="0xFFFFFFFF" opacity="0" />
         <Rectangle id="titleBg" color="0x000000CC" width="182" height="46"
                    translation="[0, 224]" opacity="0" />
         <Label id="titleLabel"
