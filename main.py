@@ -116,6 +116,12 @@ async def lifespan(app: FastAPI):
                 logger.error(f"[{name}] crashed: {exc!r} — restarting in {restart_delay}s")
                 await asyncio.sleep(restart_delay)
 
+    # Kill any FFmpeg orphans left over from a previous server run, then wipe
+    # stale segment directories so disk space is reclaimed on every restart.
+    from app.api.v1.stream_hls import startup_cleanup, shutdown_cleanup
+    await asyncio.to_thread(startup_cleanup)
+    logger.info("HLS temp directory cleaned up.")
+
     # Start background subtitle download worker
     from app.services import subtitles as sub_svc
     asyncio.create_task(_resilient_task(sub_svc.run_worker, "subtitle-worker"))
@@ -125,7 +131,10 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(_resilient_task(_reap_idle_jobs, "hls-reaper"))
 
     yield
-    
+
+    # Graceful shutdown: terminate all active FFmpeg jobs before closing.
+    logger.info("Shutting down — terminating active transcode jobs...")
+    await shutdown_cleanup()
     logger.info("Shutting down... Closing Database connection.")
     await engine.dispose()
     

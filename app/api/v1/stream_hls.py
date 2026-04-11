@@ -52,6 +52,11 @@ TRANSCODE_ROOT = Path(tempfile.gettempdir()) / "arctic_hls"
 TRANSCODE_ROOT.mkdir(parents=True, exist_ok=True)
 STREAM_AUDIENCE = "stream-segment"
 
+# Kill transcode jobs idle for longer than this (seconds).
+# 3 minutes is plenty — if no segments have been requested for that long
+# the viewer has definitely stopped watching.
+_JOB_IDLE_TIMEOUT = 180
+
 # Windows subprocess helpers
 def _get_windows_startupinfo():
     if os.name == "nt":
@@ -105,8 +110,69 @@ class TranscodeJob:
 _JOBS: Dict[str, TranscodeJob] = {}
 _ITEM_JOB: Dict[int, str] = {}
 
-# Kill transcode jobs idle for longer than this (seconds)
-_JOB_IDLE_TIMEOUT = 600  # 10 minutes
+
+def startup_cleanup() -> None:
+    """
+    Called once at server startup.
+
+    Kills any FFmpeg processes left over from a previous server run that are
+    still writing segments into TRANSCODE_ROOT, then wipes the directory so
+    stale segments don't accumulate on disk.
+
+    Without this, every server restart leaves orphan FFmpeg processes that
+    keep encoding full movies to disk for hours with no one watching them.
+    """
+    # 1. Kill orphan FFmpeg processes whose command line references our temp dir.
+    #    psutil is already a project dependency (used by the admin metrics endpoint).
+    transcode_str = str(TRANSCODE_ROOT)
+    try:
+        import psutil
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                name = (proc.info.get("name") or "").lower()
+                if "ffmpeg" not in name:
+                    continue
+                cmdline = " ".join(proc.info.get("cmdline") or [])
+                if transcode_str in cmdline:
+                    proc.kill()
+                    logging.getLogger("arctic_media").info(
+                        f"[HLS] Killed orphan FFmpeg PID {proc.info['pid']} from previous run"
+                    )
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    except ImportError:
+        pass  # psutil unavailable — skip process kill, still clean dirs below
+
+    # 2. Wipe stale segment directories so disk space is reclaimed immediately.
+    if TRANSCODE_ROOT.exists():
+        shutil.rmtree(TRANSCODE_ROOT, ignore_errors=True)
+    TRANSCODE_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+async def shutdown_cleanup() -> None:
+    """
+    Called once at server shutdown (inside the lifespan context manager).
+
+    Terminates every active FFmpeg process tracked in _JOBS and removes their
+    working directories.  Without this, stopping the server leaves all in-flight
+    transcode jobs as orphan processes that keep running until the file ends.
+    """
+    log = logging.getLogger("arctic_media")
+    for jid, job in list(_JOBS.items()):
+        try:
+            if job.proc and job.proc.returncode is None:
+                job.proc.terminate()
+                try:
+                    await asyncio.wait_for(asyncio.to_thread(job.proc.wait), timeout=3)
+                except asyncio.TimeoutError:
+                    with contextlib.suppress(Exception):
+                        job.proc.kill()
+            shutil.rmtree(job.workdir, ignore_errors=True)
+            log.info(f"[HLS] Shutdown: cleaned up job {jid}")
+        except Exception as exc:
+            log.warning(f"[HLS] Shutdown: error cleaning job {jid}: {exc!r}")
+    _JOBS.clear()
+    _ITEM_JOB.clear()
 
 
 async def _reap_idle_jobs() -> None:
@@ -202,12 +268,13 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
         if job.s_index is not None:
             if job.s_type == 'text':
                 # Text subs — use external file path if sidecar, otherwise extract from video
+                from app.api.v1.stream import _ffmpeg_filtergraph_escape
                 if job.s_path:
-                    escaped_sub = job.s_path.replace("\\", "/").replace(":", "\\:")
+                    escaped_sub = _ffmpeg_filtergraph_escape(job.s_path)
                     cmd.extend(["-map", "0:v:0"])
                     cmd.extend(["-vf", f"subtitles='{escaped_sub}'"])
                 else:
-                    escaped_path = src_path.replace("\\", "/").replace(":", "\\:")
+                    escaped_path = _ffmpeg_filtergraph_escape(src_path)
                     cmd.extend(["-map", "0:v:0"])
                     cmd.extend(["-vf", f"subtitles='{escaped_path}':si={job.s_index}"])
             else:
