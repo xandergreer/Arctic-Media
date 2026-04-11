@@ -131,12 +131,15 @@ async def register_user(
                 select(InviteCode).where(InviteCode.code == invite_code)
             )
             invite_row = invite.scalar_one_or_none()
+            # Use a single generic message for all invalid states to prevent
+            # attackers from enumerating valid vs used vs expired codes.
+            _bad_code = HTTPException(status_code=400, detail="Invalid or expired invite code.")
             if not invite_row:
-                raise HTTPException(status_code=400, detail="Invalid invite code.")
+                raise _bad_code
             if invite_row.used_at is not None:
-                raise HTTPException(status_code=400, detail="Invite code has already been used.")
+                raise _bad_code
             if invite_row.expires_at and invite_row.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
-                raise HTTPException(status_code=400, detail="Invite code has expired.")
+                raise _bad_code
 
     existing_user = await auth_service.get_user_by_username(db, username)
     if existing_user:

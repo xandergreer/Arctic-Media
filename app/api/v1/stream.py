@@ -8,6 +8,26 @@ from typing import Optional, Generator
 from pathlib import Path
 import re
 
+
+def _ffmpeg_filtergraph_escape(path: str) -> str:
+    """
+    Escape a filesystem path for safe embedding inside an FFmpeg filtergraph
+    option string (e.g. the subtitles= filter).
+
+    FFmpeg's lavfi parser treats these characters as special:
+      \  '  :  ,  [  ]  ;
+    They must be escaped with a leading backslash IN THAT ORDER (backslash first
+    to avoid double-escaping the escapes we add).
+    """
+    path = path.replace("\\", "/")    # normalise to forward slashes
+    path = path.replace("'",  "\\'")  # escape single quotes
+    path = path.replace(":",  "\\:")  # escape colons (option separator)
+    path = path.replace(",",  "\\,")  # escape commas  (filter option separator)
+    path = path.replace("[",  "\\[")  # escape brackets
+    path = path.replace("]",  "\\]")
+    path = path.replace(";",  "\\;")  # escape semicolons (filter chain separator)
+    return path
+
 from fastapi import APIRouter, Depends, Query, Request, Header, HTTPException
 from fastapi.responses import StreamingResponse, Response, FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -475,15 +495,13 @@ async def stream_video(
             
             # CASE B: Text Subtitles (SRT, ASS, VTT) -> Use SUBTITLES filter
             else:
-                sub_path = file_path.replace("\\", "/")
-                sub_path = sub_path.replace(":", "\\:")
-                
                 if subtitle_track.get("is_external"):
-                     ext_path = subtitle_track["path"].replace("\\", "/").replace(":", "\\:")
-                     filters.append(f"subtitles='{ext_path}'")
+                    ext_path = _ffmpeg_filtergraph_escape(subtitle_track["path"])
+                    filters.append(f"subtitles='{ext_path}'")
                 else:
-                     si = subtitle_track["real_index"]
-                     filters.append(f"subtitles='{sub_path}':si={si}")
+                    sub_path = _ffmpeg_filtergraph_escape(file_path)
+                    si = subtitle_track["real_index"]
+                    filters.append(f"subtitles='{sub_path}':si={si}")
 
         if subtitle_track and subtitle_track["is_image"]:
              # --- IMAGE SUBTITLE COMPLEX FILTER ---

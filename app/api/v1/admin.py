@@ -102,6 +102,19 @@ async def get_live_viewers(
     )
     rows = result.all()
 
+    # Batch-resolve episode → season → show in 2 queries instead of N×M queries.
+    episode_items = [item for _, item, _ in rows if item.kind.value == "episode" and item.parent_id]
+    season_ids    = list({item.parent_id for item in episode_items})
+    season_map: dict[int, MediaItem] = {}
+    show_map:   dict[int, MediaItem] = {}
+    if season_ids:
+        s_res = await db.execute(select(MediaItem).where(MediaItem.id.in_(season_ids)))
+        season_map = {s.id: s for s in s_res.scalars().all()}
+        show_ids = list({s.parent_id for s in season_map.values() if s.parent_id})
+        if show_ids:
+            sh_res = await db.execute(select(MediaItem).where(MediaItem.id.in_(show_ids)))
+            show_map = {sh.id: sh for sh in sh_res.scalars().all()}
+
     viewers = []
     for hist, item, user in rows:
         pct = 0
@@ -111,28 +124,19 @@ async def get_live_viewers(
             pct = min(100, round(hist.position_seconds / hist.duration_seconds * 100))
             duration_fmt = _fmt_time(hist.duration_seconds)
 
-        # Resolve display title (for episodes, include S/E label)
+        # Resolve display title using pre-fetched maps (zero extra DB queries).
         display_title = item.title
         ep_label = None
         if item.kind.value == "episode":
             if item.episode_number:
                 ep_label = f"E{item.episode_number}"
-            # Try to get parent show title
-            if item.parent_id:
-                season_res = await db.execute(
-                    select(MediaItem).where(MediaItem.id == item.parent_id)
-                )
-                season = season_res.scalar_one_or_none()
-                if season:
-                    if season.season_number and item.episode_number:
-                        ep_label = f"S{season.season_number}E{item.episode_number:02d}"
-                    if season.parent_id:
-                        show_res = await db.execute(
-                            select(MediaItem).where(MediaItem.id == season.parent_id)
-                        )
-                        show = show_res.scalar_one_or_none()
-                        if show:
-                            display_title = show.title
+            season = season_map.get(item.parent_id) if item.parent_id else None
+            if season:
+                if season.season_number and item.episode_number:
+                    ep_label = f"S{season.season_number}E{item.episode_number:02d}"
+                show = show_map.get(season.parent_id) if season.parent_id else None
+                if show:
+                    display_title = show.title
 
         seconds_ago = int(
             (datetime.now(timezone.utc) - hist.last_watched_at.replace(tzinfo=timezone.utc)
@@ -440,29 +444,26 @@ async def list_invites(
     )
     codes = result.scalars().all()
 
-    out = []
+    # Batch-fetch all referenced users in one query instead of N×2 queries.
+    user_ids_needed = set()
     for c in codes:
-        created_by_name = None
-        if c.created_by_id:
-            u = await db.execute(select(User).where(User.id == c.created_by_id))
-            u_row = u.scalar_one_or_none()
-            if u_row:
-                created_by_name = u_row.username
+        if c.created_by_id: user_ids_needed.add(c.created_by_id)
+        if c.used_by_id:    user_ids_needed.add(c.used_by_id)
+    invite_user_map: dict[int, str] = {}
+    if user_ids_needed:
+        u_res = await db.execute(select(User).where(User.id.in_(user_ids_needed)))
+        invite_user_map = {u.id: u.username for u in u_res.scalars().all()}
 
-        used_by_name = None
-        if c.used_by_id:
-            u2 = await db.execute(select(User).where(User.id == c.used_by_id))
-            u2_row = u2.scalar_one_or_none()
-            if u2_row:
-                used_by_name = u2_row.username
-
-        expired = c.expires_at is not None and c.expires_at < datetime.now(timezone.utc).replace(tzinfo=None)
+    out = []
+    now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    for c in codes:
+        expired = c.expires_at is not None and c.expires_at < now_naive
         out.append({
             "id": c.id,
             "code": c.code,
-            "created_by": created_by_name,
+            "created_by": invite_user_map.get(c.created_by_id) if c.created_by_id else None,
             "created_at": c.created_at.isoformat() if c.created_at else None,
-            "used_by": used_by_name,
+            "used_by": invite_user_map.get(c.used_by_id) if c.used_by_id else None,
             "used_at": c.used_at.isoformat() if c.used_at else None,
             "expires_at": c.expires_at.isoformat() if c.expires_at else None,
             "expired": expired,
@@ -575,20 +576,48 @@ async def get_history_stats(
     ]
 
     # ── Per-user history ─────────────────────────────────────────────────────────
+    # Fetch ALL recent history rows for ALL users in one query, then batch-resolve
+    # episode → season → show using two more queries instead of N×M×2 queries.
     users_result = await db.execute(select(User).order_by(User.created_at))
     users = users_result.scalars().all()
+    user_map = {u.id: u for u in users}
+
+    # Single query: last 25 items per user across all users
+    all_hist_result = await db.execute(
+        select(WatchHistory, MediaItem)
+        .join(MediaItem, WatchHistory.media_item_id == MediaItem.id)
+        .where(WatchHistory.user_id.in_(list(user_map.keys())))
+        .order_by(WatchHistory.user_id, WatchHistory.last_watched_at.desc())
+    )
+    all_hist_rows = all_hist_result.all()
+
+    # Group rows by user, keeping only the 25 most recent per user.
+    from collections import defaultdict as _defaultdict
+    rows_by_user: dict = _defaultdict(list)
+    for hist, item in all_hist_rows:
+        if len(rows_by_user[hist.user_id]) < 25:
+            rows_by_user[hist.user_id].append((hist, item))
+
+    # Batch-resolve episode parents in 2 queries total.
+    all_ep_items = [
+        item for rows in rows_by_user.values()
+        for _, item in rows
+        if item.kind == MediaKind.EPISODE and item.parent_id
+    ]
+    hist_season_ids = list({item.parent_id for item in all_ep_items})
+    hist_season_map: dict[int, MediaItem] = {}
+    hist_show_map:   dict[int, MediaItem] = {}
+    if hist_season_ids:
+        hs_res = await db.execute(select(MediaItem).where(MediaItem.id.in_(hist_season_ids)))
+        hist_season_map = {s.id: s for s in hs_res.scalars().all()}
+        hist_show_ids = list({s.parent_id for s in hist_season_map.values() if s.parent_id})
+        if hist_show_ids:
+            hsh_res = await db.execute(select(MediaItem).where(MediaItem.id.in_(hist_show_ids)))
+            hist_show_map = {sh.id: sh for sh in hsh_res.scalars().all()}
 
     user_histories = []
     for u in users:
-        hist_result = await db.execute(
-            select(WatchHistory, MediaItem)
-            .join(MediaItem, WatchHistory.media_item_id == MediaItem.id)
-            .where(WatchHistory.user_id == u.id)
-            .order_by(WatchHistory.last_watched_at.desc())
-            .limit(25)
-        )
-        rows = hist_result.all()
-
+        rows = rows_by_user.get(u.id, [])
         items = []
         for hist, item in rows:
             pct = 0
@@ -598,20 +627,13 @@ async def get_history_stats(
             display_title = item.title
             ep_label = None
             if item.kind == MediaKind.EPISODE and item.parent_id:
-                season_res = await db.execute(
-                    select(MediaItem).where(MediaItem.id == item.parent_id)
-                )
-                season_item = season_res.scalar_one_or_none()
+                season_item = hist_season_map.get(item.parent_id)
                 if season_item:
                     if season_item.season_number and item.episode_number:
                         ep_label = f"S{season_item.season_number}E{item.episode_number:02d}"
-                    if season_item.parent_id:
-                        show_res = await db.execute(
-                            select(MediaItem).where(MediaItem.id == season_item.parent_id)
-                        )
-                        show_item = show_res.scalar_one_or_none()
-                        if show_item:
-                            display_title = show_item.title
+                    show_item = hist_show_map.get(season_item.parent_id) if season_item.parent_id else None
+                    if show_item:
+                        display_title = show_item.title
 
             items.append({
                 "media_id": item.id,

@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     OPENSUBTITLES_API_KEY: str | None = None
     SUBDL_API_KEY: str | None = None
 
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     ALGORITHM: str = "HS256"
 
 settings = Settings()

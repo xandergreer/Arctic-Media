@@ -2,6 +2,78 @@
 
 let mediaId, isShow, els;
 
+// ── Stream token management ───────────────────────────────────────────────────
+// HLS tokens are short-lived (1 hour). For long movies or binge sessions we
+// must refresh the token before it expires so HLS.js can keep fetching segments
+// without hitting a 401 mid-stream.
+//
+// Strategy:
+//   1. Cache the token + its expiry time.
+//   2. Schedule a silent background refresh 5 minutes before expiry.
+//   3. Use a custom HLS.js loader that reads _cachedToken on every request,
+//      so the latest token is used automatically — no stream restart needed.
+
+const _TOKEN_TTL_MS     = 60 * 60 * 1000;  // keep in sync with HLS_TOKEN_EXPIRE_HOURS
+const _TOKEN_REFRESH_MS = 5  * 60 * 1000;  // refresh this many ms before expiry
+
+let _cachedToken      = null;
+let _tokenExpiresAt   = 0;
+let _tokenRefreshTimer = null;
+
+async function _fetchFreshToken() {
+    const tok = await getStreamToken();   // defined in main.js
+    if (tok) {
+        _cachedToken    = tok;
+        _tokenExpiresAt = Date.now() + _TOKEN_TTL_MS;
+        _scheduleTokenRefresh();
+    }
+    return tok;
+}
+
+function _scheduleTokenRefresh() {
+    if (_tokenRefreshTimer) clearTimeout(_tokenRefreshTimer);
+    const delay = Math.max(0, (_tokenExpiresAt - Date.now()) - _TOKEN_REFRESH_MS);
+    _tokenRefreshTimer = setTimeout(async () => {
+        console.log('[Arctic] Refreshing stream token silently...');
+        await _fetchFreshToken();
+    }, delay);
+}
+
+/** Returns a cached token if still fresh, otherwise fetches a new one. */
+async function getValidStreamToken() {
+    if (_cachedToken && Date.now() < _tokenExpiresAt - _TOKEN_REFRESH_MS) {
+        return _cachedToken;
+    }
+    return _fetchFreshToken();
+}
+
+/**
+ * Build an HLS.js config that includes a custom loader which substitutes the
+ * latest cached token into every playlist/segment URL just before the request
+ * is sent. This means a mid-session token refresh is picked up automatically
+ * by the very next segment fetch — no stream reload required.
+ */
+function _makeHlsConfig(startPosition) {
+    const DefaultLoader = Hls.DefaultConfig.loader;
+
+    class TokenAwareLoader extends DefaultLoader {
+        load(context, config, callbacks) {
+            // Swap in the freshest token we have for every outgoing request.
+            if (_cachedToken && context.url && context.url.includes('token=')) {
+                context.url = context.url.replace(/token=[^&]+/, `token=${_cachedToken}`);
+            }
+            super.load(context, config, callbacks);
+        }
+    }
+
+    return {
+        loader: TokenAwareLoader,
+        startPosition: startPosition > 0 ? startPosition : -1,
+        capLevelToPlayerSize: true,
+        debug: false,
+    };
+}
+
 function _renderExternalLinks(data) {
     const container = document.getElementById('external-links');
     if (!container) return;
@@ -276,7 +348,12 @@ async function loadDetails() {
                                     btn.style.border = "none";
                                     if (isDefault) btn.style.backgroundColor = "var(--primary)";
 
-                                    btn.innerHTML = `${nameDisp} <span style="opacity:0.7;font-size:0.9em;margin-left:4px">(${sizeMB}MB)</span>`;
+                                    // textContent prevents a crafted filename from injecting HTML (XSS).
+                                    btn.textContent = nameDisp;
+                                    const sizeSpan = document.createElement('span');
+                                    sizeSpan.style.cssText = 'opacity:0.7;font-size:0.9em;margin-left:4px';
+                                    sizeSpan.textContent = `(${sizeMB}MB)`;
+                                    btn.appendChild(sizeSpan);
 
                                     btn.onclick = () => {
                                         window.currentFileId = f.id;
@@ -933,7 +1010,7 @@ let currentAidx = 0;
 let currentSidx = null;
 
 async function playStream(id, qualityStr = null, aidx = null, sidx = null, startTime = 0) {
-    const token = await getStreamToken();
+    const token = await getValidStreamToken();
     if (!token) {
         alert("Login required.");
         window.location.href = "/login";
@@ -1005,11 +1082,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
 
     if (playerElement) {
         if (Hls.isSupported()) {
-            const hls = new Hls({
-                startPosition: startTime > 0 ? startTime : -1,
-                capLevelToPlayerSize: true,
-                debug: false
-            });
+            const hls = new Hls(_makeHlsConfig(startTime));
 
             hls.loadSource(srcUrl);
             hls.attachMedia(playerElement);

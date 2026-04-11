@@ -1,6 +1,28 @@
 from contextlib import asynccontextmanager
-import asyncio, os, sys
+import asyncio, logging, os, sys
 from fastapi import FastAPI, Request, Depends
+
+# ── Persistent file logging ───────────────────────────────────────────────────
+def _setup_logging() -> None:
+    """Configure root logger: INFO to stdout + rotating file in the data dir."""
+    from logging.handlers import RotatingFileHandler
+    from app.core.config import _get_data_dir
+    log_dir = _get_data_dir()
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "arctic_media.log")
+    fmt = logging.Formatter("%(asctime)s  %(levelname)-8s  %(name)s  %(message)s")
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    if not root.handlers:
+        sh = logging.StreamHandler()
+        sh.setFormatter(fmt)
+        root.addHandler(sh)
+    fh = RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024, backupCount=3)
+    fh.setFormatter(fmt)
+    root.addHandler(fh)
+
+_setup_logging()
+logger = logging.getLogger("arctic_media")
 
 if os.name == 'nt':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -57,7 +79,7 @@ templates = Jinja2Templates(directory=resource_path("app/templates"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"Starting up {settings.PROJECT_NAME}...")
+    logger.info(f"Starting up {settings.PROJECT_NAME}...")
     
     # 1. Create Tables
     async with engine.begin() as conn:
@@ -80,19 +102,31 @@ async def lifespan(app: FastAPI):
             text("INSERT OR IGNORE INTO server_settings (key, value, created_at) VALUES ('open_registration', 'false', datetime('now'))")
         )
 
-    print("Database tables verified/created.")
+    logger.info("Database tables verified/created.")
+
+    async def _resilient_task(coro_factory, name: str, restart_delay: float = 10.0):
+        """Run a background coroutine forever, restarting it if it crashes."""
+        while True:
+            try:
+                await coro_factory()
+            except asyncio.CancelledError:
+                logger.info(f"[{name}] cancelled — shutting down")
+                return
+            except Exception as exc:
+                logger.error(f"[{name}] crashed: {exc!r} — restarting in {restart_delay}s")
+                await asyncio.sleep(restart_delay)
 
     # Start background subtitle download worker
     from app.services import subtitles as sub_svc
-    asyncio.create_task(sub_svc.run_worker())
+    asyncio.create_task(_resilient_task(sub_svc.run_worker, "subtitle-worker"))
 
     # Start HLS idle-job reaper
     from app.api.v1.stream_hls import _reap_idle_jobs
-    asyncio.create_task(_reap_idle_jobs())
+    asyncio.create_task(_resilient_task(_reap_idle_jobs, "hls-reaper"))
 
     yield
     
-    print("Shutting down... Closing Database connection.")
+    logger.info("Shutting down... Closing Database connection.")
     await engine.dispose()
     
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
@@ -134,9 +168,9 @@ async def security_headers(request: Request, call_next):
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"REQUEST START: {request.method} {request.url}")
+    logger.debug(f"→ {request.method} {request.url}")
     response = await call_next(request)
-    print(f"REQUEST END: {request.method} {request.url} -> {response.status_code}")
+    logger.debug(f"← {request.method} {request.url} {response.status_code}")
     return response
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])

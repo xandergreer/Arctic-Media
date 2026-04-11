@@ -151,9 +151,11 @@ async def update_progress(
     if body.duration_seconds and body.duration_seconds > 0:
         completed = (body.position_seconds / body.duration_seconds) >= 0.9
 
-    # Capture client context for Live View
-    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() \
-                or (request.client.host if request.client else None)
+    # Capture client context for Live View.
+    # Always use the direct TCP connection IP — never trust X-Forwarded-For headers
+    # unless behind an explicitly configured trusted reverse proxy, because they can
+    # be trivially spoofed by any client.
+    client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
 
     if row:

@@ -67,9 +67,14 @@ async def create_library(
             )
         )
 
-    # 3. Save to DB
+    # 3. Resolve symlinks so the canonical real path is stored in the DB.
+    #    This prevents a symlink from silently pointing elsewhere after the fact
+    #    while still allowing admins to use symlinks intentionally.
+    real_path = await asyncio.to_thread(os.path.realpath, item.path)
+
+    # 4. Save to DB
     final_name = item.name if item.name.strip() else lib_type.value.title()
-    new_library = Library(name=final_name, path=item.path, type=lib_type)
+    new_library = Library(name=final_name, path=real_path, type=lib_type)
 
     try:
         db.add(new_library)

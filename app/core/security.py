@@ -6,7 +6,7 @@ from app.core.config import settings
 import bcrypt
 
 HLS_TOKEN_AUDIENCE = "stream-segment"
-HLS_TOKEN_EXPIRE_HOURS = 4
+HLS_TOKEN_EXPIRE_HOURS = 1
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Checks if the typed password matches the stored hash."""
