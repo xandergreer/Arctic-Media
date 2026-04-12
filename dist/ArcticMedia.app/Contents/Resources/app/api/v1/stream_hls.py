@@ -318,7 +318,7 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
             # temp_file: FFmpeg writes seg_NNNNN.ts.tmp then atomically renames
             # to seg_NNNNN.ts only when the segment is fully flushed — eliminates
             # the race where we serve a partial segment and Roku stutters.
-            "-hls_flags", "independent_segments+temp_file",
+            "-hls_flags", "independent_segments",
             "-start_number", str(job.start_seg),
         ])
         
@@ -615,18 +615,36 @@ async def get_hls_segment(
 
     # In fake-VOD mode the player may request a segment before ffmpeg has produced it.
     # Poll up to 60 s for the segment to appear.
-    # With -hls_flags temp_file, ffmpeg writes seg_NNNNN.ts.tmp and renames to
-    # seg_NNNNN.ts atomically when complete — so a file that exists is fully written.
     if not seg_path.exists():
         for _ in range(120):  # 60 s
             await asyncio.sleep(0.5)
-            if seg_path.exists():  # temp_file guarantees completeness on appearance
+            if seg_path.exists():
                 break
             if job.proc and job.proc.returncode is not None:
                 break  # ffmpeg exited — segment will never appear
 
     if not seg_path.exists():
         raise HTTPException(404, "Segment not found")
+
+    # Size-stability check: wait until FFmpeg has finished writing the segment.
+    # Without atomic rename (temp_file), the file may exist but still be open for
+    # writing. Poll size until it stops growing — two consecutive equal readings
+    # 100 ms apart means the write is complete.
+    for _ in range(30):  # max 3 s
+        try:
+            size1 = seg_path.stat().st_size
+        except OSError:
+            break  # file disappeared, serve anyway (will 404 below)
+        if size1 == 0:
+            await asyncio.sleep(0.1)
+            continue
+        await asyncio.sleep(0.1)
+        try:
+            size2 = seg_path.stat().st_size
+        except OSError:
+            break
+        if size2 == size1:
+            break  # write complete
 
     job.touch()
     return FileResponse(seg_path, media_type="video/mp2t")
