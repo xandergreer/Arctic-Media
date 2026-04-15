@@ -1055,44 +1055,55 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         if (res.ok) info = await res.json();
     } catch (e) { console.error("Meta fetch error", e); }
 
-    // 4. Initialize Plyr (HLS ONLY)
+    // 4. Initialize player
     if (plyr) plyr.destroy();
     if (window.hls) {
         window.hls.destroy();
         window.hls = null;
     }
 
-    // ALWAYS USE HLS
-    // Text subtitles are rendered client-side via WebVTT — no server burn-in needed.
-    // Only image-based subs (PGS/DVD) go through the burn-in path.
     const _subTrack = (targetS !== null && info.subtitle_tracks) ? info.subtitle_tracks[targetS] : null;
     const _isImageSub = _subTrack ? !!_subTrack.is_image : false;
     const _isTextSub  = _subTrack ? !_subTrack.is_image : false;
 
-    let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
-    if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
-    if (targetS !== null && _isImageSub) {
-        // Only burn-in for image-based subs (PGS/DVD); text subs handled below via WebVTT
-        srcUrl += `&sidx=${targetS}&stype=image`;
-    }
-    // Pass current playback position so the server seeks FFmpeg to that point.
-    // This prevents the player requesting segment N while FFmpeg is still at segment 0.
-    if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
+    // Direct-play: H.264/AAC MP4 → native <video> with byte-range requests.
+    // No FFmpeg, no segments, instant seek, zero buffering on start.
+    const _canDirect = info.can_direct_play && targetA === 0 && targetS === null && !qualityStr;
+
     const posterSrc = els.backdrop ? els.backdrop.src : "";
 
     if (playerElement) {
-        if (Hls.isSupported()) {
-            const hls = new Hls(_makeHlsConfig(startTime));
+        if (_canDirect) {
+            // ── Direct-play path ──────────────────────────────────────────────
+            let directUrl = `/api/v1/stream/${id}?token=${token}`;
+            if (window.currentFileId) directUrl += `&file_id=${window.currentFileId}`;
+            playerElement.src = directUrl;
+            playerElement.addEventListener('loadedmetadata', function onMeta() {
+                playerElement.removeEventListener('loadedmetadata', onMeta);
+                if (startTime > 0) playerElement.currentTime = startTime;
+                playerElement.play().catch(e => console.log("Autoplay blocked/failed", e));
+                _startProgressTracking(id);
+            });
+            console.log('[Arctic] Direct-play path active');
+        } else if (Hls.isSupported()) {
+            // ── HLS path (transcoded / alternate tracks / image subs) ─────────
+            let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
+            if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
+            if (targetS !== null && _isImageSub) {
+                srcUrl += `&sidx=${targetS}&stype=image`;
+            }
+            // Tell server where to start FFmpeg so segment 0 aligns with playhead
+            if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
 
+            const hls = new Hls(_makeHlsConfig(startTime));
             hls.loadSource(srcUrl);
             hls.attachMedia(playerElement);
-            window.hls = hls; // Global ref
+            window.hls = hls;
 
             hls.on(Hls.Events.MANIFEST_PARSED, function () {
                 if (startTime > 0) playerElement.currentTime = startTime;
                 playerElement.play().catch(e => console.log("Autoplay blocked/failed", e));
                 _startProgressTracking(id);
-                // Load text subtitle as WebVTT — browser renders it natively, no re-encode needed
                 if (_isTextSub) {
                     let vttUrl = `/api/v1/stream/${id}/subtitle.vtt?sidx=${targetS}&token=${token}`;
                     if (window.currentFileId) vttUrl += `&file_id=${window.currentFileId}`;
@@ -1117,8 +1128,11 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
                     }
                 }
             });
-        }
-        else if (playerElement.canPlayType('application/vnd.apple.mpegurl')) {
+        } else if (playerElement.canPlayType('application/vnd.apple.mpegurl')) {
+            // ── Safari native HLS ─────────────────────────────────────────────
+            let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
+            if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
+            if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
             playerElement.src = srcUrl;
             playerElement.addEventListener('canplay', function onCanPlay() {
                 playerElement.removeEventListener('canplay', onCanPlay);
@@ -1128,7 +1142,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
             });
         }
 
-        // Initialize Plyr UI (Controls only)
+        // Initialize Plyr UI wrapper
         plyr = new Plyr(playerElement, {
             controls: [
                 'play-large', 'play', 'progress', 'current-time', 'duration', 'mute',
@@ -1146,8 +1160,6 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         });
 
         plyr.poster = posterSrc;
-
-        // No source setting for Plyr - Hls.js handles it
     }
 
     // --- Custom UI Injectors (Audio/Sub Selectors) ---

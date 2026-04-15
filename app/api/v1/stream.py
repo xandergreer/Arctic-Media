@@ -385,19 +385,25 @@ async def stream_video(
 
     caps = browser_caps(request.headers.get("user-agent"))
 
-    # --- HLS FORCED REDIRECTION (As requested) ---
-    # We redirect ALL video playback to HLS to ensure consistent seeking behavior.
-    if not quality: # Only redirect default request. If user specifically asks for quality/direct, we might respect it later but for now force HLS.
+    # --- Direct-play fast path ---
+    # H.264/AAC MP4 files can be served natively with byte-range requests.
+    # This skips FFmpeg entirely, giving instant seek and zero startup buffering.
+    if not quality and not aidx and sidx is None and is_direct_play_compatible(file_path, info, caps):
+        return range_requests_response(request, file_path, "video/mp4")
+
+    # --- HLS for everything else ---
+    # Transcoded content, alternate audio tracks, subtitle burn-in, or
+    # files that need re-encoding go through the HLS pipeline.
+    if not quality:
         url = f"/api/v1/stream/{media_id}/master.m3u8?token={token}"
         if file_id:
             url += f"&file_id={file_id}"
-        return RedirectResponse(
-            url=url, 
-            status_code=302
-        )
+        if aidx is not None:
+            url += f"&aidx={aidx}"
+        if sidx is not None:
+            url += f"&sidx={sidx}"
+        return RedirectResponse(url=url, status_code=302)
 
-    # --- Fallback (Should not be reached for standard playback) ---
-    
     force_transcode = False
     target_height = 720 # Default cap
     

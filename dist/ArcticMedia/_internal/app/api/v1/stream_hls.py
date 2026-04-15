@@ -253,6 +253,12 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
 
         cmd = [FFMPEG_PATH, "-hide_banner", "-nostdin", "-y"]
 
+        # Regenerate PTS/DTS to fix discontinuities caused by B-frames, variable
+        # frame rate, or source files with broken timestamps. Without this, the
+        # browser often shows a black screen until the user seeks past the first
+        # couple of seconds.
+        cmd.extend(["-fflags", "+genpts"])
+
         # Fast seek: jump to start position before opening the input.
         # This means FFmpeg starts encoding from approximately job.start_seg * seg_dur seconds in,
         # and names the output files starting from start_seg (via -start_number below).
@@ -308,6 +314,10 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
                 "-pix_fmt", "yuv420p"
             ])
             
+        # Ensure timestamps are non-negative (required for some source files with
+        # leading B-frames or DTS < 0). Keeps HLS segments well-formed.
+        cmd.extend(["-avoid_negative_ts", "make_zero"])
+
         # HLS Format
         cmd.extend([
             "-f", "hls",
