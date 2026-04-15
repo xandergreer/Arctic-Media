@@ -1,6 +1,7 @@
 sub init()
     m.video          = m.top.findNode("video")
     m.osd            = m.top.findNode("osd")
+    m.osdEpLabel     = m.top.findNode("osdEpLabel")
     m.osdTitle       = m.top.findNode("osdTitle")
     m.osdState       = m.top.findNode("osdState")
     m.seekFill       = m.top.findNode("seekFill")
@@ -33,6 +34,11 @@ sub init()
     m.autoplaying  = false
     m.upNextShown  = false
     m.seekAccum    = 0
+    m.seekPresses  = 0   ' consecutive seek presses for acceleration
+    m.showId       = 0
+    m.cwSeasonNum  = 0
+    m.cwEpisodeNum = 0
+    m.episodeLabel = ""
 
     m.ccEnabled        = (GetReg("subtitles") = "On")
     m.subtitleMenuOpen = false
@@ -59,6 +65,11 @@ sub init()
     m.seekHideTimer.repeat   = false
     m.seekHideTimer.observeField("fire", "onSeekHideTimer")
 
+    m.seekResetTimer = CreateObject("roSGNode", "Timer")
+    m.seekResetTimer.duration = 1.5
+    m.seekResetTimer.repeat   = false
+    m.seekResetTimer.observeField("fire", "onSeekResetTimer")
+
     m.top.observeField("params", "onParams")
 end sub
 
@@ -66,11 +77,26 @@ sub onParams(event as object)
     p = event.getData()
     if p = invalid then return
     m.mediaId = p.mediaId
-    m.osdTitle.text = p.title
     m.upNextShown = false
+
+    ' Episode label (e.g. "S1 E3") — shown left of title in OSD
+    m.episodeLabel = ""
+    el = p.episodeLabel
+    if el <> invalid and el <> "" then m.episodeLabel = el
+    updateOsdHeader(p.title)
 
     if p.episodeList <> invalid then m.episodeList = p.episodeList
     if p.episodeIdx  <> invalid then m.episodeIdx  = p.episodeIdx
+
+    ' CW play: no episodeList yet — fetch it in background so autoplay works
+    if m.episodeList = invalid and p.showId <> invalid and p.showId > 0 then
+        m.showId      = p.showId
+        m.cwSeasonNum = 0
+        m.cwEpisodeNum = 0
+        if p.seasonNumber <> invalid then m.cwSeasonNum  = p.seasonNumber
+        if p.episodeNumber <> invalid then m.cwEpisodeNum = p.episodeNumber
+        fetchEpisodeListBg()
+    end if
 
     ' Seed total duration from params so the seek bar is correct from frame 1
     durParam = p.durationSeconds
@@ -102,6 +128,70 @@ sub onParams(event as object)
     m.saveTimer.repeat   = true
     m.saveTimer.observeField("fire", "onSaveTimer")
     m.saveTimer.control = "start"
+end sub
+
+' -------------------------------------------------------
+' Background episode-list fetch (for CW plays)
+' -------------------------------------------------------
+
+sub fetchEpisodeListBg()
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/shows/" + m.showId.ToStr() + "/seasons"
+    task.token = m.token
+    task.observeField("resultArr", "onBgSeasonsResult")
+    task.control = "run"
+    m.bgSeasonsTask = task
+end sub
+
+sub onBgSeasonsResult(event as object)
+    data = event.getData()
+    if data = invalid or data.count() = 0 then return
+
+    ' Find season matching m.cwSeasonNum; fall back to first season
+    seasonId = data[0].id
+    for each s in data
+        if s.season_number = m.cwSeasonNum then
+            seasonId = s.id
+            exit for
+        end if
+    end for
+
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/seasons/" + seasonId.ToStr() + "/episodes"
+    task.token = m.token
+    task.observeField("resultArr", "onBgEpisodesResult")
+    task.control = "run"
+    m.bgEpisodesTask = task
+end sub
+
+sub onBgEpisodesResult(event as object)
+    data = event.getData()
+    if data = invalid or data.count() = 0 then return
+    m.episodeList = data
+
+    ' Find our current episode index by id
+    for i = 0 to data.count() - 1
+        ep = data[i]
+        if ep.id = m.mediaId then
+            m.episodeIdx = i
+            exit for
+        end if
+    end for
+end sub
+
+sub updateOsdHeader(title as string)
+    if m.episodeLabel <> "" then
+        m.osdEpLabel.text = m.episodeLabel
+        m.osdEpLabel.width = 150
+        m.osdTitle.text = title
+        m.osdTitle.translation = [200, 22]
+        m.osdTitle.width = 1140
+    else
+        m.osdEpLabel.text = ""
+        m.osdTitle.text = title
+        m.osdTitle.translation = [40, 22]
+        m.osdTitle.width = 1300
+    end if
 end sub
 
 sub applySubtitlePref()
@@ -201,13 +291,33 @@ end function
 ' Seek helper
 ' -------------------------------------------------------
 
-sub seekBy(deltaSecs as integer)
-    newPos = Int(m.lastPos) + deltaSecs
+' Accelerating seek: 1-2 presses=10s, 3-5=30s, 6-9=60s, 10+=120s
+function seekAmount() as integer
+    p = m.seekPresses
+    if p <= 2  then return 10
+    if p <= 5  then return 30
+    if p <= 9  then return 60
+    return 120
+end function
+
+function seekBy(direction as integer) as integer
+    ' direction is +1 or -1
+    m.seekPresses = m.seekPresses + 1
+    m.seekResetTimer.control = "stop"
+    m.seekResetTimer.control = "start"
+
+    amount   = seekAmount() * direction
+    newPos   = Int(m.lastPos) + amount
     if newPos < 0 then newPos = 0
     if m.totalDur > 0 and newPos > m.totalDur then newPos = Int(m.totalDur)
     m.video.seek = newPos
     m.lastPos    = newPos
     updateOsd()
+    return amount
+end function
+
+sub onSeekResetTimer(event as object)
+    m.seekPresses = 0
 end sub
 
 ' -------------------------------------------------------
@@ -220,8 +330,8 @@ sub onStateChange(event as object)
     if s = "finished"
         doSaveProgress()
         if m.autoplaying
-            m.autoplayTimer.control = "stop"
-            playNext()
+            ' Toast already showing — let the countdown timer call playNext() naturally.
+            ' Stopping the timer here would kill the countdown the user is watching.
         else
             checkAutoplay()
         end if
@@ -249,7 +359,7 @@ end sub
 
 sub startAutoplayCountdown(nextIdx as integer)
     m.autoplayIdx  = nextIdx
-    m.autoplaySecs = 15
+    m.autoplaySecs = 5
     m.autoplaying  = true
     nextEp = m.episodeList[nextIdx]
     m.autoplayTitle.text = nextEp.title
@@ -270,7 +380,7 @@ end sub
 
 sub updateAutoplayLabel()
     m.autoplayLabel.text = "Playing in " + m.autoplaySecs.ToStr() + "s..."
-    barW = Int(m.autoplaySecs / 15.0 * 556)
+    barW = Int(m.autoplaySecs / 5.0 * 556)
     if barW < 0 then barW = 0
     m.autoplayCountdownBar.width = barW
 end sub
@@ -287,7 +397,16 @@ sub playNext()
     if nextEp.duration_seconds <> invalid and nextEp.duration_seconds > 0 then
         m.totalDur = nextEp.duration_seconds
     end if
-    m.osdTitle.text       = nextEp.title
+    ' Build episode label for the next episode
+    m.episodeLabel = ""
+    epNum = nextEp.episode_number
+    snNum = nextEp.season_number
+    if epNum <> invalid and snNum <> invalid then
+        m.episodeLabel = "S" + snNum.ToStr() + " E" + epNum.ToStr()
+    else if epNum <> invalid then
+        m.episodeLabel = "E" + epNum.ToStr()
+    end if
+    updateOsdHeader(nextEp.title)
     m.osdCurrentTime.text = "0:00"
     m.osdTotalTime.text   = ""
     m.seekFill.width      = 0
@@ -321,10 +440,10 @@ end sub
 sub onPositionChange(event as object)
     m.lastPos = event.getData()
 
-    ' Show Up Next toast when ≤5s remain (only for episodes with a next episode)
-    if not m.autoplaying and not m.upNextShown and m.totalDur > 30 then
+    ' Show Up Next toast when ≤30s remain — plays next after 5s countdown
+    if not m.autoplaying and not m.upNextShown and m.totalDur > 60 then
         remaining = m.totalDur - m.lastPos
-        if remaining > 0 and remaining <= 5 then
+        if remaining > 0 and remaining <= 30 then
             if m.episodeList <> invalid then
                 nextIdx = m.episodeIdx + 1
                 if nextIdx < m.episodeList.count() then
@@ -481,18 +600,18 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     end if
 
-    ' ── Left: seek backward 10s ───────────────────────────
+    ' ── Left: seek backward (accelerating) ───────────────
     if key = "left"
-        seekBy(-10)
-        showSeekOverlay(-10)
+        delta = seekBy(-1)
+        showSeekOverlay(delta)
         showOsd()
         return true
     end if
 
-    ' ── Right: seek forward 10s ───────────────────────────
+    ' ── Right: seek forward (accelerating) ────────────────
     if key = "right"
-        seekBy(10)
-        showSeekOverlay(10)
+        delta = seekBy(1)
+        showSeekOverlay(delta)
         showOsd()
         return true
     end if
@@ -515,17 +634,34 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     end if
 
-    ' ── Physical FF / RW: seek 60s ────────────────────────
+    ' ── Physical FF / RW: seek (accelerating) ────────────
     if key = "rev"
-        seekBy(-60)
-        showSeekOverlay(-60)
+        delta = seekBy(-1)
+        showSeekOverlay(delta)
         showOsd()
         return true
     end if
 
     if key = "fwd"
-        seekBy(60)
-        showSeekOverlay(60)
+        delta = seekBy(1)
+        showSeekOverlay(delta)
+        showOsd()
+        return true
+    end if
+
+    ' ── Down: skip to next episode ────────────────────────
+    if key = "down"
+        if m.episodeList <> invalid then
+            nextIdx = m.episodeIdx + 1
+            if nextIdx < m.episodeList.count() then
+                doSaveProgress()
+                m.autoplayIdx = nextIdx
+                m.autoplayTimer.control = "stop"
+                m.autoplaying = true
+                playNext()
+                return true
+            end if
+        end if
         showOsd()
         return true
     end if

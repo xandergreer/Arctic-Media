@@ -27,8 +27,10 @@
         <!-- ═══ OSD ═══ -->
         <Group id="osd" visible="false">
 
-            <!-- TOP BAR: title + state -->
+            <!-- TOP BAR: episode badge + title + state -->
             <Rectangle color="0x000000CC" width="1920" height="72" translation="[0, 0]" />
+            <Label id="osdEpLabel" translation="[40, 22]" width="200"
+                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" />
             <Label id="osdTitle" translation="[40, 22]" width="1300"
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" />
             <Label id="osdState" translation="[1360, 22]" width="520"
@@ -51,7 +53,7 @@
 
             <!-- Hint -->
             <Label translation="[60, 1046]"
-                   text="← / → = seek 10s     OK = play/pause     * = subtitles     Back = exit"
+                   text="← / → = seek (hold to go faster)     ↓ = next episode     OK = play/pause     * = subtitles     Back = exit"
                    font="font:SmallSystemFont" color="0x2A2A4AFF" width="1800" horizAlign="center" />
         </Group>
 
@@ -82,7 +84,7 @@
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="560" wrap="true" numLines="2" />
             <Label id="autoplayLabel" translation="[1314, 836]" text=""
                    font="font:SmallSystemFont" color="0xAAAAAAFF" width="300" />
-            <Label translation="[1314, 860]" text="OK = play now   Back = dismiss"
+            <Label translation="[1314, 860]" text="OK = play now   Back = cancel"
                    font="font:SmallSystemFont" color="0x44444499" width="560" />
             <Rectangle color="0x1C2C4AFF" width="556" height="4" translation="[1318, 880]" />
             <Rectangle id="autoplayCountdownBar" color="0x4A9FFFFF" width="556" height="4" translation="[1318, 880]" />

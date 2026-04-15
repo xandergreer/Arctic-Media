@@ -89,6 +89,8 @@ async def lifespan(app: FastAPI):
             "ALTER TABLE watch_history ADD COLUMN last_ip VARCHAR(64)",
             "ALTER TABLE watch_history ADD COLUMN last_user_agent VARCHAR(512)",
             "ALTER TABLE libraries ADD COLUMN last_scanned_at DATETIME",
+            "ALTER TABLE device_sessions ADD COLUMN session_token VARCHAR(128)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_device_sessions_session_token ON device_sessions (session_token)",
         ]:
             try:
                 await conn.execute(text(col_sql))

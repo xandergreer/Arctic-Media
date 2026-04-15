@@ -78,6 +78,17 @@ sub onNavRequest(event as object)
         pushPage("SearchPage", invalid)
 
     else if action = "signout"
+        ' Tell server to delete the session row before clearing local credentials
+        token     = GetReg("access_token")
+        serverUrl = GetReg("server_url")
+        if token <> "" and serverUrl <> ""
+            q    = Chr(34)
+            body = "{" + q + "access_token" + q + ":" + q + token + q + "}"
+            req2 = CreateObject("roUrlTransfer")
+            req2.SetUrl(serverUrl + "/pair/signout")
+            req2.AddHeader("Content-Type", "application/json")
+            req2.PostFromString(body)  ' fire-and-forget, ignore response
+        end if
         ClearAuth()
         clearAndPush("PairingPage", {serverUrl: GetReg("server_url")})
 

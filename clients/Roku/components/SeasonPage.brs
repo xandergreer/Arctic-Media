@@ -180,6 +180,10 @@ sub onEpisodeSelected(event as object)
     durSec = 0.0
     if ep.duration_seconds <> invalid then durSec = ep.duration_seconds
 
+    epNum = ep.episode_number
+    if epNum = invalid then epNum = idx + 1
+    epLabel = "S" + m.currentSeasonNum.ToStr() + " E" + epNum.ToStr()
+
     nav = {
         action:          "play"
         mediaId:         mediaId
@@ -188,6 +192,7 @@ sub onEpisodeSelected(event as object)
         durationSeconds: durSec
         episodeList:     m.episodes
         episodeIdx:      idx
+        episodeLabel:    epLabel
     }
     nav["position"] = 0.0
     m.top.navRequest = nav

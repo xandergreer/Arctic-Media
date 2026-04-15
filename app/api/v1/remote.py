@@ -143,24 +143,15 @@ async def pair_poll(body: PairPollIn, request: Request, db: AsyncSession = Depen
         if not user:
             raise HTTPException(status_code=500, detail="User not found")
 
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = security.create_access_token(
-            data={"sub": user.username},
-            expires_delta=access_token_expires,
-        )
-
-        refresh_token_raw = secrets.token_urlsafe(32)
-        refresh_token_hash = security.get_password_hash(refresh_token_raw)
-        session_expires = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 10
-        )
+        # Permanent opaque session token — never expires, only deleted on sign-out
+        session_token = secrets.token_urlsafe(64)  # 86-char URL-safe string
 
         device_session = DeviceSession(
             user_id=user_id,
-            refresh_token_hash=refresh_token_hash,
-            expires_at=session_expires,
+            session_token=session_token,
             user_agent=request.headers.get("user-agent"),
             platform="Roku",
+            last_seen_ip=request.client.host if request.client else None,
         )
         db.add(device_session)
         await db.delete(pairing)
@@ -168,9 +159,9 @@ async def pair_poll(body: PairPollIn, request: Request, db: AsyncSession = Depen
 
         return PairPollOut(
             status="authorized",
-            access_token=access_token,
-            refresh_token=refresh_token_raw,
-            expires_in=int(access_token_expires.total_seconds()),
+            access_token=session_token,   # permanent opaque token
+            refresh_token=None,
+            expires_in=None,
             server_url=server_url,
         )
 
@@ -234,6 +225,20 @@ async def pair_page(request: Request, db: AsyncSession = Depends(get_db)):
         "pair.html",
         {"request": request, "server_url": server_url}
     )
+
+class PairSignOutIn(BaseModel):
+    access_token: str
+
+@router.post("/pair/signout")
+async def pair_signout(body: PairSignOutIn, db: AsyncSession = Depends(get_db)):
+    """Delete a device session (server-side sign-out). No auth required — token is the credential."""
+    from sqlalchemy import delete as sql_delete
+    await db.execute(
+        sql_delete(DeviceSession).where(DeviceSession.session_token == body.access_token)
+    )
+    await db.commit()
+    return {"status": "signed_out"}
+
 
 class CastRequestIn(BaseModel):
     device_ip: str

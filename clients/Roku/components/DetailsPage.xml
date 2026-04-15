@@ -56,12 +56,12 @@
             <!-- Cast row: built dynamically; cards are 190×250 + 2-line name + role -->
             <Group id="castRow" translation="[60, 684]" />
 
-            <!-- ── Similar section — pushed to 2200 so it's always off-screen until scrolled to ── -->
-            <Label id="similarSectionLabel" translation="[60, 2200]"
+            <!-- ── Similar section — 50px below cast row bottom (684+350+50=1084) ── -->
+            <Label id="similarSectionLabel" translation="[60, 1084]"
                    text="More Like This" font="font:SmallBoldSystemFont"
                    color="0x4A9FFFFF" width="300" opacity="0" />
             <!-- Similar row: built dynamically; cards are 200×300 + 2-line title -->
-            <Group id="similarRow" translation="[60, 2246]" />
+            <Group id="similarRow" translation="[60, 1130]" />
 
         </Group>
 

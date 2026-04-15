@@ -240,24 +240,25 @@ sub buildCastRow(castArr as object)
         end if
         card.appendChild(prof)
 
-        ' Actor name (2 lines)
+        ' Actor name — single line, no wrap
         nameLabel             = CreateObject("roSGNode", "Label")
         nameLabel.id          = "castName_" + i.ToStr()
         nameLabel.translation = [0, CARD_H + 10]
         nameLabel.width       = CARD_W
-        nameLabel.numLines    = 2
-        nameLabel.wrap        = true
+        nameLabel.numLines    = 1
+        nameLabel.wrap        = false
         nameLabel.font        = "font:SmallBoldSystemFont"
         nameLabel.color       = "0xBBBBBBFF"
         actorName = actor.name
         if actorName <> invalid then nameLabel.text = actorName
         card.appendChild(nameLabel)
 
-        ' Role / character
+        ' Role / character — single line directly below name (~28px gap)
         roleLabel             = CreateObject("roSGNode", "Label")
-        roleLabel.translation = [0, CARD_H + 58]
+        roleLabel.translation = [0, CARD_H + 38]
         roleLabel.width       = CARD_W
         roleLabel.numLines    = 1
+        roleLabel.wrap        = false
         roleLabel.font        = "font:SmallSystemFont"
         roleLabel.color       = "0x888888FF"
         actorRole = actor.role
@@ -343,7 +344,8 @@ end sub
 '  Section Y positions in scrollGroup (matches XML):
 '    0 = buttons    → scroll to 0   (info panel fully visible)
 '    1 = cast       → castSectionLabel Y=638  → scroll 478 so label sits at Y=160
-'    2 = similar    → similarSectionLabel Y=2200 → scroll 2040 so label sits at Y=160
+'                     (similar at Y=1084 → screen Y=606 → also visible below cast!)
+'    2 = similar    → similarSectionLabel Y=1084 → scroll 924 so label sits at Y=160
 
 sub scrollToSection(section as integer)
     LABEL_TARGET_Y = 160
@@ -351,7 +353,7 @@ sub scrollToSection(section as integer)
     if section = 1 then
         scrollY = 638 - LABEL_TARGET_Y    ' = 478
     else if section = 2 then
-        scrollY = 2200 - LABEL_TARGET_Y   ' = 2040
+        scrollY = 1084 - LABEL_TARGET_Y   ' = 924
     end if
     m.scrollGroup.translation = [0, -scrollY]
 end sub

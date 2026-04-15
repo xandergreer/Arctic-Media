@@ -210,10 +210,6 @@ sub onContinueResult(event as object)
 end sub
 
 sub onContinueError(event as object)
-    if event.getData() = "Unauthorized"
-        m.top.navRequest = {action: "signout"}
-        return
-    end if
     m.continueRows = []
     if not m.inContent
         m.homeRowsBuilt = false
@@ -236,10 +232,6 @@ sub onMoviesResult(event as object)
 end sub
 
 sub onMoviesError(event as object)
-    if event.getData() = "Unauthorized"
-        m.top.navRequest = {action: "signout"}
-        return
-    end if
     m.movieItems = []
 end sub
 
@@ -251,10 +243,6 @@ sub onShowsResult(event as object)
 end sub
 
 sub onShowsError(event as object)
-    if event.getData() = "Unauthorized"
-        m.top.navRequest = {action: "signout"}
-        return
-    end if
     m.showItems = []
 end sub
 
@@ -268,10 +256,6 @@ sub onRecentMoviesResult(event as object)
 end sub
 
 sub onRecentMoviesError(event as object)
-    if event.getData() = "Unauthorized"
-        m.top.navRequest = {action: "signout"}
-        return
-    end if
     m.recentMovies = []
     if not m.inContent
         m.homeRowsBuilt = false
@@ -288,10 +272,6 @@ sub onRecentShowsResult(event as object)
 end sub
 
 sub onRecentShowsError(event as object)
-    if event.getData() = "Unauthorized"
-        m.top.navRequest = {action: "signout"}
-        return
-    end if
     m.recentShows = []
     if not m.inContent
         m.homeRowsBuilt = false
@@ -495,12 +475,19 @@ function makeCWNode(cw as object) as object
         epLabel = "E" + en.ToStr()
     end if
 
+    snVal = 0
+    enVal = 0
+    if sn <> invalid then snVal = sn
+    if en <> invalid then enVal = en
+
     item.addFields({
         mediaId:      cw.media_id
         kind:         cw.kind
         showId:       cw.show_id
         progressPct:  pct
         episodeLabel: epLabel
+        seasonNumber: snVal
+        episodeNumber: enVal
     })
     item.addFields({position: cw.position_seconds})
     durSec = 0.0
@@ -742,6 +729,15 @@ sub navigateToItem(item as object)
         hlsUrl = BuildHlsUrl(m.serverUrl, m.token, mediaId)
         nav = {action: "play", mediaId: mediaId, title: item.title, url: hlsUrl, durationSeconds: durSec}
         nav["position"] = posSec
+        ' Pass episode label and show context for autoplay list fetch
+        if item.episodeLabel <> invalid and item.episodeLabel <> "" then
+            nav["episodeLabel"] = item.episodeLabel
+        end if
+        if item.showId <> invalid and item.showId > 0 then
+            nav["showId"]        = item.showId
+            nav["seasonNumber"]  = item.seasonNumber
+            nav["episodeNumber"] = item.episodeNumber
+        end if
         m.top.navRequest = nav
     else if kind = "show"
         nav = {action: "details", mediaId: mediaId, title: item.title, kind: kind, posterUrl: item.hdPosterUrl, overview: item.overview, year: item.year}

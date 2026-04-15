@@ -44,11 +44,15 @@ class DeviceSession(Base, IDMixin, TimestampMixin):
     app_version: Mapped[Optional[str]] = mapped_column(String(60))
     last_seen_ip: Mapped[Optional[str]] = mapped_column(String(64))
 
-    # hashed refresh token (never store raw)
+    # Permanent opaque session token — stored raw (not hashed) for O(1) lookup.
+    # Never expires; only deleted on explicit sign-out.
+    session_token: Mapped[Optional[str]] = mapped_column(String(128), unique=True, nullable=True, index=True)
+
+    # Legacy JWT-era fields — kept to avoid schema breakage, no longer used for Roku
     refresh_token_hash: Mapped[Optional[str]] = mapped_column(String(255))
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    
+
     # created_at/updated_at provided by TimestampMixin
 
     user: Mapped["User"] = relationship("User", back_populates="devices")

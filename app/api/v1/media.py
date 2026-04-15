@@ -184,15 +184,40 @@ async def get_episodes(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Get episodes for a specific season.
+    Get episodes for a specific season, including duration_seconds from the media file.
     """
-    query = select(MediaItem).where(
-        MediaItem.kind == MediaKind.EPISODE,
-        MediaItem.parent_id == season_id
-    ).order_by(MediaItem.episode_number)
-    
+    from sqlalchemy.orm import selectinload
+    query = (
+        select(MediaItem)
+        .options(selectinload(MediaItem.files))
+        .where(MediaItem.kind == MediaKind.EPISODE, MediaItem.parent_id == season_id)
+        .order_by(MediaItem.episode_number)
+    )
     result = await db.execute(query)
-    return result.scalars().all()
+    episodes = result.scalars().all()
+
+    out = []
+    for ep in episodes:
+        dur = 0.0
+        for f in ep.files:
+            if f.duration_seconds:
+                dur = float(f.duration_seconds)
+                break
+        rd = None
+        if ep.release_date:
+            rd = ep.release_date.strftime("%Y-%m-%d")
+        out.append({
+            "id": ep.id,
+            "title": ep.title,
+            "episode_number": ep.episode_number,
+            "season_number": ep.season_number,
+            "overview": ep.overview,
+            "release_date": rd,
+            "poster_url": ep.poster_url,
+            "backdrop_url": ep.backdrop_url,
+            "duration_seconds": dur,
+        })
+    return out
 
 @router.get("/recently-added")
 async def get_recently_added(
