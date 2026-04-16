@@ -386,22 +386,16 @@ async def stream_video(
     caps = browser_caps(request.headers.get("user-agent"))
 
     # --- Direct-play fast path ---
-    # H.264/AAC MP4 files can be served natively with byte-range requests.
-    # This skips FFmpeg entirely, giving instant seek and zero startup buffering.
+    # H.264/AAC MP4 files: serve with byte-range so the browser plays natively.
+    # No FFmpeg, no HLS segments — instant seek, zero startup buffering.
     if not quality and not aidx and sidx is None and is_direct_play_compatible(file_path, info, caps):
         return range_requests_response(request, file_path, "video/mp4")
 
     # --- HLS for everything else ---
-    # Transcoded content, alternate audio tracks, subtitle burn-in, or
-    # files that need re-encoding go through the HLS pipeline.
     if not quality:
         url = f"/api/v1/stream/{media_id}/master.m3u8?token={token}"
         if file_id:
             url += f"&file_id={file_id}"
-        if aidx is not None:
-            url += f"&aidx={aidx}"
-        if sidx is not None:
-            url += f"&sidx={sidx}"
         return RedirectResponse(url=url, status_code=302)
 
     force_transcode = False
@@ -585,35 +579,63 @@ async def stream_video(
 
 
 def range_requests_response(request: Request, file_path: str, content_type: str):
+    """Serve a file with full byte-range support for direct-play video.
+
+    - No Range header → 200 OK, streams the entire file.
+    - Range header    → 206 Partial Content, streams exactly the requested bytes.
+    Both cases stream in 64 KB chunks so large files never load into RAM.
+    """
+    READ_SIZE = 64 * 1024  # 64 KB per read
     file_size = os.path.getsize(file_path)
     range_header = request.headers.get("range")
 
     if not range_header:
-        start = 0; end = file_size - 1
-    else:
-        try:
-            start_str, end_str = range_header.replace("bytes=", "").split("-")
-            start = int(start_str) or 0
-            end = int(end_str) if end_str else file_size - 1
-        except ValueError:
-             start = 0; end = file_size - 1
+        # Initial request from the <video> element — stream the whole file.
+        def iterfile_full():
+            with open(file_path, "rb") as f:
+                while True:
+                    data = f.read(READ_SIZE)
+                    if not data:
+                        break
+                    yield data
 
-    chunk_size = (end - start) + 1
-    MAX_CHUNK = 10 * 1024 * 1024 
-    if chunk_size > MAX_CHUNK:
-        chunk_size = MAX_CHUNK
-        end = start + chunk_size - 1
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(file_size),
+        }
+        return StreamingResponse(
+            iterfile_full(), status_code=200, headers=headers, media_type=content_type
+        )
 
-    def iterfile():
+    # Range request — parse start/end and stream exactly those bytes.
+    try:
+        range_val = range_header.replace("bytes=", "")
+        start_str, end_str = range_val.split("-")
+        start = int(start_str) if start_str else 0
+        end   = int(end_str)   if end_str   else file_size - 1
+    except (ValueError, AttributeError):
+        start = 0
+        end   = file_size - 1
+
+    end = min(end, file_size - 1)
+    length = end - start + 1
+
+    def iterfile_range():
         with open(file_path, "rb") as f:
             f.seek(start)
-            data = f.read(chunk_size)
-            yield data
+            remaining = length
+            while remaining > 0:
+                data = f.read(min(READ_SIZE, remaining))
+                if not data:
+                    break
+                remaining -= len(data)
+                yield data
 
     headers = {
-        "Content-Range": f"bytes {start}-{end}/{file_size}",
-        "Accept-Ranges": "bytes",
-        "Content-Length": str(chunk_size),
-        "Content-Type": content_type,
+        "Content-Range":  f"bytes {start}-{end}/{file_size}",
+        "Accept-Ranges":  "bytes",
+        "Content-Length": str(length),
     }
-    return StreamingResponse(iterfile(), status_code=206, headers=headers, media_type=content_type)
+    return StreamingResponse(
+        iterfile_range(), status_code=206, headers=headers, media_type=content_type
+    )

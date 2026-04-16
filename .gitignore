@@ -19,3 +19,8 @@ debug_clover.txt
 # exclude large executables to avoid pushing failures
 *.exe
 *.pkg
+
+# database — never commit live data
+*.db
+*.sqlite
+*.sqlite3

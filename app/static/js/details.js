@@ -1055,54 +1055,51 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         if (res.ok) info = await res.json();
     } catch (e) { console.error("Meta fetch error", e); }
 
-    // 4. Initialize player
+    // 4. Tear down previous player
     if (plyr) plyr.destroy();
-    if (window.hls) {
-        window.hls.destroy();
-        window.hls = null;
-    }
+    if (window.hls) { window.hls.destroy(); window.hls = null; }
 
-    const _subTrack = (targetS !== null && info.subtitle_tracks) ? info.subtitle_tracks[targetS] : null;
+    const _subTrack  = (targetS !== null && info.subtitle_tracks) ? info.subtitle_tracks[targetS] : null;
     const _isImageSub = _subTrack ? !!_subTrack.is_image : false;
-    const _isTextSub  = _subTrack ? !_subTrack.is_image : false;
+    const _isTextSub  = _subTrack ? !_subTrack.is_image  : false;
 
     // Direct-play: H.264/AAC MP4 → native <video> with byte-range requests.
-    // No FFmpeg, no segments, instant seek, zero buffering on start.
-    const _canDirect = info.can_direct_play && targetA === 0 && targetS === null && !qualityStr;
+    // No FFmpeg, no segments, instant seek, zero startup delay.
+    const _canDirect = !!info.can_direct_play && targetA === 0 && targetS === null && !qualityStr;
 
     const posterSrc = els.backdrop ? els.backdrop.src : "";
 
-    if (playerElement) {
-        if (_canDirect) {
-            // ── Direct-play path ──────────────────────────────────────────────
-            let directUrl = `/api/v1/stream/${id}?token=${token}`;
-            if (window.currentFileId) directUrl += `&file_id=${window.currentFileId}`;
-            playerElement.src = directUrl;
-            playerElement.addEventListener('loadedmetadata', function onMeta() {
-                playerElement.removeEventListener('loadedmetadata', onMeta);
-                if (startTime > 0) playerElement.currentTime = startTime;
-                playerElement.play().catch(e => console.log("Autoplay blocked/failed", e));
-                _startProgressTracking(id);
-            });
-            console.log('[Arctic] Direct-play path active');
-        } else if (Hls.isSupported()) {
-            // ── HLS path (transcoded / alternate tracks / image subs) ─────────
-            let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
-            if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
-            if (targetS !== null && _isImageSub) {
-                srcUrl += `&sidx=${targetS}&stype=image`;
-            }
-            // Tell server where to start FFmpeg so segment 0 aligns with playhead
-            if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
+    if (!playerElement) return;
 
+    // ── Initialize Plyr shell first so controls are ready ────────────────────
+    plyr = new Plyr(playerElement, {
+        controls: [
+            'play-large', 'play', 'progress', 'current-time', 'duration', 'mute',
+            'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
+        ],
+        settings: ['quality', 'speed'],
+        duration: info.duration,
+        quality: { default: 0, options: [0], forced: true, onChange: () => {} },
+        tooltips: { controls: true, seek: true }
+    });
+    plyr.poster = posterSrc;
+
+    // ── Helper: start HLS (used as primary path and as direct-play fallback) ─
+    function _startHls() {
+        let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
+        if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
+        if (targetS !== null && _isImageSub) srcUrl += `&sidx=${targetS}&stype=image`;
+        if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
+
+        if (Hls.isSupported()) {
             const hls = new Hls(_makeHlsConfig(startTime));
             hls.loadSource(srcUrl);
             hls.attachMedia(playerElement);
             window.hls = hls;
 
-            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 if (startTime > 0) playerElement.currentTime = startTime;
-                playerElement.play().catch(e => console.log("Autoplay blocked/failed", e));
+                playerElement.play().catch(e => console.log('Autoplay blocked', e));
                 _startProgressTracking(id);
                 if (_isTextSub) {
                     let vttUrl = `/api/v1/stream/${id}/subtitle.vtt?sidx=${targetS}&token=${token}`;
@@ -1111,55 +1108,51 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
                 }
             });
 
-            hls.on(Hls.Events.ERROR, function (event, data) {
+            hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.log("fatal network error encountered, try to recover");
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.log("fatal media error encountered, try to recover");
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            hls.destroy();
-                            break;
-                    }
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+                    else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+                    else hls.destroy();
                 }
             });
         } else if (playerElement.canPlayType('application/vnd.apple.mpegurl')) {
-            // ── Safari native HLS ─────────────────────────────────────────────
-            let srcUrl = `/api/v1/stream/${id}/master.m3u8?token=${token}&aidx=${targetA}`;
-            if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
-            if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
+            // Safari native HLS
             playerElement.src = srcUrl;
-            playerElement.addEventListener('canplay', function onCanPlay() {
-                playerElement.removeEventListener('canplay', onCanPlay);
+            playerElement.addEventListener('canplay', function onCp() {
+                playerElement.removeEventListener('canplay', onCp);
                 if (startTime > 0) playerElement.currentTime = startTime;
                 playerElement.play();
                 _startProgressTracking(id);
             });
         }
+    }
 
-        // Initialize Plyr UI wrapper
-        plyr = new Plyr(playerElement, {
-            controls: [
-                'play-large', 'play', 'progress', 'current-time', 'duration', 'mute',
-                'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
-            ],
-            settings: ['quality', 'speed'],
-            duration: info.duration,
-            quality: {
-                default: 0,
-                options: [0],
-                forced: true,
-                onChange: (q) => { }
-            },
-            tooltips: { controls: true, seek: true }
-        });
+    if (_canDirect) {
+        // ── Direct-play path ─────────────────────────────────────────────────
+        let directUrl = `/api/v1/stream/${id}?token=${token}`;
+        if (window.currentFileId) directUrl += `&file_id=${window.currentFileId}`;
 
-        plyr.poster = posterSrc;
+        playerElement.addEventListener('canplay', function onCp() {
+            playerElement.removeEventListener('canplay', onCp);
+            if (startTime > 0) playerElement.currentTime = startTime;
+            playerElement.play().catch(e => console.log('Autoplay blocked', e));
+            _startProgressTracking(id);
+        }, { once: true });
+
+        // If the browser can't play the file directly, fall back to HLS silently.
+        playerElement.addEventListener('error', function onErr() {
+            playerElement.removeEventListener('error', onErr);
+            console.warn('[Arctic] Direct-play failed, falling back to HLS');
+            playerElement.removeAttribute('src');
+            playerElement.load();
+            _startHls();
+        }, { once: true });
+
+        playerElement.src = directUrl;
+        playerElement.load();
+        console.log('[Arctic] Direct-play active');
+    } else {
+        _startHls();
     }
 
     // --- Custom UI Injectors (Audio/Sub Selectors) ---
