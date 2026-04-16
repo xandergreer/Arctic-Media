@@ -441,12 +441,17 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 print(f"    [ERROR] Could not stat {filename}")
                 continue
 
-            # Windows long-path safety (size was already obtained above via normal path)
+            # Use the file's mtime as added_at so "recently added" sorts by
+            # when the file actually landed on disk, not when we scanned it.
+            try:
+                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path))
+            except OSError:
+                file_mtime = datetime.datetime.now()
             db.add(MediaFile(
                 media_item_id=media_item.id,
                 path=full_path,
                 size_bytes=size,
-                added_at=datetime.datetime.now(),
+                added_at=file_mtime,
             ))
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, title, year))
@@ -596,11 +601,15 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             if size is None:
                 continue
 
+            try:
+                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path))
+            except OSError:
+                file_mtime = datetime.datetime.now()
             db.add(MediaFile(
                 media_item_id=episode_item.id,
                 path=full_path,
                 size_bytes=size,
-                added_at=datetime.datetime.now(),
+                added_at=file_mtime,
             ))
             known_paths.add(full_path)  # prevent intra-scan duplicates
             print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
