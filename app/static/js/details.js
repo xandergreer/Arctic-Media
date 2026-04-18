@@ -174,6 +174,12 @@ async function _renderMediaInfo(mediaId) {
         const info = await res.json();
         if (!info || Object.keys(info).length === 0) return;
 
+        // Update the hero duration chip from real file metadata
+        if (info.duration) {
+            const durEl = document.getElementById('duration');
+            if (durEl) durEl.innerText = _fmtDuration(info.duration);
+        }
+
         const cards = [];
 
         // Video card
@@ -318,7 +324,7 @@ async function loadDetails() {
 
         // Type specific
         if (!isShow && els.duration) {
-            els.duration.innerText = "2h 15m"; // TODO: Fetch from file metadata
+            // Duration is populated by _renderMediaInfo once mediainfo fetch completes.
 
             // Fetch multiple files (versions/trailers)
             try {

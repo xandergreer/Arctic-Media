@@ -1,6 +1,8 @@
 import asyncio
+import json
 import os
 import re
+import subprocess
 import sys
 import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +21,27 @@ from app.services.metadata import enrich_library, _search_tv, _get
 from app.services import subtitles as subs_svc
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
+from app.core.ffmpeg_manager import get_binary as _get_ffmpeg
+
+
+def _probe_duration(file_path: str) -> float | None:
+    """Return duration in seconds from ffprobe, or None on any failure."""
+    try:
+        ffprobe = _get_ffmpeg("ffprobe")
+        si = None
+        if os.name == "nt":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        result = subprocess.run(
+            [ffprobe, "-v", "error", "-show_entries", "format=duration",
+             "-of", "json", file_path],
+            capture_output=True, text=True, startupinfo=si, timeout=15,
+        )
+        data = json.loads(result.stdout)
+        dur = data.get("format", {}).get("duration")
+        return float(dur) if dur else None
+    except Exception:
+        return None
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v"}
 
@@ -456,11 +479,15 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                     file_added = datetime.datetime.fromtimestamp(st.st_mtime)
             except OSError:
                 file_added = datetime.datetime.now()
+            duration = await asyncio.get_event_loop().run_in_executor(
+                None, _probe_duration, full_path
+            )
             db.add(MediaFile(
                 media_item_id=media_item.id,
                 path=full_path,
                 size_bytes=size,
                 added_at=file_added,
+                duration_seconds=duration,
             ))
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, title, year))
@@ -620,11 +647,15 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                     file_added = datetime.datetime.fromtimestamp(st.st_mtime)
             except OSError:
                 file_added = datetime.datetime.now()
+            ep_duration = await asyncio.get_event_loop().run_in_executor(
+                None, _probe_duration, full_path
+            )
             db.add(MediaFile(
                 media_item_id=episode_item.id,
                 path=full_path,
                 size_bytes=size,
                 added_at=file_added,
+                duration_seconds=ep_duration,
             ))
             known_paths.add(full_path)  # prevent intra-scan duplicates
             print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
