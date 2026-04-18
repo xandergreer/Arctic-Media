@@ -46,7 +46,7 @@ router = APIRouter(prefix="/stream", tags=["stream"])
 # ──────────────────────────────────────────────────────────────────────────────
 # Config & Globals
 # ──────────────────────────────────────────────────────────────────────────────
-HLS_SEG_DUR = 6.0                  # Segment duration — 6s gives the transcoder more headroom
+HLS_SEG_DUR = 4.0                  # 4s segments — first segment arrives ~33% sooner than 6s
 DEFAULT_GOP = 48                   # GOP size (~2 s at 24 fps; 3 GOPs per segment)
 TRANSCODE_ROOT = Path(tempfile.gettempdir()) / "arctic_hls"
 TRANSCODE_ROOT.mkdir(parents=True, exist_ok=True)
@@ -307,7 +307,8 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
             # H264 Transcode
             cmd.extend([
                 "-c:v", "libx264",
-                "-preset", "veryfast",
+                "-preset", "ultrafast",
+                "-tune", "zerolatency",
                 "-g", str(job.gop),
                 "-keyint_min", str(job.gop),
                 "-sc_threshold", "0",
@@ -456,19 +457,18 @@ async def get_media_playlist(
 
     # Determine video codec — can only stream-copy when NOT burning subtitles
     # (FFmpeg refuses -vf + -c:v copy simultaneously).
-    # Pick the correct Annex B BSF based on the actual encoded codec.
-    ext = os.path.splitext(mf.path)[1].lower()
-    probe_vcodec = (file_info.get("vcodec") or "").lower()  # e.g. "h264", "hevc", "mpeg4"
+    # Copy works for any container: H.264/HEVC → TS just needs the Annex B BSF.
+    probe_vcodec = (file_info.get("vcodec") or "").lower()
     vcodec = "libx264"
     v_bsf = None
-    if ext == ".mp4" and sidx is None:
+    if sidx is None:
         if probe_vcodec == "h264":
             vcodec = "copy"
             v_bsf = "h264_mp4toannexb"
         elif probe_vcodec in ("hevc", "h265"):
             vcodec = "copy"
             v_bsf = "hevc_mp4toannexb"
-        # Other codecs (mpeg4, av1, vp9 …) → transcode to libx264
+        # Other codecs (mpeg4, av1, vp9, vc1 …) → transcode to libx264
 
     # Calculate start segment from requested time (for track-switch seeking)
     seg_dur = HLS_SEG_DUR
