@@ -1449,7 +1449,7 @@ window.requestSubtitles = async function () {
     }
 };
 
-// Check status on page load and reflect it on the button
+// Check status on page load, reflect it on the button, and auto-download if missing.
 (async function _initSubtitleBtn() {
     const btn = document.getElementById('subtitleBtn');
     const mediaId = document.getElementById('media-id')?.value;
@@ -1459,6 +1459,7 @@ window.requestSubtitles = async function () {
         if (!res.ok) return;
         const data = await res.json();
         const overall = data.overall;
+
         if (overall === 'active') {
             _subSetState(btn, 'active');
             _subPoll(mediaId, btn);
@@ -1466,7 +1467,16 @@ window.requestSubtitles = async function () {
             _subSetState(btn, 'exists');
         } else if (overall === 'partial') {
             _subSetState(btn, 'partial');
+            // Kick off background download for the missing ones
+            fetch('/api/v1/subtitles/' + mediaId + '/download', {
+                method: 'POST', credentials: 'include'
+            }).then(r => { if (r.ok) { _subSetState(btn, 'active'); _subPoll(mediaId, btn); } });
+        } else if (overall === 'none') {
+            // No subtitles yet — kick off a background download automatically.
+            // The service de-dupes so this is safe to call on every page open.
+            fetch('/api/v1/subtitles/' + mediaId + '/download', {
+                method: 'POST', credentials: 'include'
+            }).then(r => { if (r.ok) { _subSetState(btn, 'active'); _subPoll(mediaId, btn); } });
         }
-        // 'none' => leave default idle state
     } catch (_) { /* ignore */ }
 })();
