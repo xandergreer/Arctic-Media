@@ -442,7 +442,10 @@ async def get_media_playlist(
     
     # Probe file for codec info, duration, and subtitle track details
     file_info = await asyncio.to_thread(get_detailed_media_info, mf.path)
-    duration = float(file_info.get("duration") or 0)
+    # Fall back to DB-stored duration (set by scanner) when ffprobe returns nothing.
+    # Without a real duration we serve an EVENT playlist and HLS.js treats it as
+    # live, showing the current position as total duration.
+    duration = float(file_info.get("duration") or 0) or (float(mf.duration_seconds) if mf.duration_seconds else 0.0)
 
     # Resolve subtitle track details before creating the job
     s_path = None  # external subtitle file path (sidecar)
@@ -624,10 +627,10 @@ async def get_hls_segment(
             pass
 
     # In fake-VOD mode the player may request a segment before ffmpeg has produced it.
-    # Poll up to 60 s for the segment to appear.
+    # Poll quickly (100 ms) so copy-mode segments are served almost immediately.
     if not seg_path.exists():
-        for _ in range(120):  # 60 s
-            await asyncio.sleep(0.5)
+        for _ in range(120):  # 12 s max
+            await asyncio.sleep(0.1)
             if seg_path.exists():
                 break
             if job.proc and job.proc.returncode is not None:
