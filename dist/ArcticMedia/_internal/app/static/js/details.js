@@ -71,6 +71,16 @@ function _makeHlsConfig(startPosition) {
         startPosition: startPosition > 0 ? startPosition : -1,
         capLevelToPlayerSize: true,
         debug: false,
+        // Buffer aggressively so transient server slowdowns don't cause stalls.
+        maxBufferLength: 60,        // seconds to keep ahead of playhead
+        maxMaxBufferLength: 600,    // allow up to 10 min buffer when bandwidth allows
+        backBufferLength: 30,       // keep 30 s behind for backward seeks
+        startFragPrefetch: true,    // start fetching next segment before current ends
+        // Retry config — tolerate a slow transcoder or brief network hiccup.
+        fragLoadingMaxRetry: 6,
+        manifestLoadingMaxRetry: 3,
+        levelLoadingMaxRetry: 3,
+        fragLoadingTimeOut: 30000,  // 30 s per segment (default 20 s is too tight for transcode)
     };
 }
 
