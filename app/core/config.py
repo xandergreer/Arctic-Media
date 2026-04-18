@@ -24,7 +24,7 @@ def _get_data_dir() -> str:
         if sys.platform == "darwin":
             base = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "ArcticMedia")
         elif sys.platform == "win32":
-            base = os.path.dirname(sys.executable)
+            base = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "ArcticMedia")
         else:
             base = os.path.join(os.path.expanduser("~"), ".local", "share", "ArcticMedia")
         os.makedirs(base, exist_ok=True)
