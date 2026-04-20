@@ -8,6 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_sessionmaker
+from app.models.library import Library
 from app.models.scheduler import ScheduledTask, JobType
 from app.services.scanner import scan_library
 from app.services.metadata import enrich_library
@@ -87,10 +88,41 @@ async def scheduler_loop() -> None:
         await asyncio.sleep(POLL_SECONDS)
 
 
+async def _seed_missing_tasks() -> None:
+    """
+    Ensure every library has at least one SCAN_LIBRARY scheduled task.
+    Called once at startup to backfill libraries that existed before
+    auto-task creation was introduced.
+    """
+    Session = get_sessionmaker()
+    async with Session() as db:
+        libs = (await db.execute(select(Library))).scalars().all()
+        for lib in libs:
+            existing = (await db.execute(
+                select(ScheduledTask)
+                .where(ScheduledTask.library_id == lib.id)
+                .where(ScheduledTask.job_type == JobType.SCAN_LIBRARY)
+            )).scalars().first()
+            if not existing:
+                db.add(ScheduledTask(
+                    name=f"Auto-scan: {lib.name}",
+                    job_type=JobType.SCAN_LIBRARY,
+                    library_id=lib.id,
+                    interval_minutes=15,
+                    enabled=True,
+                ))
+                log.info("Seeded auto-scan task for library '%s'", lib.name)
+        await db.commit()
+
+
 def start_scheduler(app) -> None:
     """
     Called during app startup (inside lifespan). Creates the background task
     and stores it on app.state so it can be cancelled on shutdown.
     """
-    app.state.scheduler_task = asyncio.create_task(scheduler_loop())
+    async def _startup():
+        await _seed_missing_tasks()
+        await scheduler_loop()
+
+    app.state.scheduler_task = asyncio.create_task(_startup())
     log.info("Scheduler background task created.")
