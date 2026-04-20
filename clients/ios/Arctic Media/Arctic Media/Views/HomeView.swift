@@ -214,14 +214,15 @@ private struct ContinueWatchingCard: View {
                     positionSeconds: item.positionSeconds,
                     durationSeconds: item.durationSeconds,
                     completed: false),
-                onPlay: {
+                onPlay: { startAt in
                     guard let token = appState.token,
                           let url = APIService.shared.hlsURL(
                             serverURL: appState.serverURL, token: token, mediaId: ep.id)
                     else { return }
+                    let resolvedStart = startAt ?? (item.positionSeconds > 30 ? item.positionSeconds : nil)
                     playRequest = _CWPlayRequest(
                         id: ep.id, url: url, title: ep.title,
-                        startAt: item.positionSeconds > 30 ? item.positionSeconds : nil)
+                        startAt: resolvedStart)
                 }
             )
         }
