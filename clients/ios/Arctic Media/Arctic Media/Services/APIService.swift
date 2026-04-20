@@ -150,6 +150,14 @@ class APIService {
         return try await send(req)
     }
 
+    // MARK: - Subtitles
+
+    func downloadSubtitles(serverURL: String, token: String, mediaId: Int) async {
+        guard var req = try? makeRequest(serverURL: serverURL, path: "/api/v1/subtitles/\(mediaId)/download", method: "POST") else { return }
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try? await session.data(for: req)
+    }
+
     // MARK: - Stream URL (not a network call — just constructs the URL)
 
     func hlsURL(serverURL: String, token: String, mediaId: Int,

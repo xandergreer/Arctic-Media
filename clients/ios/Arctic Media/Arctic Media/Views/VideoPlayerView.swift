@@ -28,6 +28,9 @@ struct VideoPlayerView: View {
     @State private var subtitleTracks: [SubtitleTrack] = []
     @State private var selectedSubtitleIdx: Int? = nil
     @State private var showSubtitlePicker = false
+    @State private var audioTracks: [AudioTrack] = []
+    @State private var selectedAudioIdx: Int = 0
+    @State private var showAudioPicker = false
 
     var body: some View {
         GeometryReader { geo in
@@ -65,6 +68,15 @@ struct VideoPlayerView: View {
 
                         Spacer()
 
+                        if audioTracks.count > 1 {
+                            Button { showAudioPicker = true } label: {
+                                Image(systemName: "waveform.circle.fill")
+                                    .font(.system(size: 26))
+                                    .foregroundStyle(Color.white, Color.black.opacity(0.5))
+                                    .shadow(radius: 4)
+                            }
+                        }
+
                         if !subtitleTracks.isEmpty {
                             Button { showSubtitlePicker = true } label: {
                                 Image(systemName: "captions.bubble.fill")
@@ -88,6 +100,7 @@ struct VideoPlayerView: View {
         .preferredColorScheme(.dark)
         .task { await setup() }
         .onDisappear { teardown() }
+        .sheet(isPresented: $showAudioPicker) { audioPickerSheet }
         .sheet(isPresented: $showSubtitlePicker) { subtitlePickerSheet }
     }
 
@@ -100,9 +113,13 @@ struct VideoPlayerView: View {
             if let d = info.duration, d > 0 {
                 await MainActor.run { duration = d }
             }
-            let tracks = info.subtitleTracks.filter { !$0.isImage }
-            if !tracks.isEmpty {
-                await MainActor.run { subtitleTracks = tracks }
+            let subTracks = info.subtitleTracks.filter { !$0.isImage }
+            if !subTracks.isEmpty {
+                await MainActor.run { subtitleTracks = subTracks }
+            }
+            let audTracks = info.audioTracks
+            if audTracks.count > 1 {
+                await MainActor.run { audioTracks = audTracks }
             }
         }
 
@@ -208,11 +225,20 @@ struct VideoPlayerView: View {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    // MARK: - Subtitle reload
+    // MARK: - Track reloads
+
+    private func reloadWithAudio(aidx: Int) {
+        selectedAudioIdx = aidx
+        reload(aidx: aidx, sidx: selectedSubtitleIdx)
+    }
 
     private func reloadWithSubtitle(sidx: Int?) {
+        reload(aidx: selectedAudioIdx, sidx: sidx)
+    }
+
+    private func reload(aidx: Int, sidx: Int?) {
         let pos = currentTime
-        var urlStr = "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)"
+        var urlStr = "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)&aidx=\(aidx)"
         if let sidx { urlStr += "&sidx=\(sidx)&stype=text" }
         guard let newURL = URL(string: urlStr) else { return }
 
@@ -254,6 +280,39 @@ struct VideoPlayerView: View {
             self.dismiss()
         }
         endObserver = eo
+    }
+
+    // MARK: - Audio picker sheet
+
+    private var audioPickerSheet: some View {
+        NavigationStack {
+            List {
+                ForEach(audioTracks) { track in
+                    Button {
+                        selectedAudioIdx = track.index
+                        showAudioPicker = false
+                        reloadWithAudio(aidx: track.index)
+                    } label: {
+                        HStack {
+                            Text(track.displayName)
+                            Spacer()
+                            if selectedAudioIdx == track.index {
+                                Image(systemName: "checkmark").foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+            }
+            .navigationTitle("Audio")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showAudioPicker = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 
     // MARK: - Subtitle picker sheet

@@ -120,6 +120,12 @@ struct AudioTrack: Codable, Identifiable {
     let language: String?
     let title: String?
     var id: Int { index }
+
+    var displayName: String {
+        if let t = title, !t.isEmpty, t.lowercased() != language?.lowercased() { return t }
+        if let lang = language, !lang.isEmpty, lang != "und" { return lang.uppercased() }
+        return "Track \(index + 1)"
+    }
 }
 
 struct SubtitleTrack: Codable, Identifiable {

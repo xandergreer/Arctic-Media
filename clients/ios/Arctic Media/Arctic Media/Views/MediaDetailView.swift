@@ -27,6 +27,7 @@ struct MediaDetailView: View {
     @State private var showEdit = false
     @State private var currentItem: MediaItem
     @State private var episodeSheet: MediaItem?
+    @State private var movieDuration: Double? = nil
 
     init(item: MediaItem) {
         self.item = item
@@ -50,11 +51,15 @@ struct MediaDetailView: View {
                                 .offset(y: -20)
 
                             VStack(alignment: .leading, spacing: 6) {
-                                if let year = currentItem.year {
-                                    Text(year)
-                                        .font(.caption)
-                                        .foregroundColor(.arcticMuted)
+                                HStack(spacing: 6) {
+                                    if let year = currentItem.year { Text(year) }
+                                    if let dur = movieDuration {
+                                        Text("·")
+                                        Text(formatDuration(dur))
+                                    }
                                 }
+                                .font(.caption)
+                                .foregroundColor(.arcticMuted)
                                 Text(currentItem.title)
                                     .font(.title2.bold())
                                     .foregroundColor(.arcticText)
@@ -147,17 +152,23 @@ struct MediaDetailView: View {
                 episode: ep,
                 serverURL: appState.serverURL,
                 progress: episodeProgress[ep.id],
-                onPlay: {
-                    let p = episodeProgress[ep.id]
-                    let resumeAt: Double? = (p?.completed == false && (p?.positionSeconds ?? 0) > 30)
-                        ? p?.positionSeconds : nil
-                    playEpisode(ep, startAt: resumeAt)
+                onPlay: { startAt in
+                    playEpisode(ep, startAt: startAt)
                 }
             )
         }
         .task {
             if item.kind == .show { await loadSeasons() }
             await loadProgress(mediaId: item.id)
+            guard let token = appState.token else { return }
+            // Kick off subtitle download silently (server de-dupes; no-op if already downloaded)
+            await APIService.shared.downloadSubtitles(serverURL: appState.serverURL, token: token, mediaId: item.id)
+            // Fetch duration for movies
+            if item.kind == .movie,
+               let info = try? await APIService.shared.streamInfo(serverURL: appState.serverURL, token: token, mediaId: item.id),
+               let dur = info.duration, dur > 0 {
+                movieDuration = dur
+            }
         }
     }
 
@@ -245,6 +256,11 @@ struct MediaDetailView: View {
     private func formatTime(_ s: Double) -> String {
         let t = Int(s); let h = t / 3600; let m = (t % 3600) / 60; let sec = t % 60
         return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
+    }
+
+    private func formatDuration(_ s: Double) -> String {
+        let h = Int(s) / 3600; let m = (Int(s) % 3600) / 60
+        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
     }
 
     private var showContent: some View {
@@ -442,7 +458,7 @@ struct EpisodeDetailSheet: View {
     let episode: MediaItem
     let serverURL: String
     let progress: WatchProgress?
-    let onPlay: () -> Void
+    let onPlay: (Double?) -> Void   // nil = auto (fresh start), value = seek position
     @Environment(\.dismiss) private var dismiss
 
     private var resumeFraction: Double? {
@@ -503,7 +519,7 @@ struct EpisodeDetailSheet: View {
                                 dismiss()
                                 Task {
                                     try? await Task.sleep(nanoseconds: 250_000_000)
-                                    onPlay()
+                                    onPlay(pos)
                                 }
                             } label: {
                                 HStack(spacing: 8) {
@@ -524,7 +540,7 @@ struct EpisodeDetailSheet: View {
                                 dismiss()
                                 Task {
                                     try? await Task.sleep(nanoseconds: 250_000_000)
-                                    onPlay()
+                                    onPlay(0)
                                 }
                             } label: {
                                 Label("Start from Beginning", systemImage: "backward.end.fill")
@@ -541,7 +557,7 @@ struct EpisodeDetailSheet: View {
                             dismiss()
                             Task {
                                 try? await Task.sleep(nanoseconds: 250_000_000)
-                                onPlay()
+                                onPlay(nil)
                             }
                         } label: {
                             Label("Play", systemImage: "play.fill")
