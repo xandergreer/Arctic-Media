@@ -118,6 +118,31 @@ function _renderExternalLinks(data) {
     }
 }
 
+function _renderRatingAndTagline(data) {
+    const xj = data.extra_json || {};
+
+    const rating = xj.rating;
+    if (rating && rating > 0) {
+        const badge = document.getElementById('rating-badge');
+        const value = document.getElementById('rating-value');
+        if (badge && value) {
+            value.textContent = Number(rating).toFixed(1);
+            const votes = xj.votes;
+            if (votes) badge.title = `${votes.toLocaleString()} votes (TMDB)`;
+            badge.classList.remove('hidden');
+        }
+    }
+
+    const tagline = xj.tagline;
+    if (tagline) {
+        const el = document.getElementById('tagline');
+        if (el) {
+            el.textContent = tagline;
+            el.classList.remove('hidden');
+        }
+    }
+}
+
 function _renderGenresDisplay(data) {
     const section = document.getElementById('genres-section');
     const list = document.getElementById('genres-list');
@@ -320,6 +345,7 @@ async function loadDetails() {
         if (els.title) els.title.innerText = data.title;
         if (els.overview) els.overview.innerText = data.overview || "No overview available.";
         _renderExternalLinks(data);
+        _renderRatingAndTagline(data);
         _renderGenresDisplay(data);
         _renderCastDisplay(data);
         _renderSimilarDisplay(mediaId, isShow);
@@ -732,11 +758,21 @@ function setupDelete(id, label, onSuccess) {
 }
 
 // Show Specific Logic
+
+// Season/episode state shared with the player for next-episode autoplay.
+let _currentSeasons = [];      // all seasons of this show, in display order
+let _currentSeasonIdx = -1;    // index into _currentSeasons of the loaded season
+let _currentEpisodes = [];     // episodes of the loaded season
+let _currentEpisodeId = null;  // episode currently in the player
+let _episodeLoadGen = 0;       // discards stale loadEpisodes responses
+let _isAdminCached = null;
+
 async function loadSeasons() {
     const res = await fetch(`/api/v1/media/shows/${mediaId}/seasons`, {
         credentials: 'include'
     });
     const seasons = await res.json();
+    _currentSeasons = seasons;
 
     if (els.seasonsCount) els.seasonsCount.innerText = `${seasons.length} Seasons`;
 
@@ -755,6 +791,9 @@ async function loadSeasons() {
 }
 
 window.loadEpisodes = async function (seasonId, seasonNum) {
+    // Rapid season clicks race their fetches; only the latest call may render.
+    const gen = ++_episodeLoadGen;
+
     document.querySelectorAll(".season-btn").forEach(btn => {
         btn.classList.remove('active');
         if (btn.innerText.trim() === `Season ${seasonNum}`) {
@@ -769,14 +808,21 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
         credentials: 'include'
     });
     const episodes = await res.json();
+    if (gen !== _episodeLoadGen) return;
+
+    _currentEpisodes = episodes;
+    _currentSeasonIdx = _currentSeasons.findIndex(s => s.id === seasonId);
 
     if (els.episodeGrid) {
         // Detect admin to show per-episode delete buttons
-        let isAdmin = false;
-        try {
-            const meR = await fetch('/api/v1/auth/me', { credentials: 'include' });
-            if (meR.ok) { const me = await meR.json(); isAdmin = !!me.is_superuser; }
-        } catch (_) { }
+        if (_isAdminCached === null) {
+            try {
+                const meR = await fetch('/api/v1/auth/me', { credentials: 'include' });
+                if (meR.ok) { const me = await meR.json(); _isAdminCached = !!me.is_superuser; }
+            } catch (_) { }
+            if (gen !== _episodeLoadGen) return;
+        }
+        const isAdmin = !!_isAdminCached;
 
         els.episodeGrid.innerHTML = episodes.map(ep => {
             const still = ep.poster_url || '';
@@ -815,6 +861,7 @@ window.loadEpisodes = async function (seasonId, seasonNum) {
                 });
                 if (progRes.ok) {
                     const progMap = await progRes.json();
+                    if (gen !== _episodeLoadGen) return;
                     for (const [idStr, prog] of Object.entries(progMap)) {
                         const bar = document.getElementById(`ep-prog-${idStr}`);
                         if (!bar) continue;
@@ -841,6 +888,11 @@ window.openCastModal = async function (id, event) {
     targetCastMediaId = id;
     const modal = document.getElementById('castModal');
     const list = document.getElementById('cast-device-list');
+
+    if (!modal || !list) {
+        console.error('Cast modal elements not found');
+        return;
+    }
 
     modal.classList.remove('hidden');
     list.innerHTML = 'Scanning local network for Roku devices... <span class="material-icons" style="vertical-align:middle;font-size:16px;">search</span>';
@@ -976,16 +1028,87 @@ let plyr;
 function _getPlayerEl() { return document.getElementById("video-player"); }
 function _getContainerEl() { return document.getElementById("video-container"); }
 
-// Wire up the 'ended' event once the DOM is ready
-document.addEventListener("DOMContentLoaded", () => {
+// ── Next-episode autoplay ────────────────────────────────────────────────────
+
+let _autoplayTimer = null;
+
+function _cancelAutoplay() {
+    if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
+    const ov = document.getElementById('__arctic_upnext');
+    if (ov) ov.remove();
+}
+window._cancelAutoplay = _cancelAutoplay;
+
+function _onPlayerEnded() {
+    if (_progressMediaId) _saveProgress(_progressMediaId);
+    _stopProgressTracking();
+    if (isShow && _currentEpisodeId !== null) _startAutoplayCountdown();
+}
+
+function _bindEndedHandler() {
     const pe = _getPlayerEl();
-    if (pe) {
-        pe.addEventListener('ended', () => {
-            if (_progressMediaId) _saveProgress(_progressMediaId);
-            _stopProgressTracking();
-        });
+    if (pe && !pe.__arcticEndedBound) {
+        pe.__arcticEndedBound = true;
+        pe.addEventListener('ended', _onPlayerEnded);
     }
-});
+}
+document.addEventListener("DOMContentLoaded", _bindEndedHandler);
+
+function _startAutoplayCountdown() {
+    // The playing episode may not be in the loaded season if the user browsed
+    // to another season mid-playback — in that case don't guess, just stop.
+    const idx = _currentEpisodes.findIndex(ep => ep.id === _currentEpisodeId);
+    if (idx < 0) return;
+
+    const next = _currentEpisodes[idx + 1] || null;
+    const nextSeason = (!next && _currentSeasonIdx >= 0 && _currentSeasonIdx + 1 < _currentSeasons.length)
+        ? _currentSeasons[_currentSeasonIdx + 1]
+        : null;
+    if (!next && !nextSeason) return; // last episode of last season
+
+    _cancelAutoplay();
+    const container = _getContainerEl();
+    if (!container) return;
+
+    const label = next
+        ? `E${next.episode_number} · ${next.title || 'Episode ' + next.episode_number}`
+        : `Season ${nextSeason.season_number}`;
+
+    const ov = document.createElement('div');
+    ov.id = '__arctic_upnext';
+    ov.style.cssText = 'position:absolute;bottom:5rem;right:1.5rem;z-index:10000;background:rgba(10,10,20,0.92);border:1px solid var(--border, #333);border-radius:8px;padding:0.9rem 1.1rem;max-width:320px;color:#fff;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
+    ov.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--text-muted,#999);margin-bottom:0.25rem;">Up next</div>
+        <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.75rem;">${label}</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button id="__arctic_upnext_play" class="btn btn-primary btn-sm" style="cursor:pointer;">
+                Play now (<span id="__arctic_upnext_count">5</span>)
+            </button>
+            <button class="btn btn-ghost btn-sm" style="cursor:pointer;" onclick="_cancelAutoplay()">Cancel</button>
+        </div>`;
+    container.style.position = 'relative';
+    container.appendChild(ov);
+
+    const playNext = async () => {
+        _cancelAutoplay();
+        if (next) {
+            playEpisode(next.id);
+        } else {
+            await loadEpisodes(nextSeason.id, nextSeason.season_number);
+            if (_currentEpisodes.length > 0) playEpisode(_currentEpisodes[0].id);
+        }
+    };
+
+    document.getElementById('__arctic_upnext_play').onclick = playNext;
+
+    let remaining = 5;
+    _autoplayTimer = setInterval(() => {
+        remaining -= 1;
+        const cEl = document.getElementById('__arctic_upnext_count');
+        if (cEl) cEl.textContent = String(remaining);
+        if (remaining <= 0) playNext();
+    }, 1000);
+}
 
 // Save progress when navigating away (keepalive ensures the request completes)
 window.addEventListener('beforeunload', () => {
@@ -1014,6 +1137,7 @@ window.resumeMovie = async function () {
 
 window.playEpisode = async function (episodeId) {
     if (event) event.stopPropagation();
+    _currentEpisodeId = episodeId;
     const prog = await _fetchProgress(episodeId);
     const t = (prog && !prog.completed && prog.position_seconds > 5) ? prog.position_seconds : 0;
     playStream(episodeId, null, null, null, t);
@@ -1025,7 +1149,18 @@ let currentQuality = 0; // 0, 720, 480 (int)
 let currentAidx = 0;
 let currentSidx = null;
 
+// Listeners attached directly to the <video> element by a previous playStream
+// invocation that may not have fired yet. Cleared on every new invocation so a
+// rapid episode/track switch can't seek the new stream to a stale position.
+let _pendingMediaHandlers = [];
+
+function _clearPendingMediaHandlers(el) {
+    for (const [evt, fn] of _pendingMediaHandlers) el.removeEventListener(evt, fn);
+    _pendingMediaHandlers = [];
+}
+
 async function playStream(id, qualityStr = null, aidx = null, sidx = null, startTime = 0) {
+    _cancelAutoplay();
     const token = await getValidStreamToken();
     if (!token) {
         alert("Login required.");
@@ -1034,8 +1169,9 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     }
 
     // Normalize inputs
-    // qualityStr: "720p" or null
+    // qualityStr: "1080p" | "720p" | "480p" | null (= original quality)
     let targetQInt = 0;
+    if (qualityStr === "1080p") targetQInt = 1080;
     if (qualityStr === "720p") targetQInt = 720;
     if (qualityStr === "480p") targetQInt = 480;
 
@@ -1072,6 +1208,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     } catch (e) { console.error("Meta fetch error", e); }
 
     // 4. Tear down previous player
+    if (playerElement) _clearPendingMediaHandlers(playerElement);
     if (plyr) plyr.destroy();
     if (window.hls) { window.hls.destroy(); window.hls = null; }
 
@@ -1106,6 +1243,7 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         if (window.currentFileId) srcUrl += `&file_id=${window.currentFileId}`;
         if (targetS !== null && _isImageSub) srcUrl += `&sidx=${targetS}&stype=image`;
         if (startTime > 2) srcUrl += `&t=${Math.floor(startTime)}`;
+        if (targetQInt > 0) srcUrl += `&quality=${targetQInt}`;
 
         if (Hls.isSupported()) {
             const hls = new Hls(_makeHlsConfig(startTime));
@@ -1134,12 +1272,14 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         } else if (playerElement.canPlayType('application/vnd.apple.mpegurl')) {
             // Safari native HLS
             playerElement.src = srcUrl;
-            playerElement.addEventListener('canplay', function onCp() {
+            const onCp = function () {
                 playerElement.removeEventListener('canplay', onCp);
                 if (startTime > 0) playerElement.currentTime = startTime;
-                playerElement.play();
+                playerElement.play().catch(e => console.log('Autoplay blocked', e));
                 _startProgressTracking(id);
-            });
+            };
+            playerElement.addEventListener('canplay', onCp);
+            _pendingMediaHandlers.push(['canplay', onCp]);
         }
     }
 
@@ -1148,21 +1288,23 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
         let directUrl = `/api/v1/stream/${id}?token=${token}`;
         if (window.currentFileId) directUrl += `&file_id=${window.currentFileId}`;
 
-        playerElement.addEventListener('canplay', function onCp() {
+        const onCp = function () {
             playerElement.removeEventListener('canplay', onCp);
             if (startTime > 0) playerElement.currentTime = startTime;
             playerElement.play().catch(e => console.log('Autoplay blocked', e));
             _startProgressTracking(id);
-        }, { once: true });
-
+        };
         // If the browser can't play the file directly, fall back to HLS silently.
-        playerElement.addEventListener('error', function onErr() {
+        const onErr = function () {
             playerElement.removeEventListener('error', onErr);
             console.warn('[Arctic] Direct-play failed, falling back to HLS');
             playerElement.removeAttribute('src');
             playerElement.load();
             _startHls();
-        }, { once: true });
+        };
+        playerElement.addEventListener('canplay', onCp, { once: true });
+        playerElement.addEventListener('error', onErr, { once: true });
+        _pendingMediaHandlers.push(['canplay', onCp], ['error', onErr]);
 
         playerElement.src = directUrl;
         playerElement.load();
@@ -1170,6 +1312,10 @@ async function playStream(id, qualityStr = null, aidx = null, sidx = null, start
     } else {
         _startHls();
     }
+
+    // Plyr can rebuild the media element; make sure 'ended' stays bound so
+    // progress saving and next-episode autoplay keep working.
+    _bindEndedHandler();
 
     // --- Custom UI Injectors (Audio/Sub Selectors) ---
     setupMenuInjection(info, id, qualityStr, targetA, targetS);
@@ -1196,8 +1342,40 @@ function setupMenuInjection(info, mediaId, qualityStr, aidx, sidx) {
         const oldSubs = homePane.querySelector('#plyr-custom-sub');
         if (oldSubs) oldSubs.remove();
 
+        const oldQuality = homePane.querySelector('#plyr-custom-quality');
+        if (oldQuality) oldQuality.remove();
+
         // Common Style for the select element
         const selectStyle = "background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #444; text-align: right; width: 130px; outline: none; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 13px;";
+
+        // --- Quality Selector Row ---
+        {
+            const row = document.createElement("div");
+            row.id = "plyr-custom-quality";
+            row.className = "plyr__control";
+            row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; cursor: default;";
+
+            const label = document.createElement("span");
+            label.innerText = "Quality";
+            row.appendChild(label);
+
+            const select = document.createElement("select");
+            select.className = "plyr__menu__value";
+            select.style.cssText = selectStyle;
+
+            const opts = [["", "Auto"], ["1080p", "1080p"], ["720p", "720p"], ["480p", "480p"]];
+            select.innerHTML = opts.map(([val, name]) =>
+                `<option value="${val}" ${val === (qualityStr || "") ? 'selected' : ''} style="color: black;">${name}</option>`
+            ).join("");
+
+            select.onchange = (e) => {
+                const newQ = e.target.value || null;
+                playStream(mediaId, newQ, aidx, sidx, plyr ? plyr.currentTime : 0);
+            };
+
+            row.appendChild(select);
+            homePane.insertBefore(row, homePane.firstChild);
+        }
 
         // --- Audio Selector Row ---
         if (info.audio_tracks.length > 0) {
@@ -1295,6 +1473,7 @@ let _vttCues = [], _vttOverlay = null, _vttRafId = null;
 
 function _ensureVttOverlay() {
     if (_vttOverlay) return _vttOverlay;
+    const playerElement = _getPlayerEl();
     const wrapper = document.querySelector('.plyr') || (playerElement && playerElement.parentElement);
     if (!wrapper) return null;
     const ov = document.createElement('div');
@@ -1342,6 +1521,7 @@ function _parseVtt(text) {
 
 function _vttRenderLoop() {
     const ov = _vttOverlay;
+    const playerElement = _getPlayerEl();
     if (!ov || !playerElement) return;
     const t = playerElement.currentTime;
     const active = _vttCues.filter(c => t >= c.start && t < c.end);
@@ -1350,7 +1530,7 @@ function _vttRenderLoop() {
 }
 
 async function _loadVttTrack(vttUrl) {
-    if (!playerElement) return;
+    if (!_getPlayerEl()) return;
     _removeVttTracks();
     try {
         const res = await fetch(vttUrl);
@@ -1369,6 +1549,7 @@ function _removeVttTracks() {
     _vttCues = [];
     if (_vttOverlay) { _vttOverlay.textContent = ''; }
     // Also silence any native tracks so they don't double-render
+    const playerElement = _getPlayerEl();
     if (playerElement) {
         for (let i = 0; i < playerElement.textTracks.length; i++) {
             playerElement.textTracks[i].mode = "disabled";
@@ -1380,6 +1561,7 @@ window.closePlayer = function () {
     // Save final position before closing
     _saveProgress(_progressMediaId);
     _stopProgressTracking();
+    _cancelAutoplay();
 
     // Reset Globals
     currentMediaId = null;
@@ -1391,6 +1573,7 @@ window.closePlayer = function () {
         plyr.pause();
         plyr.source = {}; // Clear source to stop buffering
     }
+    const videoContainer = _getContainerEl();
     if (videoContainer) videoContainer.style.display = "none";
 }
 

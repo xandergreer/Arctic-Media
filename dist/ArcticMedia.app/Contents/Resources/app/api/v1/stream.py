@@ -96,11 +96,12 @@ def get_detailed_media_info(file_path: str) -> dict:
 
         info = {
             "vcodec": None, "acodec": None, "vprofile": None, "pix_fmt": None,
+            "width": None, "height": None,
             "duration": duration,
             "audio_tracks": [],
             "subtitle_tracks": []
         }
-        
+
         audio_idx_counter = 0
         sub_idx_counter = 0
 
@@ -114,6 +115,8 @@ def get_detailed_media_info(file_path: str) -> dict:
                 info["vcodec"] = stream.get("codec_name")
                 info["vprofile"] = stream.get("profile")
                 info["pix_fmt"] = stream.get("pix_fmt")
+                info["width"] = stream.get("width")
+                info["height"] = stream.get("height")
             
             elif stype == "audio":
                 if not info["acodec"]: info["acodec"] = stream.get("codec_name") # Primary
@@ -147,19 +150,23 @@ def get_detailed_media_info(file_path: str) -> dict:
         basename = os.path.basename(base_path)
         
         try:
+            video_name = os.path.basename(file_path)
             for f in os.listdir(directory):
-                if f.startswith(basename) and f != os.path.basename(file_path) and f.endswith((".srt", ".vtt")):
+                fl = f.lower()
+                if (fl.startswith(basename.lower())
+                        and f.lower() != video_name.lower()
+                        and fl.endswith((".srt", ".vtt"))):
                     # Try to parse language from filename (e.g. Movie.en.srt)
                     lang = "und"
                     parts = f.split(".")
                     if len(parts) > 2:
-                        pot_lang = parts[-2]
-                        if len(pot_lang) in [2, 3]: lang = pot_lang
-                    
+                        pot_lang = parts[-2].lower()
+                        if len(pot_lang) in [2, 3]:
+                            lang = pot_lang
                     info["subtitle_tracks"].append({
                         "index": sub_idx_counter,
                         "real_index": None,
-                        "codec": "srt" if f.endswith(".srt") else "vtt",
+                        "codec": "srt" if fl.endswith(".srt") else "vtt",
                         "language": lang,
                         "title": f"External ({lang})",
                         "is_image": False,
@@ -177,6 +184,7 @@ def get_detailed_media_info(file_path: str) -> dict:
         print(f"FFprobe Error: {e}")
         return {
             "vcodec": None, "acodec": None, "vprofile": None, "pix_fmt": None,
+            "width": None, "height": None,
             "audio_tracks": [],
             "subtitle_tracks": []
         }

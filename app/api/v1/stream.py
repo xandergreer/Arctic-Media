@@ -96,11 +96,12 @@ def get_detailed_media_info(file_path: str) -> dict:
 
         info = {
             "vcodec": None, "acodec": None, "vprofile": None, "pix_fmt": None,
+            "width": None, "height": None,
             "duration": duration,
             "audio_tracks": [],
             "subtitle_tracks": []
         }
-        
+
         audio_idx_counter = 0
         sub_idx_counter = 0
 
@@ -114,6 +115,8 @@ def get_detailed_media_info(file_path: str) -> dict:
                 info["vcodec"] = stream.get("codec_name")
                 info["vprofile"] = stream.get("profile")
                 info["pix_fmt"] = stream.get("pix_fmt")
+                info["width"] = stream.get("width")
+                info["height"] = stream.get("height")
             
             elif stype == "audio":
                 if not info["acodec"]: info["acodec"] = stream.get("codec_name") # Primary
@@ -181,6 +184,7 @@ def get_detailed_media_info(file_path: str) -> dict:
         print(f"FFprobe Error: {e}")
         return {
             "vcodec": None, "acodec": None, "vprofile": None, "pix_fmt": None,
+            "width": None, "height": None,
             "audio_tracks": [],
             "subtitle_tracks": []
         }

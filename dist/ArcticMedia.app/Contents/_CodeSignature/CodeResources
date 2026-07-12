@@ -4,6 +4,10 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Resources/.env</key>
+		<data>
+		daWOEFXU0BWPb+4Y1NrzDOJnulA=
+		</data>
 		<key>Resources/_tcl_data/auto.tcl</key>
 		<data>
 		q3LD5+JJwylBqn63fZx2SxIFWog=
@@ -1266,83 +1270,119 @@
 		</data>
 		<key>Resources/app/api/__pycache__/deps.cpython-311.pyc</key>
 		<data>
-		T3AulvJMTLXo7R6grUMOSCG8beU=
+		ADAZIqjT4xxeF/YbUWkJJFGN/L0=
 		</data>
 		<key>Resources/app/api/deps.py</key>
 		<data>
-		VW+Ev+yIoCSQAuAiJxONa7J9/+4=
+		mtWCXd43r/6G+id1sOLB/XBB6WQ=
+		</data>
+		<key>Resources/app/api/v1/__pycache__/admin.cpython-311.pyc</key>
+		<data>
+		XcQ9EwNnR0U/NGtFkVdIwzIdC8Q=
+		</data>
+		<key>Resources/app/api/v1/__pycache__/arr.cpython-311.pyc</key>
+		<data>
+		p6TMsNDNxCRLgomWifF8z8c/x1A=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/auth.cpython-311.pyc</key>
 		<data>
-		VQe4EN8je326HtZoOhH3Wt1ipXE=
+		Crc/5yhXZAA8NX0oMbEVFgNESOU=
+		</data>
+		<key>Resources/app/api/v1/__pycache__/history.cpython-311.pyc</key>
+		<data>
+		smWC73IDyXKRY8h3wfS5qHZEbD4=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/libraries.cpython-311.pyc</key>
 		<data>
-		TwBTpZUd9PcDcG/nb/VAXrwJCko=
+		HeeqUELGcf/KrsQcrXxKMlX9LUI=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/media.cpython-311.pyc</key>
 		<data>
-		KAG5ljkfmVjV8b0Mc1p3y0bYMc4=
+		qmZpPQOWW/BfZNtIpqkt8Oet0LU=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/remote.cpython-311.pyc</key>
 		<data>
-		+2uAwtnYmwVfPCdwlo+rKJeHKoc=
+		jRrP89G26f5M0lzMwFWmxF7+N4A=
+		</data>
+		<key>Resources/app/api/v1/__pycache__/requests.cpython-311.pyc</key>
+		<data>
+		d96UYjuyP/TQhtbfRIYzdsQIoVs=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/scan.cpython-311.pyc</key>
 		<data>
-		CcYpbfnpuiM3A3PMC8+nBprb8t4=
+		qGoQF+Mrj3roXxBXk5olYXHwZ3Y=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/settings.cpython-311.pyc</key>
 		<data>
-		jEsvMYJUedT5dhFA34wlpSHB5fo=
+		ALX/bsFQ9JhtzIFUkwo1b/CDQA4=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/stream.cpython-311.pyc</key>
 		<data>
-		MVh0Ub6Yi06Tr4iBqHQhL0r2L8U=
+		qriAI2goMbvwKa4jkPnc8ZxruGs=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/stream_hls.cpython-311.pyc</key>
 		<data>
-		56AXE78WbA/ZhMf2vXsWn0VNOZA=
+		fYeg5F+cGFcFIwmbxNPXCBVCNbU=
+		</data>
+		<key>Resources/app/api/v1/__pycache__/subtitles_api.cpython-311.pyc</key>
+		<data>
+		miaiIAazHaHB+GJSVOwc4hWAWzM=
 		</data>
 		<key>Resources/app/api/v1/__pycache__/system.cpython-311.pyc</key>
 		<data>
 		X5z7Rs6mATBZ6ZMGap4oU1XX27U=
 		</data>
+		<key>Resources/app/api/v1/admin.py</key>
+		<data>
+		USNkjrNrKOdFwdc2jx1zwXjOjyQ=
+		</data>
+		<key>Resources/app/api/v1/arr.py</key>
+		<data>
+		SawoUwgxQ9rGwDbo3hec69m3ILM=
+		</data>
 		<key>Resources/app/api/v1/auth.py</key>
 		<data>
-		JfOJFtHv5xRoYJN4Q9lRBitb96w=
+		UvQZqcSueyVZPNyStXNCFqTWCjg=
 		</data>
 		<key>Resources/app/api/v1/history.py</key>
 		<data>
-		MMyKZgGwv+/d5HmaH76+MXLbAr0=
+		/16oIep4kPC3aV1cWq5qufQW4+Y=
 		</data>
 		<key>Resources/app/api/v1/libraries.py</key>
 		<data>
-		E+SHYUt85SmL3K21X34t1036724=
+		ly1PDiG604g0uetYlUUlkny/Jhk=
 		</data>
 		<key>Resources/app/api/v1/media.py</key>
 		<data>
-		yoNsWUoLGATan3fbMdOR/m/Ykck=
+		NqXOkpMV8Tu+MzS/yAVvPgDk+1A=
 		</data>
 		<key>Resources/app/api/v1/remote.py</key>
 		<data>
-		OSZDuf6rjAUv2kgZlkLpVI1vjMU=
+		o9iRQbK55xaRTJX5rpF9S9gUmEQ=
+		</data>
+		<key>Resources/app/api/v1/requests.py</key>
+		<data>
+		ZfB4v7raNeLEexzASw8mub0EbPQ=
 		</data>
 		<key>Resources/app/api/v1/scan.py</key>
 		<data>
-		ZHlOdrTIyfk4zJIicXrjJawK128=
+		jIPP9sfq4jfiohDh9fNXheboRcg=
 		</data>
 		<key>Resources/app/api/v1/settings.py</key>
 		<data>
-		Vhx+Fe1Vb565WV1s7MNlOdls7AU=
+		s6avBXYhQG+GR7+IblILEqs++n0=
 		</data>
 		<key>Resources/app/api/v1/stream.py</key>
 		<data>
-		rb1C5g5tgLggzBa/Il16t1DBq7s=
+		SyHlN2xlQ2fnOcm1i+IHlHNzgmw=
 		</data>
 		<key>Resources/app/api/v1/stream_hls.py</key>
 		<data>
-		j2S+0pEZDDL90IkCldYyLaTIXRE=
+		A9CH+IbqFaKN58v/OczHO7JmCVM=
+		</data>
+		<key>Resources/app/api/v1/subtitles_api.py</key>
+		<data>
+		gb+YOtethAJgqca36Xrjn5ruj08=
 		</data>
 		<key>Resources/app/api/v1/system.py</key>
 		<data>
@@ -1350,19 +1390,23 @@
 		</data>
 		<key>Resources/app/core/__pycache__/config.cpython-311.pyc</key>
 		<data>
-		+G5yWb5QGjQavvO0+ktEfbtllRI=
+		7NS3Ro3I8lZsB8sKck0frnj544Y=
 		</data>
 		<key>Resources/app/core/__pycache__/database.cpython-311.pyc</key>
 		<data>
 		jqnw9L/IGyief5yFd0sEqhOCu6Q=
 		</data>
+		<key>Resources/app/core/__pycache__/ffmpeg_manager.cpython-311.pyc</key>
+		<data>
+		Hfp2oZV1tLt9xcWzy82iz+TFW4E=
+		</data>
 		<key>Resources/app/core/__pycache__/security.cpython-311.pyc</key>
 		<data>
-		bgbhOHa+XIZ0MGOTytlpDil8NAo=
+		zUx8oY4IP7yBlkkayMKUhBMJQDg=
 		</data>
 		<key>Resources/app/core/config.py</key>
 		<data>
-		gVYysK8Al9Hyt7q67ddRo8jkqb8=
+		SypaSprwvI5PUZHtwNE56VdfXPw=
 		</data>
 		<key>Resources/app/core/database.py</key>
 		<data>
@@ -1370,23 +1414,43 @@
 		</data>
 		<key>Resources/app/core/ffmpeg_manager.py</key>
 		<data>
-		Wgo9URQBuhbsUkkg3OUXJLNmQZk=
+		IhVOQUZt2AVvK6xGgVd7ZiBw4Io=
 		</data>
 		<key>Resources/app/core/security.py</key>
 		<data>
-		OjLyF/DO2I96GKOlxqf8QR1Ltlg=
+		sEJQIdgw1hA+HpWKop586VGXUbE=
 		</data>
 		<key>Resources/app/models/__pycache__/base.cpython-311.pyc</key>
 		<data>
-		G+1+t5jY1mCgBwUGpo8ErNdqrbs=
+		+sgO+di/X+DAGbRHhj5ZvqBPJ5U=
+		</data>
+		<key>Resources/app/models/__pycache__/history.cpython-311.pyc</key>
+		<data>
+		wVEjI3n0CTlU+Jl6VM07icfmf74=
+		</data>
+		<key>Resources/app/models/__pycache__/invite.cpython-311.pyc</key>
+		<data>
+		ztXh+l9Y23tynym/q06fIk9nyWM=
 		</data>
 		<key>Resources/app/models/__pycache__/library.cpython-311.pyc</key>
 		<data>
-		im3U6f6K2rAOtwNqjgBPGoV0cqA=
+		uWCaUdNV3UcyqxjQ0q8UiohZ8Dg=
 		</data>
 		<key>Resources/app/models/__pycache__/media.cpython-311.pyc</key>
 		<data>
-		bOxHSpi2iIfyUdFtk3ni33J9d0o=
+		DBxv1XuAOebbPnz0HzkglJfdn5U=
+		</data>
+		<key>Resources/app/models/__pycache__/pairing.cpython-311.pyc</key>
+		<data>
+		2ARFfg7g/PDN4Sob2TjjdbI4Aio=
+		</data>
+		<key>Resources/app/models/__pycache__/request.cpython-311.pyc</key>
+		<data>
+		d+BUvmOYgNN4v6vurqM+NMv7A0w=
+		</data>
+		<key>Resources/app/models/__pycache__/scheduler.cpython-311.pyc</key>
+		<data>
+		KVsD0WyQR5JHIeBMST9Fagi4fmo=
 		</data>
 		<key>Resources/app/models/__pycache__/settings.cpython-311.pyc</key>
 		<data>
@@ -1394,23 +1458,35 @@
 		</data>
 		<key>Resources/app/models/__pycache__/user.cpython-311.pyc</key>
 		<data>
-		U1BONBL7UOwib6Q8+kSUOGlrASs=
+		zC4t970KRZs6SuPbwlEiPJos9L4=
 		</data>
 		<key>Resources/app/models/base.py</key>
 		<data>
-		1PzAVkWq6ql1LuIIChdd3hVqot4=
+		pC5jubGoQHoIbrPMYXMIbmglZkI=
 		</data>
 		<key>Resources/app/models/history.py</key>
 		<data>
-		wQRNTVoA1j5se9Euf+MHrmeYzmU=
+		ZEap6Z0CVIVMMrETAmBknt7Jr28=
+		</data>
+		<key>Resources/app/models/invite.py</key>
+		<data>
+		7tooockaGslsuY3NLq3sdzlW5bo=
 		</data>
 		<key>Resources/app/models/library.py</key>
 		<data>
-		8kzWHquw0KByFbKjw6S3cI7DglA=
+		UPszqmvDAFea79d3u+eIuaBXWbo=
 		</data>
 		<key>Resources/app/models/media.py</key>
 		<data>
-		GLlFx8fEBX0sEoMgXQQ/n3bwfJc=
+		2XzZEbvjILTiaE+qztpAAX6ZbgA=
+		</data>
+		<key>Resources/app/models/pairing.py</key>
+		<data>
+		D6kl32fKr7oOklRfLQofqWrAf/k=
+		</data>
+		<key>Resources/app/models/request.py</key>
+		<data>
+		1uJuFJA0EcVPzvW7jsENCLm+e1I=
 		</data>
 		<key>Resources/app/models/scheduler.py</key>
 		<data>
@@ -1422,43 +1498,47 @@
 		</data>
 		<key>Resources/app/models/user.py</key>
 		<data>
-		qrL919/yL2O8URnxY7yWXig2QM8=
+		EYwpuP5iI3sN2VF/arTgEB75kUk=
 		</data>
 		<key>Resources/app/schemas/__pycache__/library.cpython-311.pyc</key>
 		<data>
-		d5PKM5aA1xSUH9bEDDHeNTWkgDU=
+		XopiXWChKYlHZcKlsdC7PBLlSeQ=
 		</data>
 		<key>Resources/app/schemas/__pycache__/media.cpython-311.pyc</key>
 		<data>
-		RGtVKGrgPm9AZXkaQ3O0emya3ms=
+		A9BS2TT1VNniT2oJJYJiTxkCqGo=
 		</data>
 		<key>Resources/app/schemas/library.py</key>
 		<data>
-		FZzCLpOPu6jCTiDXlmOVW1vAAX0=
+		ItEbutbjrCvXrobUUN5zmTilcP8=
 		</data>
 		<key>Resources/app/schemas/media.py</key>
 		<data>
-		whNNbsz4cn+0W5jqC6z1VHCne/o=
+		O501NbBIe3JwGvHhv7I09+LTwxo=
 		</data>
 		<key>Resources/app/services/__pycache__/auth.cpython-311.pyc</key>
 		<data>
-		v6APm4uRWzl11qVfRax93gbqkwk=
+		5CBF7ratE0PHX7REJl+rsZ9DRGk=
 		</data>
 		<key>Resources/app/services/__pycache__/metadata.cpython-311.pyc</key>
 		<data>
-		/V3J5K75ye44F2vz2JF3/Kut4YM=
+		75JHKWtqe0ZhcHK8yAWx59eMq64=
 		</data>
 		<key>Resources/app/services/__pycache__/scanner.cpython-311.pyc</key>
 		<data>
-		auS0iX3RWZ46Rap5+krugLqCVAc=
+		ifkmDKL4hPV/ZqrGqXC6xT3Wu7U=
+		</data>
+		<key>Resources/app/services/__pycache__/scheduler.cpython-311.pyc</key>
+		<data>
+		xfmoPqcVz8M+1vvwkR8DlZs6hsc=
 		</data>
 		<key>Resources/app/services/__pycache__/subtitles.cpython-311.pyc</key>
 		<data>
-		7ThBz4u5zpDv2e/8pdiAuvMgq0M=
+		N8VErX1Kew9wzw1R1psFpHxfVVE=
 		</data>
 		<key>Resources/app/services/auth.py</key>
 		<data>
-		5KpWjKGslukyu7yefuMeH8+W0WE=
+		QOMSkVQXQ7+mvZ5jwuSsUf+WG3k=
 		</data>
 		<key>Resources/app/services/discovery.py</key>
 		<data>
@@ -1470,63 +1550,103 @@
 		</data>
 		<key>Resources/app/services/metadata.py</key>
 		<data>
-		Ymc2Esd9ykAQUbM41IUZuCdNbyw=
+		VJUJJR+V5SosvcEj72CtgYwJfwI=
 		</data>
 		<key>Resources/app/services/scanner.py</key>
 		<data>
-		9h02IxjwwY/0IZjUQTKLswaV9ts=
+		77Hz20rWUF99njFxBVg58+tPmak=
 		</data>
 		<key>Resources/app/services/scheduler.py</key>
 		<data>
-		o8peG6lrixQrgKUCfV6nmEb8YMg=
+		Y0yyVMJmAGSdr/gjYFUmRccruNk=
 		</data>
 		<key>Resources/app/services/subtitles.py</key>
 		<data>
-		2H7wv+MH68CcBREEpa9/S5ifn3g=
+		WRmHB9zj0XXEUm1vLMXqr5lZz7A=
 		</data>
 		<key>Resources/app/static/css/style.css</key>
 		<data>
-		a+v1Ii3nPQOKWXA6e+jYzRSXjAQ=
+		StXqCpbLDeXYbG3Gmkqravoc+IE=
+		</data>
+		<key>Resources/app/static/js/admin_arr.js</key>
+		<data>
+		JhdhGZXg++F6eCQGy5may0WnwqU=
+		</data>
+		<key>Resources/app/static/js/admin_history.js</key>
+		<data>
+		wJ00xWi/2PCLJxtoPFSfz7p8kH4=
+		</data>
+		<key>Resources/app/static/js/admin_invites.js</key>
+		<data>
+		oBR/KEHlgNG+a+At0YrLnqGACvo=
+		</data>
+		<key>Resources/app/static/js/admin_live.js</key>
+		<data>
+		TMKyH54XOO1LXmj0Zqz8PS4xBwA=
+		</data>
+		<key>Resources/app/static/js/admin_requests.js</key>
+		<data>
+		0y3CY9O0NQ586EXW4KiCHm614fM=
+		</data>
+		<key>Resources/app/static/js/admin_server.js</key>
+		<data>
+		DbTyRzie4PDFb0yLyWUw98TdcXM=
+		</data>
+		<key>Resources/app/static/js/admin_users.js</key>
+		<data>
+		l+4uZ1htnQE0APJwfvq+UlzpFuk=
 		</data>
 		<key>Resources/app/static/js/details.js</key>
 		<data>
-		Vuwa5do/pa/1jQB842itTsKAS9Y=
+		44PslZnfdJRcM+HhrrIhl1jPhAY=
 		</data>
 		<key>Resources/app/static/js/fsbrowser.js</key>
 		<data>
-		w0YRk3w2/VB2rOrk9jj1VOXTzaI=
+		fq04mBWSfTAPY5FA42Zx1/A0qWw=
 		</data>
 		<key>Resources/app/static/js/home.js</key>
 		<data>
-		lJ/wOkhHLRRzO6Aapw1ZeDlR95U=
+		RnDO73QBgquDGRgdgUGov54eYms=
 		</data>
 		<key>Resources/app/static/js/library.js</key>
 		<data>
-		yUJwBEExnBbN+RnTbmmZ5kzlDpA=
+		1BgMW/vxcqb+R/P+cfI6Zi/FxQY=
 		</data>
 		<key>Resources/app/static/js/main.js</key>
 		<data>
-		fywGrvLz/RMblx8369xpn0u8bkg=
+		geuRCQnOQ6oxCee6vZlvJ6Y3L1k=
+		</data>
+		<key>Resources/app/static/js/request_modal.js</key>
+		<data>
+		brXbbCnEsVvCJZjuM8ZBQrVjSfg=
 		</data>
 		<key>Resources/app/static/js/search.js</key>
 		<data>
-		5sUAaRpF3ieNSZ1QSLZQKSjHGdQ=
+		PB3GEEoge2RcxcXkFCcwzuoaO/g=
 		</data>
 		<key>Resources/app/static/js/settings.js</key>
 		<data>
-		pujOPP2ujbFfVaqelefnNHN4o0o=
+		+1TpYgVbjeMvuV3QBrnQkTkqqzM=
+		</data>
+		<key>Resources/app/templates/admin.html</key>
+		<data>
+		pGtlfaWeXF0roNzJ9CcMkFMTnOA=
+		</data>
+		<key>Resources/app/templates/admin_live.html</key>
+		<data>
+		gehAPbCB84Cxz2pV1Lb0EWyTRaY=
 		</data>
 		<key>Resources/app/templates/base.html</key>
 		<data>
-		/2Nu2QrhAsZ7lse7tr/M/0iggzM=
+		tU8deWVs8wsTbOY1I32mKkkCscI=
 		</data>
 		<key>Resources/app/templates/index.html</key>
 		<data>
-		VMnd3TlDuu5oHdTyqW4+Jpfa92U=
+		L/9wYN1pFLYF/UXhRFNsL0pClZM=
 		</data>
 		<key>Resources/app/templates/library.html</key>
 		<data>
-		XL/Ywz74fM5CWtAyismn9z5SO40=
+		62fumFFazP/SbA1xCfucco7Qq7E=
 		</data>
 		<key>Resources/app/templates/login.html</key>
 		<data>
@@ -1534,23 +1654,23 @@
 		</data>
 		<key>Resources/app/templates/movie.html</key>
 		<data>
-		Ks8pX2yfAje/XrEZj/9eQfJnK1c=
+		byujL/udn0CPIy6t08dIVT2f+Pk=
 		</data>
 		<key>Resources/app/templates/pair.html</key>
 		<data>
-		ofEAtO9nWmgaExrv5Rr20fHic58=
+		bhTUL3VgMvNAD8FJEN1tzkQe8fk=
 		</data>
 		<key>Resources/app/templates/register.html</key>
 		<data>
-		UV02l3VqykWCykV7pmJMuEVsHCI=
+		5MjVIvs3j4lDO4/ULzf4Lz8j2y4=
 		</data>
 		<key>Resources/app/templates/settings.html</key>
 		<data>
-		MtslVE6BBVbV4JxMlXHEWSQL4Ew=
+		5w/nJZef4VSgQqgnpPbquLiHzDQ=
 		</data>
 		<key>Resources/app/templates/show.html</key>
 		<data>
-		3irZvbUPsbazt3PBFhJZjYwOZRw=
+		pdYDEwQl07ugZB0CB4ieDR4gw14=
 		</data>
 		<key>Resources/attrs-25.4.0.dist-info/INSTALLER</key>
 		<data>
@@ -1578,13 +1698,33 @@
 		</data>
 		<key>Resources/base_library.zip</key>
 		<data>
-		b7BlAT/0XlMOdOsYXAJCsyrLKGs=
+		aNuChz2HT7R9Epqor/nDh9qgai0=
 		</data>
 		<key>Resources/certifi/cacert.pem</key>
 		<data>
 		R3rM9VNoTgokPV0n/BA54bYMBps=
 		</data>
 		<key>Resources/certifi/py.typed</key>
+		<data>
+		2jmj7l5rSw0yVb/vlWAYkK/YBwk=
+		</data>
+		<key>Resources/chardet/models/confusion.bin</key>
+		<data>
+		pTc/fSfMlCcYIAX+JxkgRYS7n4w=
+		</data>
+		<key>Resources/chardet/models/idf.bin</key>
+		<data>
+		gwk65NfLZm2286dB9YPi4ZJVZ1Q=
+		</data>
+		<key>Resources/chardet/models/models.bin</key>
+		<data>
+		tBby5iYw9lIUBLMNMoi9RDleJ64=
+		</data>
+		<key>Resources/chardet/models/training_metadata.yaml</key>
+		<data>
+		AtFG1tb/dbS/9ChINQSYqsVlB9g=
+		</data>
+		<key>Resources/chardet/py.typed</key>
 		<data>
 		2jmj7l5rSw0yVb/vlWAYkK/YBwk=
 		</data>
@@ -1643,6 +1783,10 @@
 		<key>Resources/cryptography-46.0.4.dist-info/licenses/LICENSE.BSD</key>
 		<data>
 		6ltBLAnzspuh2BphuHjFwW/+adg=
+		</data>
+		<key>Resources/dateutil/zoneinfo/dateutil-zoneinfo.tar.gz</key>
+		<data>
+		c+JCO8FU6iR/UDl+lpaYpwphJ6s=
 		</data>
 		<key>Resources/email_validator-2.3.0.dist-info/INSTALLER</key>
 		<data>
@@ -1760,65 +1904,133 @@
 		<data>
 		y39czT2O9Ruf4ZGB0qyAHMWSMaQ=
 		</data>
-		<key>Resources/roku/.gitignore</key>
+		<key>Resources/roku/components/ApiTask.brs</key>
 		<data>
-		fT8SA/O/HLRql9ghQG9sTr1PrgI=
+		6OgbLU4/5e6LiN/0+LPHlXVIGn0=
 		</data>
-		<key>Resources/roku/README.md</key>
+		<key>Resources/roku/components/ApiTask.xml</key>
 		<data>
-		eEf/bT5hQtghNMjSpw5VafEIl20=
+		U9GgN9pcDouDqQf2BJljMAH3SKc=
 		</data>
-		<key>Resources/roku/components/DetailsScene.xml</key>
+		<key>Resources/roku/components/CategoryTile.brs</key>
 		<data>
-		oyE7jCvbmNSLZdBYXWCBEF0b5B0=
+		5Ns9XDr3ba506SSnJO4uQ6TseA4=
 		</data>
-		<key>Resources/roku/components/HomeScene.xml</key>
+		<key>Resources/roku/components/CategoryTile.xml</key>
 		<data>
-		7N67m4ha/GAey/6vWuYWqEkRnKI=
+		b9w/WIeTSBxH07qqhXCXl3EMmXg=
 		</data>
-		<key>Resources/roku/components/PairingScene.xml</key>
+		<key>Resources/roku/components/DetailsPage.brs</key>
 		<data>
-		NudlNPVbWOrhTwM2reieDBqBhWA=
+		6vxWbf66rFsJUvBI3r/62+C/sj4=
 		</data>
-		<key>Resources/roku/components/ServerConfigScene.xml</key>
+		<key>Resources/roku/components/DetailsPage.xml</key>
 		<data>
-		bizoMd0frDawc6PELfKM0W8ZbzQ=
+		zh5qMIlePpXQVYMsflQqOMsUpI0=
 		</data>
-		<key>Resources/roku/components/VideoScene.xml</key>
+		<key>Resources/roku/components/HomePage.brs</key>
 		<data>
-		PBzdmlK2MafnFJYu2PTD9DEXC80=
+		YhX4zlD4GtLlHnfUpCPvrTUWgLk=
+		</data>
+		<key>Resources/roku/components/HomePage.xml</key>
+		<data>
+		/XUwePuIgVUdLLekyNvAyI5hPWQ=
+		</data>
+		<key>Resources/roku/components/MainScene.brs</key>
+		<data>
+		nqALBrb69y+7crnn09iMB0WhjHc=
+		</data>
+		<key>Resources/roku/components/MainScene.xml</key>
+		<data>
+		oPQ5Lroo2ZXQuRMdP/8rABmodfc=
+		</data>
+		<key>Resources/roku/components/PairingPage.brs</key>
+		<data>
+		c8cPeYiXQZ+sNy6gVbNQhRh06co=
+		</data>
+		<key>Resources/roku/components/PairingPage.xml</key>
+		<data>
+		JoaiNpahxFMnGqKhlz4QrwTM2lI=
+		</data>
+		<key>Resources/roku/components/PosterItem.brs</key>
+		<data>
+		I8CgXpIvB8w5rmWUEWQG27dSrZU=
+		</data>
+		<key>Resources/roku/components/PosterItem.xml</key>
+		<data>
+		zWSTpWT+B+kyshw8C1kER50rPow=
+		</data>
+		<key>Resources/roku/components/SearchPage.brs</key>
+		<data>
+		17O+b+ZrY8hAs6gQhujg+a8pzto=
+		</data>
+		<key>Resources/roku/components/SearchPage.xml</key>
+		<data>
+		8XmldYDxpInIYkFAXdpccuBmCP4=
+		</data>
+		<key>Resources/roku/components/SeasonPage.brs</key>
+		<data>
+		kIqnBydAW9IWAnM4k2gDqQ8X8es=
+		</data>
+		<key>Resources/roku/components/SeasonPage.xml</key>
+		<data>
+		OAuV8WOcjk/hZRw8lYDGy/JVJGc=
+		</data>
+		<key>Resources/roku/components/VideoPage.brs</key>
+		<data>
+		+aSYx22nmxvp18q4TB14LjdGxfY=
+		</data>
+		<key>Resources/roku/components/VideoPage.xml</key>
+		<data>
+		J09cUxFqcGmSLZys3xwUaM6E7U4=
+		</data>
+		<key>Resources/roku/components/VideoTask.brs</key>
+		<data>
+		Y3Nwv9FplvpVYU/b4kT+RApnNvo=
+		</data>
+		<key>Resources/roku/components/VideoTask.xml</key>
+		<data>
+		DgFhERYBMCxm93e0Ldz46YPn8DI=
+		</data>
+		<key>Resources/roku/components/WideItem.brs</key>
+		<data>
+		aqEwuR1Ju4d9y4vIIJ5LDH7vlHE=
+		</data>
+		<key>Resources/roku/components/WideItem.xml</key>
+		<data>
+		ocELTtged4tjF+9DHUskwdJxqAM=
 		</data>
 		<key>Resources/roku/images/app_icon_hd.png</key>
 		<data>
-		G3GmyF3phYIsXo522pgmX5wYKOI=
+		wOmNufSuL9ZW/th7TK8VQc7oaXg=
 		</data>
 		<key>Resources/roku/images/app_icon_sd.png</key>
 		<data>
-		qmplsTFm5Ao9wT5b3518zKzssV8=
+		w09UhKVbl3lS58npZV7MmYAjFmM=
+		</data>
+		<key>Resources/roku/images/corner_cat.png</key>
+		<data>
+		knpqGlA6vpSXn33au6XokX9jRT4=
+		</data>
+		<key>Resources/roku/images/corner_poster.png</key>
+		<data>
+		6GnAHnU31nOgkfKe+1wg88qFDHo=
+		</data>
+		<key>Resources/roku/images/corner_wide.png</key>
+		<data>
+		wd14aAt2SqYc3C2BesCNkZspuTA=
 		</data>
 		<key>Resources/roku/manifest</key>
 		<data>
-		9gW2k0DwYVjQrpquux1eqcDBYXw=
-		</data>
-		<key>Resources/roku/source/api.brs</key>
-		<data>
-		vWEsN0yItHvW4zhP0dzq4UeJyw8=
+		0yh2O7jVKduQcr+tVil0QTSpeTM=
 		</data>
 		<key>Resources/roku/source/main.brs</key>
 		<data>
-		0uDjAM1dU8ZQHe9JiKHR+RUjQlc=
+		f5WCJ2dmo7cg/1LuZZ6GUZKgSK4=
 		</data>
-		<key>Resources/roku/source/pairing.brs</key>
+		<key>Resources/roku/source/utils.brs</key>
 		<data>
-		l0fTD4wo2i1dfK2lYrmsetcbOvM=
-		</data>
-		<key>Resources/roku/source/playback.brs</key>
-		<data>
-		Y9VuA4hGsib9u9GgSGC2W/H0cR4=
-		</data>
-		<key>Resources/roku/source/server_config.brs</key>
-		<data>
-		GEaVGm+A8bNM77TFuBixlGBl7tE=
+		jM8SItAjX47JJAs2r9zKIIGfllw=
 		</data>
 		<key>Resources/setuptools/_vendor/importlib_metadata-8.7.1.dist-info/INSTALLER</key>
 		<data>
@@ -1915,6 +2127,29 @@
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Frameworks/.env</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Resources/.env</string>
+		</dict>
+		<key>Frameworks/4ef79d6367bb14396397__mypyc.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			4KGmSGyqDUGzfMg6h6JNa1bhHiQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e0a1a6486caa0d41b37cc83a87a24d6b56e11e24"</string>
+		</dict>
+		<key>Frameworks/81d243bd2c585b0f4821__mypyc.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			mPQwO7I25XKlZXReyAHOAQ1S5N4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"98f4303bb236e572a565745ec801ce010d52e4de"</string>
+		</dict>
 		<key>Frameworks/PIL/.dylibs</key>
 		<dict>
 			<key>symlink</key>
@@ -1924,226 +2159,226 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			dFQtVC5MjLBzo/FEi6H1GoW++LI=
+			MQyAWsS3iymT/7z0n1OEKL6CLNI=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"74542d542e4c8cb073a3f1448ba1f51a85bef8b2"</string>
+			<string>cdhash H"310c805ac4b78b2993ffbcf49f538428be822cd2"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libavif.16.3.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			HmyrfavhqFlxL/bpqxToHvSMjF8=
+			Vc7oVDqcurNGt8gkWfJ64UMj1A4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"1e6cab7dabe1a859712ff6e9ab14e81ef48c8c5f"</string>
+			<string>cdhash H"55cee8543a9cbab346b7c82459f27ae14323d40e"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libbrotlicommon.1.2.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			SCEvQRNT0tTkg3C51UCCDRCUGYA=
+			RPtB8P4b8EqVfIFntCTKGCQoshE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"48212f411353d2d4e48370b9d540820d10941980"</string>
+			<string>cdhash H"44fb41f0fe1bf04a957c8167b424ca182428b211"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libbrotlidec.1.2.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			9fKQxWwbQ1OIcuXIzI+oO5iF9Lc=
+			eCNrlL4nxnCqB8144wDVGdTEQeE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f5f290c56c1b43538872e5c8cc8fa83b9885f4b7"</string>
+			<string>cdhash H"78236b94be27c670aa07cd78e300d519d4c441e1"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libfreetype.6.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			XsK42BgqvvmFOuC9up9rQwwwz/c=
+			wXeCwEttuPEOiXPMS314nSimxnU=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5ec2b8d8182abef9853ae0bdba9f6b430c30cff7"</string>
+			<string>cdhash H"c17782c04b6db8f10e8973cc4b7d789d28a6c675"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libharfbuzz.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			F6XG8nA5/ANp4YMAIoAZKYytE6o=
+			uHOPa2x8jlAKJQaCV0Er64FnIBk=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"17a5c6f27039fc0369e18300228019298cad13aa"</string>
+			<string>cdhash H"b8738f6b6c7c8e500a25068257412beb81672019"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libjpeg.62.4.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			9Pm2ALX+uhSnyjYfGJPEl8PadW4=
+			BXd4WCK+XfANwEd2MegDlv1p1Mc=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f4f9b600b5feba14a7ca361f1893c497c3da756e"</string>
+			<string>cdhash H"0577785822be5df00dc0477631e80396fd69d4c7"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/liblcms2.2.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			1GiJNLFOa13QIy1WQdVxZFx6+iE=
+			1p3/q92TExnq5AiTovzuwYRY8Lk=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d4688934b14e6b5dd0232d5641d571645c7afa21"</string>
+			<string>cdhash H"d69dffabdd931319eae40893a2fceec18458f0b9"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/liblzma.5.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			VMBcRqcsIMHQsnXyFUBGmSGmPpo=
+			jSC8j0ykI0Eexap5AkZHgMu3LOA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"54c05c46a72c20c1d0b275f21540469921a63e9a"</string>
+			<string>cdhash H"8d20bc8f4ca423411ec5aa7902464780cbb72ce0"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libopenjp2.2.5.4.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			MYQWdgp/xuPAir2asDZJOoELKLo=
+			f3zI/3fXe520z3NTDSIRCzYLmQs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"318416760a7fc6e3c08abd9ab036493a810b28ba"</string>
+			<string>cdhash H"7f7cc8ff77d77b9db4cf73530d22110b360b990b"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libpng16.16.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			fxmknwmGmMmh2L3/JaZHQC8kzPM=
+			4GXQo7s7mNUiDyaYkNvawgJD1bU=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"7f19a49f098698c9a1d8bdff25a647402f24ccf3"</string>
+			<string>cdhash H"e065d0a3bb3b98d5220f269890dbdac20243d5b5"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libsharpyuv.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			+y7HyN1KGRXuYMi1GrLj3maZT4g=
+			e4Z95Lk1t1U8fp+In6UqUl71jro=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"fb2ec7c8dd4a1915ee60c8b51ab2e3de66994f88"</string>
+			<string>cdhash H"7b867de4b935b7553c7e9f889fa52a525ef58eba"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libtiff.6.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			UsxBmPaQKxkAhvIRUfqbn8w4yEw=
+			aXaCO4BVNxHx8mV/8OGDUE/Nnas=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"52cc4198f6902b190086f21151fa9b9fcc38c84c"</string>
+			<string>cdhash H"6976823b80553711f1f2657ff0e183504fcd9dab"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libwebp.7.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			aDDgURSVdDeI1+i+swYbPgtPHNo=
+			5z3xVxvytjkCvH78J9lXHPORfLk=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6830e0511495743788d7e8beb3061b3e0b4f1cda"</string>
+			<string>cdhash H"e73df1571bf2b63902bc7efc27d9571cf3917cb9"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libwebpdemux.2.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			pbBjgc4CZDuo41KYYIZ72VKjwFM=
+			DzX51C9on6H38kChzzPlLJSb2U8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"a5b06381ce02643ba8e3529860867bd952a3c053"</string>
+			<string>cdhash H"0f35f9d42f689fa1f7f240a1cf33e52c949bd94f"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libwebpmux.3.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			MKIVu+/NfNNvwHE13gpEXq/6u0E=
+			0zGz39vnMfNrUZ6FDZXiU9t3iic=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"30a215bbefcd7cd36fc07135de0a445eaffabb41"</string>
+			<string>cdhash H"d331b3dfdbe731f36b519e850d95e253db778a27"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libxcb.1.1.0.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			ONWJX5SRK/lrp/DPXG6RzUuDvOA=
+			cY8AVsYlAsUKpQD1VLcgLGAJiQc=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"38d5895f94912bf96ba7f0cf5c6e91cd4b83bce0"</string>
+			<string>cdhash H"718f0056c62502c50aa500f554b7202c60098907"</string>
 		</dict>
 		<key>Frameworks/PIL/__dot__dylibs/libz.1.3.1.zlib-ng.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			YUCgdyBP86x7b8CUgMoz3ZpS67g=
+			VKy7buF1bYuejsL7x15niTU0Wh8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6140a077204ff3ac7b6fc09480ca33dd9a52ebb8"</string>
+			<string>cdhash H"54acbb6ee1756d8b9e8ec2fbc75e678935345a1f"</string>
 		</dict>
 		<key>Frameworks/PIL/_avif.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			SEoYjFcf9cmauWbYtD9u/PCKRaM=
+			AiEW78JiVTd8KD6YkVjc1yweUM0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"484a188c571ff5c99ab966d8b43f6efcf08a45a3"</string>
+			<string>cdhash H"022116efc26255377c283e989158dcd72c1e50cd"</string>
 		</dict>
 		<key>Frameworks/PIL/_imaging.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			94GcDacRa4VmL7JqxfHEADh2MFQ=
+			CqT5fBya9IEv8ohluC2RJDkKSS0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f7819c0da7116b85662fb26ac5f1c40038763054"</string>
+			<string>cdhash H"0aa4f97c1c9af4812ff28865b82d9124390a492d"</string>
 		</dict>
 		<key>Frameworks/PIL/_imagingcms.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			m3h4uY2KnEzy9FpchjIlgcsSUhk=
+			Orm4gYdTjD6M/QWj0M22JYcRDd0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"9b7878b98d8a9c4cf2f45a5c86322581cb125219"</string>
+			<string>cdhash H"3ab9b88187538c3e8cfd05a3d0cdb62587110ddd"</string>
 		</dict>
 		<key>Frameworks/PIL/_imagingft.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			5QyDt2rWpI2fpUKXPVeT/Gf5gC8=
+			bScAQqQ381xHep+cM3PMGocZfFM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e50c83b76ad6a48d9fa542973d5793fc67f9802f"</string>
+			<string>cdhash H"6d270042a437f35c477a9f9c3373cc1a87197c53"</string>
 		</dict>
 		<key>Frameworks/PIL/_imagingmath.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			O8IyQxp3l86ATmPYqeMqU+TORyc=
+			NHIex8ee1Zc8V/plE+2/nMn7ybE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"3bc232431a7797ce804e63d8a9e32a53e4ce4727"</string>
+			<string>cdhash H"34721ec7c79ed5973c57fa6513edbf9cc9fbc9b1"</string>
 		</dict>
 		<key>Frameworks/PIL/_imagingtk.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			6AgTyih9VOLHM5B8VeqI5bvJo4Y=
+			LN9YlSHu25pkZlUdz1e9SN5AAa0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e80813ca287d54e2c733907c55ea88e5bbc9a386"</string>
+			<string>cdhash H"2cdf589521eedb9a6466551dcf57bd48de4001ad"</string>
 		</dict>
 		<key>Frameworks/PIL/_webp.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			MbmrI0y6Tsu6Qg2+x491OK51Sro=
+			wWmNBREQkZ0z3iwkcIohEroenxI=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"31b9ab234cba4ecbba420dbec78f7538ae754aba"</string>
+			<string>cdhash H"c1698d051110919d33de2c24708a2112ba1e9f12"</string>
 		</dict>
 		<key>Frameworks/Python</key>
 		<dict>
@@ -2154,19 +2389,19 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Zu37FIgGt3AovSbzI6hloCJIEao=
+			17ccaY8dKu7hEs2lRzDTQewtBZw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"66edfb148806b77028bd26f323a865a0224811aa"</string>
+			<string>cdhash H"d7b71c698f1d2aeee112cda54730d341ec2d059c"</string>
 		</dict>
 		<key>Frameworks/_cffi_backend.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			8l2ljK/TMMxsTMB/5jqMtVTYkZU=
+			EHCMwbd07xBxkkhMK5dQVOydEus=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f25da58cafd330cc6c4cc07fe63a8cb554d89195"</string>
+			<string>cdhash H"10708cc1b774ef107192484c2b975054ec9d12eb"</string>
 		</dict>
 		<key>Frameworks/_tcl_data</key>
 		<dict>
@@ -2182,46 +2417,46 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			r+YRLkQ2UmmGBO/s+13GY7pqClo=
+			YWhBPxVhe/KpRlAqhVGXwGIl4N0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"afe6112e443652698604efecfb5dc663ba6a0a5a"</string>
+			<string>cdhash H"6168413f15617bf2a946502a855197c06225e0dd"</string>
 		</dict>
 		<key>Frameworks/aiohttp/_http_parser.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			kUwlJ9yYQoUe2i5zBR3gfuuJfLo=
+			NovGvArWMy+sPishtTsoqILAlfY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"914c2527dc9842851eda2e73051de07eeb897cba"</string>
+			<string>cdhash H"368bc6bc0ad6332fac3e2b21b53b28a882c095f6"</string>
 		</dict>
 		<key>Frameworks/aiohttp/_http_writer.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			uci3060jMQwknL9cv9LRaL0CfAg=
+			yG0GRW1Ayrk1RkTIZdTyzV0Hy2M=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"b9c8b7d3ad23310c249cbf5cbfd2d168bd027c08"</string>
+			<string>cdhash H"c86d06456d40cab9354644c865d4f2cd5d07cb63"</string>
 		</dict>
 		<key>Frameworks/aiohttp/_websocket/mask.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			qTqWJc5a2w2j0yabhHt96a5OIVI=
+			MQSn5BHkZn2HnaAjHI6+GV0fqsU=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"a93a9625ce5adb0da3d3269b847b7de9ae4e2152"</string>
+			<string>cdhash H"3104a7e411e4667d879da0231c8ebe195d1faac5"</string>
 		</dict>
 		<key>Frameworks/aiohttp/_websocket/reader_c.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			EplCEYq4f0d5gYDnEBaaFVGa6Tw=
+			bfFQvVqrjD/Nmk1z01aD2dsLVT4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"129942118ab87f47798180e710169a15519ae93c"</string>
+			<string>cdhash H"6df150bd5aab8c3fcd9a4d73d35683d9db0b553e"</string>
 		</dict>
 		<key>Frameworks/app</key>
 		<dict>
@@ -2242,15 +2477,157 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			irNMxDxgTnQ9ekv7WlF4lg6tLgg=
+			heR28mLEvIQfuk4U9md6TwA5uCM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"8ab34cc43c604e743d7a4bfb5a5178960ead2e08"</string>
+			<string>cdhash H"85e476f262c4bc841fba4e14f6677a4f0039b823"</string>
 		</dict>
 		<key>Frameworks/certifi</key>
 		<dict>
 			<key>symlink</key>
 			<string>../Resources/certifi</string>
+		</dict>
+		<key>Frameworks/chardet/models/__init__.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			CCpAeYANsYthuJWSkkUpVfjvEUE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"082a4079800db18b61b8959292452955f8ef1141"</string>
+		</dict>
+		<key>Frameworks/chardet/models/confusion.bin</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../../Resources/chardet/models/confusion.bin</string>
+		</dict>
+		<key>Frameworks/chardet/models/idf.bin</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../../Resources/chardet/models/idf.bin</string>
+		</dict>
+		<key>Frameworks/chardet/models/models.bin</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../../Resources/chardet/models/models.bin</string>
+		</dict>
+		<key>Frameworks/chardet/models/training_metadata.yaml</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../../Resources/chardet/models/training_metadata.yaml</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/ascii.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			OX2qtfJ2ARZvYToweZvJc7JeQic=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"397daab5f27601166f613a30799bc973b25e4227"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/confusion.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			XTUrMhv5jxFGft3UZeSjxucLKkk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5d352b321bf98f11467eddd465e4a3c6e70b2a49"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/escape.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			2WUXcBv6fnfFe0+1E8PtpFVqsIk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"d96517701bfa7e77c57b4fb513c3eda4556ab089"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/magic.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			taX5wn+hNPRxg5VkHXHcwv21pm8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b5a5f9c27fa134f4718395641d71dcc2fdb5a66f"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/orchestrator.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			uqXOImxNeFUhiNCC2HjX5610ALg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"baa5ce226c4d78552188d082d878d7e7ad7400b8"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/statistical.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			VEWI+0Fh73mbZlY0ZlF4/IO/Ruw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"544588fb4161ef799b665634665178fc83bf46ec"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/structural.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			2O+XJ2/2PNHpHVOPaa3Xo4WMIkI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"d8ef97276ff63cd1e91d538f69add7a3858c2242"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/utf1632.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			QH9VQGV7f8Fljr+M3vdmfYs1Skc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"407f5540657b7fc1658ebf8cdef7667d8b354a47"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/utf8.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nXenJ6poNN0iQJbQZtCyundlZw4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9d77a727aa6834dd224096d066d0b2ba7765670e"</string>
+		</dict>
+		<key>Frameworks/chardet/pipeline/validity.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			I+A856Pnu/6tO95GRu2ZQZ1dcNQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"23e03ce7a3e7bbfead3bde4646ed99419d5d70d4"</string>
+		</dict>
+		<key>Frameworks/chardet/py.typed</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../Resources/chardet/py.typed</string>
+		</dict>
+		<key>Frameworks/charset_normalizer/cd.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Ombi3OqOFjWRzeeacPaE4lQMCYE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3a66e2dcea8e163591cde79a70f684e2540c0981"</string>
+		</dict>
+		<key>Frameworks/charset_normalizer/md.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RuvIUXsacpxDrdhd5gBjtXmE+u0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"46ebc8517b1a729c43add85de60063b57984faed"</string>
 		</dict>
 		<key>Frameworks/click-8.3.1.dist-info</key>
 		<dict>
@@ -2266,10 +2643,15 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			8V6+mC/6SKhXeEl0mA/VADg3B4Y=
+			uqHfDdJvM/f1AYuNo2nZYoEjKtI=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f15ebe982ffa48a857784974980fd50038370786"</string>
+			<string>cdhash H"baa1df0dd26f33f7f5018b8da369d96281232ad2"</string>
+		</dict>
+		<key>Frameworks/dateutil</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Resources/dateutil</string>
 		</dict>
 		<key>Frameworks/email_validator-2.3.0.dist-info</key>
 		<dict>
@@ -2280,37 +2662,37 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			YXS6+MF33PXx+W74VWEh87LQ1Ss=
+			yo6ANIYPdk+T/gMTnbbACJac8/E=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6174baf8c177dcf5f1f96ef8556121f3b2d0d52b"</string>
+			<string>cdhash H"ca8e8034860f764f93fe03139db6c008969cf3f1"</string>
 		</dict>
 		<key>Frameworks/greenlet/_greenlet.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			o2b2OtKhAcJSxv4RkPtAVJCjTp8=
+			t4pv1la5bZksAsvx8HEEVTSM5sQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"a366f63ad2a101c252c6fe1190fb405490a34e9f"</string>
+			<string>cdhash H"b78a6fd656b96d992c02cbf1f0710455348ce6c4"</string>
 		</dict>
 		<key>Frameworks/httptools/parser/parser.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			hsKGjkKdZ3oZK5MgSGAIp78a2F8=
+			ZRyo1zeVKLCug2Ru9pWN9v4iHMc=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"86c2868e429d677a192b9320486008a7bf1ad85f"</string>
+			<string>cdhash H"651ca8d7379528b0ae83646ef6958df6fe221cc7"</string>
 		</dict>
 		<key>Frameworks/httptools/parser/url_parser.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			evmZDL+IUyudibWcDE25ZCHyURA=
+			DAsPEVkKeaiYxkY4PE4Zh8+PVWY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"7af9990cbf88532b9d89b59c0c4db96421f25110"</string>
+			<string>cdhash H"0c0b0f11590a79a898c646383c4e1987cf8f5566"</string>
 		</dict>
 		<key>Frameworks/icons</key>
 		<dict>
@@ -2341,10 +2723,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			LjSnoT9MO8n5gO3Hm1eotpQWyCg=
+			6i5BUT24rbDwcmkfPajiYBueIJs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2e34a7a13f4c3bc9f980edc79b57a8b69416c828"</string>
+			<string>cdhash H"ea2e41513db8adb0f072691f3da8e2601b9e209b"</string>
 		</dict>
 		<key>Frameworks/libfreetype.6.dylib</key>
 		<dict>
@@ -2375,10 +2757,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Mk0vDwHinPNBhHA4tGEREhMWeHs=
+			hfy2aqlOVZqwBxQuge7SrjkUA74=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"324d2f0f01e29cf341847038b46111121316787b"</string>
+			<string>cdhash H"85fcb66aa94e559ab007142e81eed2ae391403be"</string>
 		</dict>
 		<key>Frameworks/libopenjp2.2.5.4.dylib</key>
 		<dict>
@@ -2399,28 +2781,28 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			dFNdfTLLfQnQ0/KTVNtWqtqbVqY=
+			tg6QGBtVpPySx+s0Sts6+AGVzvI=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"74535d7d32cb7d09d0d3f29354db56aada9b56a6"</string>
+			<string>cdhash H"b60e90181b55a4fc92c7eb344adb3af80195cef2"</string>
 		</dict>
 		<key>Frameworks/libssl.3.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			y9GghdIjZgxX8nmPC5qNx5Qnpwk=
+			zwJ5Rj9GbC3STMJWHVGs0hwjeCo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"cbd1a085d223660c57f2798f0b9a8dc79427a709"</string>
+			<string>cdhash H"cf0279463f466c2dd24cc2561d51acd21c23782a"</string>
 		</dict>
 		<key>Frameworks/libtcl8.6.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			bIRmv3KKRosRVhVdKc6khXBuxNA=
+			+1nld96BytjTMp0egdHGRcHE3u0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6c8466bf728a468b1156155d29cea485706ec4d0"</string>
+			<string>cdhash H"fb59e577de81cad8d3329d1e81d1c645c1c4deed"</string>
 		</dict>
 		<key>Frameworks/libtiff.6.dylib</key>
 		<dict>
@@ -2431,10 +2813,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			HKxh95R2THhe9fGZ37jzyeO3ves=
+			Sccw116v6z3fZWZChZahiMbrS5o=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"1cac61f794764c785ef5f199dfb8f3c9e3b7bdeb"</string>
+			<string>cdhash H"49c730d75eafeb3ddf6566428596a188c6eb4b9a"</string>
 		</dict>
 		<key>Frameworks/libwebp.7.dylib</key>
 		<dict>
@@ -2470,37 +2852,37 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			0N2nzZdhwnNNIcKup6UkNJ7gSmA=
+			SsHkfNgwIKTGeqdJcRa+2ZFX+4I=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d0dda7cd9761c2734d21c2aea7a524349ee04a60"</string>
+			<string>cdhash H"4ac1e47cd83020a4c67aa7497116bed99157fb82"</string>
 		</dict>
 		<key>Frameworks/multidict/_multidict.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			gKQDfcGuxUvqtqugWOL5nacFpkM=
+			hVqweW+92CuVxgUlS0+TOKEIGpc=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"80a4037dc1aec54beab6aba058e2f99da705a643"</string>
+			<string>cdhash H"855ab0796fbdd82b95c605254b4f9338a1081a97"</string>
 		</dict>
 		<key>Frameworks/orjson/orjson.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			L+V+d04O2EgaXLgIYfcgUrwybHQ=
+			jWoTx5pfYANjWK06MFQkIEd0vLw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2fe57e774e0ed8481a5cb80861f72052bc326c74"</string>
+			<string>cdhash H"8d6a13c79a5f60036358ad3a305424204774bcbc"</string>
 		</dict>
 		<key>Frameworks/propcache/_helpers_c.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			NPJd+9D7i/3SqSSdponkLuHtp+A=
+			8sZ+xJm2kC9PB1PJ44tw2TZc8GM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"34f25dfbd0fb8bfdd2a9249da689e42ee1eda7e0"</string>
+			<string>cdhash H"f2c67ec499b6902f4f0753c9e38b70d9365cf063"</string>
 		</dict>
 		<key>Frameworks/pydantic-2.12.5.dist-info</key>
 		<dict>
@@ -2511,10 +2893,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			8LX1nzugvl88t6ZGIwhWPyAjHrw=
+			iIG+Mmrt6Xw/CDkiqTAF6iM9cYo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f0b5f59f3ba0be5f3cb7a6462308563f20231ebc"</string>
+			<string>cdhash H"8881be326aede97c3f083922a93005ea233d718a"</string>
 		</dict>
 		<key>Frameworks/python3.11</key>
 		<dict>
@@ -2525,514 +2907,514 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			BVzi0OdchkoA7QxDEyYeki7UY78=
+			oDUnzOa8sTo2qZmMJyZq+h3LK50=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"055ce2d0e75c864a00ed0c4313261e922ed463bf"</string>
+			<string>cdhash H"a03527cce6bcb13a36a9998c27266afa1dcb2b9d"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_bisect.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Bx/UA6pTuYXCFhf8XfP2QuFSc9g=
+			LFSYe413hMPiZQg45SCINA8TEzA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"071fd403aa53b985c21617fc5df3f642e15273d8"</string>
+			<string>cdhash H"2c54987b8d7784c3e2650838e52088340f131330"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_blake2.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			4RncA5422fqG/O5KkFwX6Ha/dRY=
+			nrewdUydftXnosvMSvP9q2XSKAs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e119dc039e36d9fa86fcee4a905c17e876bf7516"</string>
+			<string>cdhash H"9eb7b0754c9d7ed5e7a2cbcc4af3fdab65d2280b"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_bz2.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			1NtZPm0vRQqcGicdTB4ntkxtpQQ=
+			0hgNlerxbw34kJT1/0ODTzaHj1Y=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d4db593e6d2f450a9c1a271d4c1e27b64c6da504"</string>
+			<string>cdhash H"d2180d95eaf16f0df89094f5ff43834f36878f56"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_codecs_cn.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			WibonEillh7xUyl0lsy/Pp+XOf0=
+			aUueMTWGcKosvWmM4ShCBzELAqQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5a26e89c48a5961ef153297496ccbf3e9f9739fd"</string>
+			<string>cdhash H"694b9e31358670aa2cbd698ce1284207310b02a4"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_codecs_hk.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			2KDZxUiAaWQ+p6zdWvbkBzw4W/I=
+			tOHWFi3KfnGA9EAv5q8oegaTFvg=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d8a0d9c5488069643ea7acdd5af6e4073c385bf2"</string>
+			<string>cdhash H"b4e1d6162dca7e7180f4402fe6af287a069316f8"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_codecs_iso2022.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			FysbWVdJNIfsG9IXunsQM15vIOI=
+			DzVPxK/ZXYZt5OJ1EyQIdeuxlKs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"172b1b5957493487ec1bd217ba7b10335e6f20e2"</string>
+			<string>cdhash H"0f354fc4afd95d866de4e27513240875ebb194ab"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_codecs_jp.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			WX9YkY8tdiwSZVG08vJylBjc1ow=
+			MGXo+KIicOegnQ/RUyqvZz7yCL0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"597f58918f2d762c126551b4f2f2729418dcd68c"</string>
+			<string>cdhash H"3065e8f8a22270e7a09d0fd1532aaf673ef208bd"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_codecs_kr.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			9fwYU5UDexSSWqDSaBNvXTP9FjI=
+			qNTt9kfrkU5rIUl5CNs4+ML4eLA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f5fc185395037b14925aa0d268136f5d33fd1632"</string>
+			<string>cdhash H"a8d4edf647eb914e6b21497908db38f8c2f878b0"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_codecs_tw.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			q1vGidA7UatqW7r89iNvxEpo9Gs=
+			yKI8qji4Nxzt9uUB1L4VgGcRTTw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"ab5bc689d03b51ab6a5bbafcf6236fc44a68f46b"</string>
+			<string>cdhash H"c8a23caa38b8371cedf6e501d4be158067114d3c"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_contextvars.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			cg1wwf7pEi4MFJrjk/2s2g307zk=
+			s7bnImbEbLXkNfWev2WmG/1UxA8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"720d70c1fee9122e0c149ae393fdacda0df4ef39"</string>
+			<string>cdhash H"b3b6e72266c46cb5e435f59ebf65a61bfd54c40f"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_crypt.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Lw8UFG51YZhBVx9CQr8xf+qrFoQ=
+			y5coFPTxPvFJhZ7twHe2O/aufYQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2f0f14146e75619841571f4242bf317feaab1684"</string>
+			<string>cdhash H"cb972814f4f13ef149859eedc077b63bf6ae7d84"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_csv.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			3ZeKOIDcvjrOIf0VzOMh/SlfS6Y=
+			3rKcB4kwsTWWu2AEK4hVA6J1x2c=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"dd978a3880dcbe3ace21fd15cce321fd295f4ba6"</string>
+			<string>cdhash H"deb29c078930b13596bb60042b885503a275c767"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_ctypes.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			/Z9MI/tiQtBfSBmEUJtCAusWCHc=
+			lM2z0g6fnq3DYFWyp2Agk2NhPcM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"fd9f4c23fb6242d05f481984509b4202eb160877"</string>
+			<string>cdhash H"94cdb3d20e9f9eadc36055b2a760209363613dc3"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_datetime.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			+CZ+Y7/26qZ6c9gzqrNAZ0trtCE=
+			GkhyI0W3IrJkR6l6ltJCocbCaEc=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f8267e63bff6eaa67a73d833aab340674b6bb421"</string>
+			<string>cdhash H"1a48722345b722b26447a97a96d242a1c6c26847"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_decimal.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			fxXVXbxOhEpukKgg31yiOCDG720=
+			GMh/iuqY5vcMlOb24044lRKnRtE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"7f15d55dbc4e844a6e90a820df5ca23820c6ef6d"</string>
+			<string>cdhash H"18c87f8aea98e6f70c94e6f6e34e389512a746d1"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_elementtree.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			EwBaDgjQT3T+h5xZtZC0kMGu5ic=
+			ZGWHKKSRxu04Avtm2Em8X1+0e2E=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"13005a0e08d04f74fe879c59b590b490c1aee627"</string>
+			<string>cdhash H"64658728a491c6ed3802fb66d849bc5f5fb47b61"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_hashlib.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			WdZNKYqsD2YRkw41ieH12xbBQvw=
+			7Hp5UNiKQ/13u0JHTqKWr0cX/10=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"59d64d298aac0f6611930e3589e1f5db16c142fc"</string>
+			<string>cdhash H"ec7a7950d88a43fd77bb42474ea296af4717ff5d"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_heapq.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			ft4nh3R7Bcwy3Gf+Kzj2l1g+3/Q=
+			ckf0C8XEMn//ham9a/S6XIoKOZs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"7ede2787747b05cc32dc67fe2b38f697583edff4"</string>
+			<string>cdhash H"7247f40bc5c4327fff85a9bd6bf4ba5c8a0a399b"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_json.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			l0wzV/+x2iDWpvD8Ytu9fP8DpR0=
+			8ohG7pbShILpt3/Z2Eb7pMli3io=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"974c3357ffb1da20d6a6f0fc62dbbd7cff03a51d"</string>
+			<string>cdhash H"f28846ee96d28482e9b77fd9d846fba4c962de2a"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_lzma.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			pKrGpwX23ZCTLvpOYnkogL6l4rU=
+			5qBIqXdjM66Xr9M5mJFYxMxaqBk=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"a4aac6a705f6dd90932efa4e62792880bea5e2b5"</string>
+			<string>cdhash H"e6a048a9776333ae97afd339989158c4cc5aa819"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_md5.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			IybsYVubywtFmHvrnzNeSHDmW1g=
+			1MzNtyuzyNseCvLNo/P/WUTohto=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2326ec615b9bcb0b45987beb9f335e4870e65b58"</string>
+			<string>cdhash H"d4cccdb72bb3c8db1e0af2cda3f3ff5944e886da"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_multibytecodec.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			zytxk6aJI3ZPTKwZiUau0eDjyoM=
+			p2mpMcU4+4HiVQvDSoG9OxkhllQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"cf2b7193a68923764f4cac198946aed1e0e3ca83"</string>
+			<string>cdhash H"a769a931c538fb81e2550bc34a81bd3b19219654"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_multiprocessing.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			SCOkX7Abtjllwcx83YithTccwkk=
+			O2Nf1yZXfbuuYdRnDc2STWHEcek=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"4823a45fb01bb63965c1cc7cdd88ad85371cc249"</string>
+			<string>cdhash H"3b635fd726577dbbae61d4670dcd924d61c471e9"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_opcode.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			wQEIRhJskn8hwd9ZPr+KmrwVExY=
+			5/1UOFOjjvcjAxGGDvPE/epbE28=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"c1010846126c927f21c1df593ebf8a9abc151316"</string>
+			<string>cdhash H"e7fd543853a38ef7230311860ef3c4fdea5b136f"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_pickle.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			vqZRKFG0ptKaiwTf1O4Z7SX74NA=
+			kxcFMVp1siLOdHd/LKHV8nUST6o=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"bea6512851b4a6d29a8b04dfd4ee19ed25fbe0d0"</string>
+			<string>cdhash H"931705315a75b222ce74777f2ca1d5f275124faa"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_posixshmem.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			/NymemFnBx9qtV1UU4hvjTBMzPo=
+			R0L9Npz1eXVIo/vgbrgKZrco3Nw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"fcdca67a6167071f6ab55d5453886f8d304cccfa"</string>
+			<string>cdhash H"4742fd369cf5797548a3fbe06eb80a66b728dcdc"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_posixsubprocess.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			1otc3TyWxSAo12Z3zj52f6bR3M0=
+			kHej7lzUy+bSJRK3oqDDdnatZBs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d68b5cdd3c96c52028d76677ce3e767fa6d1dccd"</string>
+			<string>cdhash H"9077a3ee5cd4cbe6d22512b7a2a0c37676ad641b"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_queue.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			8ZmhwR1ZBjPOGxvgI101PIxBBRU=
+			/C38Y+tH6I0T9LZzkMmEqhCvyjA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f199a1c11d590633ce1b1be0235d353c8c410515"</string>
+			<string>cdhash H"fc2dfc63eb47e88d13f4b67390c984aa10afca30"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_random.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			LJzHv0qm4yRanQkD/VAXhg9DNtg=
+			JOcnWTZbGWk04FYDp7QdEXkZNBs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2c9cc7bf4aa6e3245a9d0903fd5017860f4336d8"</string>
+			<string>cdhash H"24e72759365b196934e05603a7b41d117919341b"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_scproxy.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			4q8RvcoNYlgeNi108OvB3StZZUQ=
+			YriEUZsVg7oCgnTnYrImDLCeIdA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e2af11bdca0d62581e362d74f0ebc1dd2b596544"</string>
+			<string>cdhash H"62b884519b1583ba028274e762b2260cb09e21d0"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_sha1.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			00YsQ+tGL2utl1YxKvvhfOwmvs0=
+			uhlT5fRd/l2mZhXxu3U2fmKVsmg=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d3462c43eb462f6bad9756312afbe17cec26becd"</string>
+			<string>cdhash H"ba1953e5f45dfe5da66615f1bb75367e6295b268"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_sha256.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			upoWE7fasaZ7jXhtjMG/Thme11k=
+			jxPOjtf1NUNqtB33I8/6ZNB/WC8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"ba9a1613b7dab1a67b8d786d8cc1bf4e199ed759"</string>
+			<string>cdhash H"8f13ce8ed7f535436ab41df723cffa64d07f582f"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_sha3.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			6HfKy5rx+M2Jg29T/K4ySab+0M8=
+			xBEiTJBkRYfxyVFBJBTo8osoYRU=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e877cacb9af1f8cd89836f53fcae3249a6fed0cf"</string>
+			<string>cdhash H"c411224c90644587f1c951412414e8f28b286115"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_sha512.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			12j2MhIu43eNIzd0Wip/GhEFb48=
+			iz51nvstniUABLkHbcMIN1A6ucs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d768f632122ee3778d2337745a2a7f1a11056f8f"</string>
+			<string>cdhash H"8b3e759efb2d9e250004b9076dc30837503ab9cb"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_socket.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			I5Av94svblj/+olgWhCkhp9Xdes=
+			M0mWMMJzoeHv/sET6gptrWh7Zl4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"23902ff78b2f6e58fffa89605a10a4869f5775eb"</string>
+			<string>cdhash H"33499630c273a1e1effec113ea0a6dad687b665e"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_sqlite3.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Yq0XdmYDGoikKkEoLPhlXBzyxe0=
+			R2qBYuZgHBxarZVxRkPjyiMwLuY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"62ad177666031a88a42a41282cf8655c1cf2c5ed"</string>
+			<string>cdhash H"476a8162e6601c1c5aad95714643e3ca23302ee6"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_ssl.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Z7NE1u55JE9sLe73r8rHF1eXRCY=
+			OCHdQ7u+4VNwd5EyC+Se573mlgQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"67b344d6ee79244f6c2deef7afcac71757974426"</string>
+			<string>cdhash H"3821dd43bbbee153707791320be49ee7bde69604"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_statistics.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Q5oaSz6P3MmhmzNztIT4zaocSrk=
+			VIP65Z9kd7sDgHVCfUuXS3XPNvw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"439a1a4b3e8fdcc9a19b3373b484f8cdaa1c4ab9"</string>
+			<string>cdhash H"5483fae59f6477bb038075427d4b974b75cf36fc"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_struct.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			xyNo8zDTzVm3+6la2U5DWkdd1Rg=
+			kXZkilWBAM/09MFeFXyH2TjE1MM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"c72368f330d3cd59b7fba95ad94e435a475dd518"</string>
+			<string>cdhash H"9176648a558100cff4f4c15e157c87d938c4d4c3"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_typing.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			L+kSKzycD0PX1ZQEPx8qgrpPcvI=
+			ErXCissy890Y/3wmie3C9Cbwx+o=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2fe9122b3c9c0f43d7d594043f1f2a82ba4f72f2"</string>
+			<string>cdhash H"12b5c28acb32f3dd18ff7c2689edc2f426f0c7ea"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_uuid.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			XD0XzhZOgVxvT4vDAboQpGZgU9I=
+			x5fAIVJXKvQD990oWoLnQGsSfBM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5c3d17ce164e815c6f4f8bc301ba10a4666053d2"</string>
+			<string>cdhash H"c797c02152572af403f7dd285a82e7406b127c13"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/_zoneinfo.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			souOaojwcLgz1rbpK8RFrx+3JLQ=
+			ZcVz1+AL0mOvHhQ9Nsj3Rd8A14Y=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"b28b8e6a88f070b833d6b6e92bc445af1fb724b4"</string>
+			<string>cdhash H"65c573d7e00bd263af1e143d36c8f745df00d786"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/array.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			WTcU8cCfcCdbqUsWhMHvtB8Jrjg=
+			ZQdH4/5GsU/pLNLHpId1OclhLtM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"593714f1c09f70275ba94b1684c1efb41f09ae38"</string>
+			<string>cdhash H"650747e3fe46b14fe92cd2c7a4877539c9612ed3"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/binascii.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			pj0uo0nGV7UIIIWOD2E8Gh2fj9I=
+			1Gxp081Hxbcc/g91iTVU7rh/1Cg=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"a63d2ea349c657b50820858e0f613c1a1d9f8fd2"</string>
+			<string>cdhash H"d46c69d3cd47c5b71cfe0f75893554eeb87fd428"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/fcntl.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			J04Chpr4qgnYqufXybZlCRc+kIU=
+			QZVWFCZlVBCI0OIdp4lLPM7UB+s=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"274e02869af8aa09d8aae7d7c9b66509173e9085"</string>
+			<string>cdhash H"419556142665541088d0e21da7894b3cced407eb"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/grp.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			MYC6Y9Z1rZ64wJoERVP5T/J5nQc=
+			MEZDopLRa0MK9r48CPeJ0LZL6JM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"3180ba63d675ad9eb8c09a044553f94ff2799d07"</string>
+			<string>cdhash H"304643a292d16b430af6be3c08f789d0b64be893"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/math.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			5WMRCiTDHjVlUerkI8teMX1Fx8s=
+			SSu/nhGnD++F3aknUHJRY2Yonqo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e563110a24c31e356551eae423cb5e317d45c7cb"</string>
+			<string>cdhash H"492bbf9e11a70fef85dda9275072516366289eaa"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/mmap.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Wuc7INc9UyYg2Q5qzKiuDS4H0DU=
+			uwV64Bq5anMbdd/hG10yPsAbi6w=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5ae73b20d73d532620d90e6acca8ae0d2e07d035"</string>
+			<string>cdhash H"bb057ae01ab96a731b75dfe11b5d323ec01b8bac"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/pyexpat.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Ez0yaTfCfaT/awbPxtnVDgHhA8s=
+			9wPfpP1fGL964+iE8yJK216Oqjw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"133d326937c27da4ff6b06cfc6d9d50e01e103cb"</string>
+			<string>cdhash H"f703dfa4fd5f18bf7ae3e884f3224adb5e8eaa3c"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/readline.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			3oUiiBV+MRpAaxUXl6++46tAGB8=
+			WxInS0fZS+1MF9CIF0eQvu7UFiM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"de852288157e311a406b151797afbee3ab40181f"</string>
+			<string>cdhash H"5b12274b47d94bed4c17d088174790beeed41623"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/resource.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			SJ4mmtuIWhr35sAq3lfY+ZtHPhA=
+			98VlP3C54PxqzinovLOEfttriIs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"489e269adb885a1af7e6c02ade57d8f99b473e10"</string>
+			<string>cdhash H"f7c5653f70b9e0fc6ace29e8bcb3847edb6b888b"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/select.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			vSw8n8BC3j64rnOKA7geLMNdkQA=
+			LMkCI7pjmzlo6U8SRpzGu6jWp8g=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"bd2c3c9fc042de3eb8ae738a03b81e2cc35d9100"</string>
+			<string>cdhash H"2cc90223ba639b3968e94f12469cc6bba8d6a7c8"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/syslog.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			tpeYf0b0ClpaDTPEnv9hLCNZh+o=
+			8f7aJ2W6iSObYKO1zBLbuOiOSKc=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"b697987f46f40a5a5a0d33c49eff612c235987ea"</string>
+			<string>cdhash H"f1feda2765ba89239b60a3b5cc12dbb8e88e48a7"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/termios.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			4SvnSWHEHAmZBCOYM8hdnIILcxo=
+			mO0JWMNIp9zPNHBeugd7vbLxSGM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e12be74961c41c099904239833c85d9c820b731a"</string>
+			<string>cdhash H"98ed0958c348a7dccf34705eba077bbdb2f14863"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/unicodedata.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			iKKD4q00uMvUuQ2+47DJGh8YCQc=
+			0O+igDB3xhUWNxrYoN4F9sAKEFo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"88a283e2ad34b8cbd4b90dbee3b0c91a1f180907"</string>
+			<string>cdhash H"d0efa2803077c61516371ad8a0de05f6c00a105a"</string>
 		</dict>
 		<key>Frameworks/python3__dot__11/lib-dynload/zlib.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			yWqGVV5aJFiugSJjYxCOz2v82kY=
+			D9hg0rdug6RKNl43jtHGclha0cQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"c96a86555e5a2458ae81226363108ecf6bfcda46"</string>
+			<string>cdhash H"0fd860d2b76e83a44a365e378ed1c672585ad1c4"</string>
 		</dict>
 		<key>Frameworks/roku</key>
 		<dict>
@@ -3048,46 +3430,46 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			fQoyqmt87Wx+4YEWjw3ayKMn80Y=
+			KBp+4XOvKwEp4kltcvlObd7gTas=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"7d0a32aa6b7ced6c7ee181168f0ddac8a327f346"</string>
+			<string>cdhash H"281a7ee173af2b0129e2496d72f94e6ddee04dab"</string>
 		</dict>
 		<key>Frameworks/sqlalchemy/cyextension/immutabledict.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			GD4O0f/nFlyToaD08W5OOXnt+E8=
+			43+cHzMnBxzAU3KdK5QigQ+9g40=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"183e0ed1ffe7165c93a1a0f4f16e4e3979edf84f"</string>
+			<string>cdhash H"e37f9c1f3327071cc053729d2b9422810fbd838d"</string>
 		</dict>
 		<key>Frameworks/sqlalchemy/cyextension/processors.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			zllqkN221Cg30utIH7DRHgqNE64=
+			axdvaTKiEKi8zbAQvduoHWM3CEo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"ce596a90ddb6d42837d2eb481fb0d11e0a8d13ae"</string>
+			<string>cdhash H"6b176f6932a210a8bccdb010bddba81d6337084a"</string>
 		</dict>
 		<key>Frameworks/sqlalchemy/cyextension/resultproxy.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			8sQ0HlwjcnuaymBJKH3ARpmzItA=
+			kSNGA55c5eKJbOj+te3Hu8uoIl0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f2c4341e5c23727b9aca6049287dc04699b322d0"</string>
+			<string>cdhash H"912346039e5ce5e2896ce8feb5edc7bbcba8225d"</string>
 		</dict>
 		<key>Frameworks/sqlalchemy/cyextension/util.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			bI4tpyA9fspHkaVBesNXmAV0ELo=
+			dOzGXvQxqlWLg5GnSmMNERCHa0Q=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6c8e2da7203d7eca4791a5417ac35798057410ba"</string>
+			<string>cdhash H"74ecc65ef431aa558b8391a74a630d1110876b44"</string>
 		</dict>
 		<key>Frameworks/tcl8</key>
 		<dict>
@@ -3098,28 +3480,28 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			AubTot3byPQSdZxfSH1QJvuanYg=
+			4xxySVIJgNnso8LFhWJiwaYFVBo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"02e6d3a2dddbc8f412759c5f487d5026fb9a9d88"</string>
+			<string>cdhash H"e31c7249520980d9eca3c2c5856262c1a605541a"</string>
 		</dict>
 		<key>Frameworks/uvloop/loop.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			9MuxYK/fNs4zJt2RZh1+rf/hP7w=
+			rhZeNkYzjqYv7n8GDb7PlmruJrQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f4cbb160afdf36ce3326dd91661d7eadffe13fbc"</string>
+			<string>cdhash H"ae165e3646338ea62fee7f060dbecf966aee26b4"</string>
 		</dict>
 		<key>Frameworks/watchfiles/_rust_notify.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Hp3YknhWyldG4di70BDUiersEvY=
+			pq3LxTP88pHDaVBbygz1CSHHa74=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"1e9dd8927856ca5746e1d8bbd010d489eaec12f6"</string>
+			<string>cdhash H"a6adcbc533fcf291c369505bca0cf50921c76bbe"</string>
 		</dict>
 		<key>Frameworks/websockets-16.0.dist-info</key>
 		<dict>
@@ -3130,28 +3512,45 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			GuwUrCRq+T00Quwhi/uRHi7fsMw=
+			GPIVLEuh/lyuXiF3tpRwOsPOwtU=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"1aec14ac246af93d3442ec218bfb911e2edfb0cc"</string>
+			<string>cdhash H"18f2152c4ba1fe5cae5e2177b694703ac3cec2d5"</string>
 		</dict>
 		<key>Frameworks/yaml/_yaml.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			WJ75dKRZRij68LYR0/a1b/OfNWU=
+			IrEXKeLf+VVivty5t/IsXbbzWr4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"589ef974a4594628faf0b611d3f6b56ff39f3565"</string>
+			<string>cdhash H"22b11729e2dff95562bedcb9b7f22c5db6f35abe"</string>
 		</dict>
 		<key>Frameworks/yarl/_quoting_c.cpython-311-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			bD5L3/5Sspd1RmFFULsaV+fuya0=
+			o/fcNJCkwASUmLvAThFeNHf3c3c=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6c3e4bdffe52b2977546614550bb1a57e7eec9ad"</string>
+			<string>cdhash H"a3f7dc3490a4c0049498bbc04e115e3477f77377"</string>
+		</dict>
+		<key>Resources/.env</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			4owS778L/+RZcAlk4pddNPuGARhaZr4Cjh+EOjdR45E=
+			</data>
+		</dict>
+		<key>Resources/4ef79d6367bb14396397__mypyc.cpython-311-darwin.so</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Frameworks/4ef79d6367bb14396397__mypyc.cpython-311-darwin.so</string>
+		</dict>
+		<key>Resources/81d243bd2c585b0f4821__mypyc.cpython-311-darwin.so</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Frameworks/81d243bd2c585b0f4821__mypyc.cpython-311-darwin.so</string>
 		</dict>
 		<key>Resources/PIL</key>
 		<dict>
@@ -5392,70 +5791,105 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			qAoDV9AwP4C0P1y7HMHGFLswD91nQ4MJQy2zWfdeuvY=
+			NKYDjqOoRmjDqIL+EMi4azdJb+iKJiRTzsqyEO6Rs1s=
 			</data>
 		</dict>
 		<key>Resources/app/api/deps.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ajoXp2ywsFEPTpuES4TM2yKSa0Ooj4kvaihXNL0chA8=
+			c4QkY+JvB3w90vORWbCrV6YEk5hCxJUgL0SQav6UgHs=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/__pycache__/admin.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			uq02AcuEuRdq4kUm4amKyzsoVfiRe4+qPYsYA21FJQU=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/__pycache__/arr.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			EQq6Vz+e2rqlpst5zGuPs4grKAAd3/khvE5HeTXU+zI=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/auth.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			fxBYYwDcuptUaPkw+1kzoMddv+fpL2H/bDUJTafob0U=
+			FMRq8WGKtqEzp2VvLuIiy3iIJbRLx3uUFz9rEa2n5VA=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/__pycache__/history.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			yLl8KHhn7EAyeh/jnJAUyLbMMz2hfZL24ynyVn1hxlk=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/libraries.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qxNhRinIOt1K4phQHAIqJlPltBdb/9/jwZF8H/UVGrE=
+			axo9vXZuFjrasMdOdOVMVcLrKT5dmsgq4fZmIlsT7Pc=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/media.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			jl/UE9p/KOvglujgar9NcgiLOpwEGKmPSUyeL1m/KRI=
+			+TRgqQ8xrgw4t3f4SNGaVTX6a+SHMIIDPcGYFTta6Nc=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/remote.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			wIlwMPhq1F2tjqBYr6HAjmLLFaNvIiCD+nFAg16Dado=
+			/hWuQFL+enU80VZj/A110cW+DHUfkjwbZ8ukKmlxduE=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/__pycache__/requests.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			GdpNEOOOFdR6eHr/B4m1emo9bBF6+PhuZioiVAXDpYM=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/scan.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			cd0/O8CrheV/i54ScfrCQJX//fcAV5qVk14Fm7am5Gw=
+			tj3VHOdOwR0QhVGxvuLjf41I8+3Xqcjie/gc8JN6/aI=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/settings.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			WizUVOGKGMZFH+AWmrT4qu2jPjN9tY4cknptwn5vx2Y=
+			VYLSrOlXok7SR9moaakeunO1ESxo59GEHBdSZQ1zZwA=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/stream.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			0mXXWx371HcS8iEJsNC/WGxo7OBWjU6hfzbzq57yRSg=
+			gkFCV0FIrzbp2VCTiBy9X5Xz46Ze0r6rpgsq3g3T9b8=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/stream_hls.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			t6BerDa9BrKQOzgRDEifjIPsALNO6RrM8bw0STwKEcs=
+			uuf+oVyrTRh/z+f0tcgX21wPH/lKYWR0dMuWviHfP/4=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/__pycache__/subtitles_api.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			J1XLg5KQUWUdM6P3R4f76tRHES7xlIC3eag5dbsnUI4=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/__pycache__/system.cpython-311.pyc</key>
@@ -5465,67 +5899,95 @@
 			PugEzWD3hyK43XMgiGVoTttHgUu1h/yUDYOZehoMFkU=
 			</data>
 		</dict>
+		<key>Resources/app/api/v1/admin.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			uFu5phySrsU4CUejLReYdAkaFDkIv2c8GqGaR0Y2dws=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/arr.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			dw9LfFTf6cRtZEihjYiHHIoaeHidAlnwDtKXgkKGavk=
+			</data>
+		</dict>
 		<key>Resources/app/api/v1/auth.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4ZN9na5w20fHmL2zJ/wsuZgF4FtuJToqIJZHLttnjPg=
+			oroDUUJI4ceTcJNc3U523UKOg14DrPvam8Vd0hSFbWY=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/history.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rLFf2XL63igPbo5l7QXBEs8Lw9DZD3fVSN8Wq+iRrXU=
+			fFvJW7hx4jeNcIBsrAfd4m6ipE9fdF2h0PX8p1dAUy4=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/libraries.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			HNbqGkOY+iWWgURqnrBPsK908weMghiSZbVWtax2cs4=
+			0g0R6KnileefSvBd4OvIRcdfV4a4WJnp1H5WZj4yKto=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/media.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nk7fzwaNIHD1DClRGlxv7QYBUcbcJvEb7SoS+RpBn+Q=
+			jnvXACuTflzy+m3F/AAiEX9hJp3nGoECp3z5nmek/TU=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/remote.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			JnxxsIz4rhvTg2v1xjq5nf3PA7XPacmmQ3Cvgm8OfLI=
+			i+MFbdflOdAdjS2bviAysNu1inp68xHPrLKOyHDZB8g=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/requests.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			ahXUXmqLaFJwtVFIi2lguggfvrpm+R0TdYvAAxvvRgc=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/scan.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			17nTG/samH2m8kg+qZX2dUGqQ7RfXAhDU6vkmiJUZa4=
+			hObT1Z3VThKqz63O9pXmvUUTyeW/QzRDaWAmBPbKvjU=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/settings.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/UpIDR4C2nc1nne1kz6H0gqaK9NeMDoEklZD/I16zIs=
+			vas6vIbvuroXVfd8oH6kFedglQI4Go15WG3BC9nanZs=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/stream.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8LEGaMlRrBfoz4CVFdHsrid+uBHHMOPeB/MzJur/ycU=
+			cSjuyPXrVvfAMPjmoh1KFZwd/mllooIUJjwue8jm28g=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/stream_hls.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DU7hVid0O9aXkYKhIXzca04YJtbdUUWYpAXruPHmxKI=
+			NrsxOao0g1TxEgS/Hrb07FtPbNYnDyiNQ8uEKRQ3rQ0=
+			</data>
+		</dict>
+		<key>Resources/app/api/v1/subtitles_api.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			f3Nu+SNQpRdFS0o0bFTLPRLxBVFcrbMSvx0SHKfCscA=
 			</data>
 		</dict>
 		<key>Resources/app/api/v1/system.py</key>
@@ -5539,7 +6001,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			SFarW0FP7II8KaeptdycRd8MJ22ivxkzuf+nl//0y5c=
+			AIQ5qt/B4mAeCL4e6KWRcwOVWJZHaGGo7O/kb17Vvwg=
 			</data>
 		</dict>
 		<key>Resources/app/core/__pycache__/database.cpython-311.pyc</key>
@@ -5549,18 +6011,25 @@
 			pBjup2+V3JovIuyUZuXpIqfzdDonQp/fIduEQ8PREeY=
 			</data>
 		</dict>
+		<key>Resources/app/core/__pycache__/ffmpeg_manager.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			JKkJ+zjoNImRG7xg+rWrBZtiX8jw5SdkXjqnlcGr3uo=
+			</data>
+		</dict>
 		<key>Resources/app/core/__pycache__/security.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			r/yWHJhBeDxoJaHBq8QY+JDlY4L7nYob3/AYDbvSmvg=
+			a0AEP7A67dum/XNW1aY1OTwmd20A8KKGcJ22wnX8wfQ=
 			</data>
 		</dict>
 		<key>Resources/app/core/config.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			br0SM+TRPSxtXr9lyttP8GwEzpqOnuXj6PeVz7QXB7w=
+			D9mKR+N12sDJnAzdh+5xZVITZgHzJbEDLMMAavsEH18=
 			</data>
 		</dict>
 		<key>Resources/app/core/database.py</key>
@@ -5574,35 +6043,70 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			tbO5LwlQI7X4LGfwHhc0aE5F6wRn6mjxQ/hRk+oq3nI=
+			WEqdZlZuT8QaCSd8o+uLxDPLdJJ5HpV8LsnqLPGGt14=
 			</data>
 		</dict>
 		<key>Resources/app/core/security.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4BWIvvnNmcGt5gQHrE7yIGEI7SDS+mhFA7KqM9uzx2k=
+			KSjdOBnNPKOttaRTMuAzcTEdWc/4ikcPBHpk9AD8V58=
 			</data>
 		</dict>
 		<key>Resources/app/models/__pycache__/base.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Y/wKMj4XH4JtuvYvM1SQrnVarOCYLRhelG79mFrQP6k=
+			vtNZwTK8Jydo4sJxswsDfqwIn2gV0p74lq5M1KOEU3M=
+			</data>
+		</dict>
+		<key>Resources/app/models/__pycache__/history.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			eHUqzSPhYOkTrsIVLgq0h3BqEyhm+Qj6ad9ZgcqG/eY=
+			</data>
+		</dict>
+		<key>Resources/app/models/__pycache__/invite.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			lIgAmZP8EjgNAmc5YHYJKW9EFRHzQcuDsRDtKwOBDcY=
 			</data>
 		</dict>
 		<key>Resources/app/models/__pycache__/library.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			BjJ7nRTAvEkMlXrGA01F0/TUPwniixIs6OBP2FQbYuA=
+			K5qtensErCuUvdMWpBv+66Z5p0v8uyIBJLofvufJ+7k=
 			</data>
 		</dict>
 		<key>Resources/app/models/__pycache__/media.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ouExonBOmCUHGsB7mEOLH/htvDuHXRtRW225JWZwz4o=
+			n9AO1ddE+aRBq3R7NY0ldyRntg7Fh0g7IAF+nUcc9CA=
+			</data>
+		</dict>
+		<key>Resources/app/models/__pycache__/pairing.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			rU55XNG1f4S+d+KhCfMcjvHLUmEcWQOSWr/ksMpMFzM=
+			</data>
+		</dict>
+		<key>Resources/app/models/__pycache__/request.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			GUmqyvJvA3iK7MHBHNwJpjK7Lcn+K68HVRHwjKzXFuY=
+			</data>
+		</dict>
+		<key>Resources/app/models/__pycache__/scheduler.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			nxaD9E90HF5/tiwXjQbTtOra4CgtmOfkWbxXdbSgwp4=
 			</data>
 		</dict>
 		<key>Resources/app/models/__pycache__/settings.cpython-311.pyc</key>
@@ -5616,35 +6120,56 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			To8WPkjlClZW54/WSKtB09vbREGXrULYF+dkxrEAMdM=
+			s6CcOtiYMb1TtavY0E5fV8bKkiSVK+iruoY3QXQI2Hc=
 			</data>
 		</dict>
 		<key>Resources/app/models/base.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			PNL41hAoNaBhgItIZCvn3De92K3Z5xDIx4awpwE/f5M=
+			LHcqrxfAB7jg26e5gZ1fQ6upd00YsK8vgnwm13a/MR0=
 			</data>
 		</dict>
 		<key>Resources/app/models/history.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			77zjPltwfhGTepmSPtT2U4uJJnNtVL0ikp2cUJP3CX0=
+			1QkbcGLSq5uQG3DAN3MCebMFlbi43kEihrN2iYeP+gY=
+			</data>
+		</dict>
+		<key>Resources/app/models/invite.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			e1X1Q43/iVV/h5Dr/3InLocVHVKo/fG4lNmkGtCS2DU=
 			</data>
 		</dict>
 		<key>Resources/app/models/library.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rtfZyuRC32u5UB12y3U5MZXVmizitqSIBUXT6zWLwBQ=
+			vdN1lRlBmtoXFZnF/MCmGGji5h2JnX9/qK48H+hS7Lk=
 			</data>
 		</dict>
 		<key>Resources/app/models/media.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Q/JuId3PXSxXbktJEweNuiQ37O4IOADvInU3KHpmQfg=
+			j/DVSezggbWdKVhCLG5bRm/ovLmqclbfWcuCzxpUm8o=
+			</data>
+		</dict>
+		<key>Resources/app/models/pairing.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			VtZibYDg/yemoOK9N4MhwK3jOoSfi3H0Brhoj4pNRvQ=
+			</data>
+		</dict>
+		<key>Resources/app/models/request.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			bDWfYBmOIcX1TY/BMFVNfV1M5R/pfo1FVQsyE5LWUps=
 			</data>
 		</dict>
 		<key>Resources/app/models/scheduler.py</key>
@@ -5665,70 +6190,77 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			BbCzqyQnQFyotrJ1Bu6vvahFjM24AfeHHStU5sVFqPQ=
+			QP9KYPvSWnNOiAVHataRjgNjLN3SZlD5IT4sJ8zBaGA=
 			</data>
 		</dict>
 		<key>Resources/app/schemas/__pycache__/library.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			FzFukm7yqB8Iv5H53rsm9vPqN8K+4VzaAu6kHGukDi4=
+			LcR19k5qqdbBJ6whWx+MW9Qfr7MuLwQebs/G6k4i7zk=
 			</data>
 		</dict>
 		<key>Resources/app/schemas/__pycache__/media.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			K8fwbaoCwFTeR0BpziiPdqOuLg8GBCCsiPqRzbMTLdQ=
+			JEECLfJBiIdsGi/F2cJlQN1+6i1s3xIOwadNGEMViNw=
 			</data>
 		</dict>
 		<key>Resources/app/schemas/library.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZS/qNVPpQhvD6SXI4AVCwYsEkJUwZcNp/n0/5Y01T4E=
+			dRsIibkXln2pZ6u8gb4lr0k1mFLqI0WWuqXJrteTLyo=
 			</data>
 		</dict>
 		<key>Resources/app/schemas/media.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			l7DbKrw26+9eJaxJnv6iW5dc0hlRXJjtZN5tPUMCdzU=
+			Q2TH9/ABkwpTl598YpKdI/gfYo9GdlTu43vBwsbknd8=
 			</data>
 		</dict>
 		<key>Resources/app/services/__pycache__/auth.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			NsZ4wzuHQVpQKONOeBL33jdOHICR/xaA0S8P0eSKEfQ=
+			cUPqlZms3okqHbqB7wMhNsHEyJ/9E9k7ixh11BrkW00=
 			</data>
 		</dict>
 		<key>Resources/app/services/__pycache__/metadata.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8CUOoE9Z9lczvkEzkBwz+KFn+nk4Y4jJNAdDuM1dc0Y=
+			BNDgwCk5a6G/W5t3QWqseBa3g2Q2WaOo5pSsfNQ+REQ=
 			</data>
 		</dict>
 		<key>Resources/app/services/__pycache__/scanner.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			yxzU5eNOCRc6qklQWigT9gl9X8r5e2kzye0SLKWUjZU=
+			hXxoS4qf2W0WuB0A67Vn1LMqfKrIuA84mpWBNqjLvM8=
+			</data>
+		</dict>
+		<key>Resources/app/services/__pycache__/scheduler.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			/K7Za//sKRf7PezeEm61sEZpffwX5O/C5nBh8zz2OPM=
 			</data>
 		</dict>
 		<key>Resources/app/services/__pycache__/subtitles.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			r2qvO7/IpsuhuW/ztWNR0qVHOGRpPTLCDXrfUrjlo0c=
+			MIx4qxw/tCgaBPgGE74xbv3x6YwJ0nEonu/trtktMMA=
 			</data>
 		</dict>
 		<key>Resources/app/services/auth.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			kXnhnsbNZOMq6k+aY1R90PxO6GaXxRz+KCH9cIaFbTk=
+			dDDUgarjyOZ1vgX8c9Asxe/dLom2u3psDTVnfcoOBaU=
 			</data>
 		</dict>
 		<key>Resources/app/services/discovery.py</key>
@@ -5749,105 +6281,175 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			w8AgxYzhzcv71RAi49T5viQiE2gIqCUOmBg5wHWOe7s=
+			o8otcW3NJ+PYqhP28koKsHKSE+MfRsO088mUuhlSExU=
 			</data>
 		</dict>
 		<key>Resources/app/services/scanner.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Xn/4lczdUG8MnbgHFn0HuWqXojYDZxmehGyZGg927Mo=
+			2I2Th+khtyurqQShvZL7ZEokc9WNbytYJoVtKz0QCmM=
 			</data>
 		</dict>
 		<key>Resources/app/services/scheduler.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			G+o9aXSbbQBMeqGGAaXRtmJnfHynGNaTmqOaBRdV72w=
+			G/o6SJjwEFaBUcxjM4rJTZ+U2J25+W6b2+GfRvRaa08=
 			</data>
 		</dict>
 		<key>Resources/app/services/subtitles.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uC0hggGko3eQzw2LMu0Ri3H6vJROfzok9SNRxtjpa1g=
+			3ysAO7QlMO/K6ueaLbZVE19Os0UtjRVAk02BdwKYkAo=
 			</data>
 		</dict>
 		<key>Resources/app/static/css/style.css</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qs6KkOVxKo8NXfhKQQ9C5cma1egZJMbQcBLt1VlSwKM=
+			yW2gu+uIZ6C44/ewD8O3kJUqcC6BQp0u5C8XOOa8leY=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_arr.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			b8fJSLqgLwJk0m3W1vgHlLfUfgiKLKUKHh2pAHbT+dc=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_history.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			OnbrzRy3aMR10zKnlTfpUE/hj1Lmnw0O2D0GpKE5aVs=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_invites.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			JH6meIio+9GyfT6fsREabRmIo1vgcwSKXZ+c6hjuNWo=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_live.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			EGDt/mDwNT132SlszQ9bvbQau4X358w7w1vR2mmtSjw=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_requests.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			C/ETxpXVLSYXVtG3/TbJBeRvrWaB522ZKde/Tt+NjeA=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_server.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			rdG6VwhMhmCUVphH2ecGVi1lyzfmMWAXrRrj4EuxA5o=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/admin_users.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Je52FiOy3UwmWrZVzRR2D/89zUomQpqdxo8m3/LeQfA=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/details.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XJX1aNy+NqWcEa6lGSXB2nR4GEooRNG2Gqv/1PQoemY=
+			+v9Sne3oZKdfdwZyxUwY9Cu5ScKkdsUflhuHSaPuaOs=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/fsbrowser.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4VeNv5DL+nZIquIOZ5cE8vMw8jvMSPI9gY5q06F/yvk=
+			7knURidX06vuQKx8LEbdpLgEBNrVIzQCRzJY63oda3A=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/home.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			udIQHzaHtSK6r4ewKibxqDsCaHFYYywrokZsC/Kw5So=
+			gkrypbTvyrzCMOMKx1b1o7UmOUdOElsFbNzsBbdp3f4=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/library.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			pkL1+T5EbUAjKqpzDQDEWj8yTgy/o7HMyDHWx+psWUo=
+			pwfOpLZd8HvbPwslNQYwpNI6FOz1WMpW86U0u4XBgso=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/main.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QWx6OpCHjijxwtBaxY2aidWTbchXAe5nY0MSV7aBfRs=
+			cFIFiSHEvYZd/hfaUBsodhX4UsKKRSaLVzIkMey8CTM=
+			</data>
+		</dict>
+		<key>Resources/app/static/js/request_modal.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			CM0Yq09k7MOM3HYvfLIavTAoanXpIWIE0wCy2y/tlWE=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/search.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			v2BwwO0l9MoHaeqxMVOvXyGuljvxYzGvaj3JusKnnsI=
+			6SNZZCuLHH19cH3DO9Y2HmXB3cCpSI014e2BVRuUWOE=
 			</data>
 		</dict>
 		<key>Resources/app/static/js/settings.js</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			tG0WsnVLHo4DhS/gLFtsFqbE3qYw28xiuIonqxEjzmo=
+			CiljInRTG3CI8EU2iH7q+tHDaksHne+Uui/9NZm25Vc=
+			</data>
+		</dict>
+		<key>Resources/app/templates/admin.html</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			KDGSSsnTibtLFUhp6fEsXh6nrHdHxAQyEIef8wjrXyw=
+			</data>
+		</dict>
+		<key>Resources/app/templates/admin_live.html</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			n38ospUua2zdLSTiZgpMlpv3VnQKp0+vP9WQO9nOCT8=
 			</data>
 		</dict>
 		<key>Resources/app/templates/base.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zBiSl4vSbbOc4KvOilqNfrC0Pc1/hxRbOQgCPj4QyDE=
+			xwQqeViNhNzoSc5qJaNo3slK2HfoStShpxdurps0f2M=
 			</data>
 		</dict>
 		<key>Resources/app/templates/index.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			wvTMcguQ/09yYtwRRANov/ggM9It1L3Ilz8HyyAAshE=
+			9v5GfHDkahCzjNQqDW4DYexx71wzjrR9lH1DV+W9/Pk=
 			</data>
 		</dict>
 		<key>Resources/app/templates/library.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			k4JpBMQ9MVdoJSmuZ7VvCZchbv9dtEpmh1+WjqINI6o=
+			bcdfvG1QMb5FgkZI3FuesxHrh8+utdAfWgcwCYHec3E=
 			</data>
 		</dict>
 		<key>Resources/app/templates/login.html</key>
@@ -5861,35 +6463,35 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			NGbmbMcFELYnoKnUZHOR90ptWc0PJIWIy30Vc0SGjrw=
+			dTYQQv+1HCCETKxrDunug0z9ljQ8oUB3MlUtwx3kz+0=
 			</data>
 		</dict>
 		<key>Resources/app/templates/pair.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			frFWChxDdLMtTOOar/ZnM3YVb0JHBTbUcL6FZE3/ynY=
+			vJ/1P019VTaATgf+C0nmFe4MKA3SNXZQPNR5FI9yyf4=
 			</data>
 		</dict>
 		<key>Resources/app/templates/register.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nm4QO8UmiKcur+FiQR2S/6P3eD/iPKhjEv8JXHta3VU=
+			h1QNljzbBXOB4ldkCCMRapkB1sB7hcMqWO0mdUNAq78=
 			</data>
 		</dict>
 		<key>Resources/app/templates/settings.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XU8saoXtfydeQ94gsfrgDQR8YmWsNfR96BBPxsTEKqM=
+			spOkxrF60HQ9deDNKcECzc4xTnSdNO0lXsaHuIVQB5s=
 			</data>
 		</dict>
 		<key>Resources/app/templates/show.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			suOGP1uoDT9idSQ8wYkjGzh2eb9ClakHgn+LLMUpT64=
+			snujM2wIDoEbyIRiSGpK5sO2F4xWxjQrVMfSh45/tr4=
 			</data>
 		</dict>
 		<key>Resources/attrs-25.4.0.dist-info/INSTALLER</key>
@@ -5938,7 +6540,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			TZPi0Sm7cafY/Ryub5H3R+pnnzFCatXSHZyXyKGtK3A=
+			9mgAvwgSiPgW93lAuD3Y6hfUqXBeD5z+twkjbBPWUGQ=
 			</data>
 		</dict>
 		<key>Resources/bcrypt</key>
@@ -5959,6 +6561,56 @@
 			<data>
 			47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
 			</data>
+		</dict>
+		<key>Resources/chardet/models/__init__.cpython-311-darwin.so</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../../Frameworks/chardet/models/__init__.cpython-311-darwin.so</string>
+		</dict>
+		<key>Resources/chardet/models/confusion.bin</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			HIU80EtAC9LTdy/K3cRGazLTLbcDp6pBXfWiCBC/nss=
+			</data>
+		</dict>
+		<key>Resources/chardet/models/idf.bin</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			gwbiiq1IysVNt4NNCfScu7ktOSjt5Txx8rmyMrWGu4o=
+			</data>
+		</dict>
+		<key>Resources/chardet/models/models.bin</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			B+sdq89PjnFPn4ZuqjVRIb97NWPc3g137Xw2aN5fdfU=
+			</data>
+		</dict>
+		<key>Resources/chardet/models/training_metadata.yaml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			VlvH44BYYtaSUF3LoZuq16GKyJPb5IGcB84XMkQHttg=
+			</data>
+		</dict>
+		<key>Resources/chardet/pipeline</key>
+		<dict>
+			<key>symlink</key>
+			<string>../../Frameworks/chardet/pipeline</string>
+		</dict>
+		<key>Resources/chardet/py.typed</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+			</data>
+		</dict>
+		<key>Resources/charset_normalizer</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Frameworks/charset_normalizer</string>
 		</dict>
 		<key>Resources/click-8.3.1.dist-info/INSTALLER</key>
 		<dict>
@@ -6061,6 +6713,13 @@
 			<key>hash2</key>
 			<data>
 			YCxMdILeZHndLpeTzaJ15eY9dz2s0eymiSMqtwCPtPs=
+			</data>
+		</dict>
+		<key>Resources/dateutil/zoneinfo/dateutil-zoneinfo.tar.gz</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			0+pS57bpaN4NiE3xKIGTWW+pW4A9tPkqGCeac5gARHU=
 			</data>
 		</dict>
 		<key>Resources/email_validator-2.3.0.dist-info/INSTALLER</key>
@@ -6431,109 +7090,228 @@
 			<key>symlink</key>
 			<string>../Frameworks/python3.11</string>
 		</dict>
-		<key>Resources/roku/.gitignore</key>
+		<key>Resources/roku/components/ApiTask.brs</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XBtuE3W08QYV58rm8Pvn772niLXcuSXvWfpO+Luonhc=
+			1WV5VJqUXO6R2Xyv2Zk7BoEugAteD03PRUAi0/PssOw=
 			</data>
 		</dict>
-		<key>Resources/roku/README.md</key>
+		<key>Resources/roku/components/ApiTask.xml</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			mk8bcb2Xp+hxWdc4qJe79+gEXiT24qv7A48TMDip0Oc=
+			s0ADDG634Nh7u5SLcN+/QWhipMSDzzv7Rj+acOqKng8=
 			</data>
 		</dict>
-		<key>Resources/roku/components/DetailsScene.xml</key>
+		<key>Resources/roku/components/CategoryTile.brs</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			r93DXDWMrvf2udl/BrdLudoWlgaKoUq8VsspAvsEqLw=
+			R238GMJUH+uX2OOMi7jAOz/STDXSHnURAWsapwCQyBU=
 			</data>
 		</dict>
-		<key>Resources/roku/components/HomeScene.xml</key>
+		<key>Resources/roku/components/CategoryTile.xml</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9Sw42HiLKDkpwGU1UbR+IssRyQBsh4Bo6Xl6yCaDTWY=
+			v6cS09RCE2DRBF6O3aRXp2py6zBG6bnfzybRUH+h4pE=
 			</data>
 		</dict>
-		<key>Resources/roku/components/PairingScene.xml</key>
+		<key>Resources/roku/components/DetailsPage.brs</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			JNLBesJeIX//0xpI5aacP3KJIR/1kyqIahecgRtoMFY=
+			/DivrrA4hyQQ7H+5I351C7jnE9Xgm2PCMbjsXY6nbxo=
 			</data>
 		</dict>
-		<key>Resources/roku/components/ServerConfigScene.xml</key>
+		<key>Resources/roku/components/DetailsPage.xml</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			thMTwFCIo095Gk3fhQE8e60nWW/jDAk08Ifrom7RXSY=
+			dNYMDv1PA7Ib5UtjFLj5h3H8+NoiUQxYVnv5ou4RYuI=
 			</data>
 		</dict>
-		<key>Resources/roku/components/VideoScene.xml</key>
+		<key>Resources/roku/components/HomePage.brs</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			w4fCs/aE8CDCTQ5PCRvd5YtXBAtDPMvXQX4LIO47KRA=
+			XjzctSBp3EQtPn4IdGWijKtG0nDP74hQR3ihwIq97Qg=
+			</data>
+		</dict>
+		<key>Resources/roku/components/HomePage.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			/n+vx6xLA8ZM47dSXvdyrUCoxjR5o4RPCWPSrRzIxWg=
+			</data>
+		</dict>
+		<key>Resources/roku/components/MainScene.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			1l4HdXOzousPEoaf1hgo23PYrDP+r9Y7eHlJq0V70MA=
+			</data>
+		</dict>
+		<key>Resources/roku/components/MainScene.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			BfIOAMSYo6e629u509B9DcDPAdhCeqsZvqH+wtbORxc=
+			</data>
+		</dict>
+		<key>Resources/roku/components/PairingPage.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			nFrMipvoTPrmOiXQ6x9wJ1CmBkah1UCaoNE9Hp4JDok=
+			</data>
+		</dict>
+		<key>Resources/roku/components/PairingPage.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			eV19xK995V6vF7jWBQnw4GU21Yk5GXGY+cmzSmJzzd0=
+			</data>
+		</dict>
+		<key>Resources/roku/components/PosterItem.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Aq4s1gLB8r3iuQTiix8nbAqJQ+SEcXUuCXbCx22t1to=
+			</data>
+		</dict>
+		<key>Resources/roku/components/PosterItem.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Mz+OdUwK4n8DqGxmFxREOEpZ6i8mA/DDdIrw5MkAQX8=
+			</data>
+		</dict>
+		<key>Resources/roku/components/SearchPage.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			3bH6lUmSAKzYGEKm14MN950P9NpZxYcLjgvhushcaG0=
+			</data>
+		</dict>
+		<key>Resources/roku/components/SearchPage.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			7JkEZcTqeyFba16ySPdxzvNKUFsHCkTGqxQbTBqIK+g=
+			</data>
+		</dict>
+		<key>Resources/roku/components/SeasonPage.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			4wKAhDysRfodAzpBtjaKRktTHZ5jMNGWkM/UJ3choAI=
+			</data>
+		</dict>
+		<key>Resources/roku/components/SeasonPage.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			ahAaG/XIj+Tpfn2xdAbItCrb9zH/DW2CL+zQ9h2ETD0=
+			</data>
+		</dict>
+		<key>Resources/roku/components/VideoPage.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			+NI03TDcDsnw2oDf3m3Bm8WVmAi6fP04CQqSPzIuMLI=
+			</data>
+		</dict>
+		<key>Resources/roku/components/VideoPage.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			QIRnUIr1caAuB6zmwDikcJGg+ElSM856ylvfGdE9Xj8=
+			</data>
+		</dict>
+		<key>Resources/roku/components/VideoTask.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			BrmA+2pZdFBYvunnWoo90jLW5/OwRVZkcuRPCRSmSoQ=
+			</data>
+		</dict>
+		<key>Resources/roku/components/VideoTask.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			NqKhTa6kPesjGciyxCncI06X5kg3uchgBxz5BzadISU=
+			</data>
+		</dict>
+		<key>Resources/roku/components/WideItem.brs</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			YJbxQua9j05xVcQiLLmh/bj2lD6/63xN3zYzaPkuajQ=
+			</data>
+		</dict>
+		<key>Resources/roku/components/WideItem.xml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			vJ+Vb1OpWZUHTirwfwgnNgGetNeKzR37/tzsDuQKvoU=
 			</data>
 		</dict>
 		<key>Resources/roku/images/app_icon_hd.png</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Q7WaRVcebTeqMmSbFUXiCUBYjjIDjzJySKTXf24JKuc=
+			h+GN4GnJHHBJGxPGrY8ha/tXgCRU5xJ+9FRcSM3R408=
 			</data>
 		</dict>
 		<key>Resources/roku/images/app_icon_sd.png</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uhkcNXYSwbC+n9MA8tsx96B7jVFISM6ldZzhfLXp104=
+			SejLJ0yxG/JMtO0OO1SmSKJCoLrotKbpvTpMvfjYySw=
+			</data>
+		</dict>
+		<key>Resources/roku/images/corner_cat.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			1ggjzpUW+ewgCLhrCAS0Nq+XZxtzgBcORO3RxAUt7u0=
+			</data>
+		</dict>
+		<key>Resources/roku/images/corner_poster.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			LC/xpXcx5RQ02IzLZxFBJB2z70XSoU2rb6HClTWBQxg=
+			</data>
+		</dict>
+		<key>Resources/roku/images/corner_wide.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			FOODeNHGNxo9bAYiHVbzxHu/gtXJCjoIdprSXDxgTgE=
 			</data>
 		</dict>
 		<key>Resources/roku/manifest</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			I6213YIiUu4kc9flqrctnINv/r/6/4zVQWcl72p/Jv0=
-			</data>
-		</dict>
-		<key>Resources/roku/source/api.brs</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			/0UNxSPu9fo+4kasCZi3j9klBMv2mZoN0t2j3L83JX8=
+			RNHbFHwrNUcNCidTbGROti5IInCMV9scP1/4UjzNovw=
 			</data>
 		</dict>
 		<key>Resources/roku/source/main.brs</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DUbOu7/FuBOVgsxMv6jI0MzJ0ykC62vFczEEJ20fT5g=
+			DvMXnStJhqvt5GnwamkdwGfzbvmIRpU3ZJoKFL9D3eY=
 			</data>
 		</dict>
-		<key>Resources/roku/source/pairing.brs</key>
+		<key>Resources/roku/source/utils.brs</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DLrYtw97mqpe34I7Bdf1uRtgt1ST2ns/bCLcaJzHKFo=
-			</data>
-		</dict>
-		<key>Resources/roku/source/playback.brs</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			w6rOLulZN68ILbLMESSDh6+8E8S9QgRpT9hRiXJxhKw=
-			</data>
-		</dict>
-		<key>Resources/roku/source/server_config.brs</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			CxsbinGWL+oBNeu95l0v0TBMmrZL3w+VZgzqyyu6YUA=
+			y7D0gF9Q9aMRsxRcPD5uGtd7HhMTEiFaONwgstOW2QE=
 			</data>
 		</dict>
 		<key>Resources/setuptools/_vendor/importlib_metadata-8.7.1.dist-info/INSTALLER</key>

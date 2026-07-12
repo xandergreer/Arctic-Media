@@ -7,7 +7,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_sessionmaker
+from app.core.database import AsyncSessionLocal
+from app.models.library import Library
 from app.models.scheduler import ScheduledTask, JobType
 from app.services.scanner import scan_library
 from app.services.metadata import enrich_library
@@ -28,8 +29,9 @@ async def _run_job(db: AsyncSession, task: ScheduledTask) -> None:
 
     try:
         if task.job_type == JobType.SCAN_LIBRARY:
-            # scan_library handles both movie and show libraries internally
-            await scan_library(db, task.library_id)
+            # scan_library handles both movie and show libraries internally,
+            # and opens its own DB session
+            await scan_library(task.library_id)
 
         elif task.job_type == JobType.REFRESH_METADATA:
             await enrich_library(db, task.library_id)
@@ -56,7 +58,7 @@ async def scheduler_loop() -> None:
 
     A task is considered due when next_run_at IS NULL (never run) or <= now.
     """
-    Session = get_sessionmaker()
+    Session = AsyncSessionLocal
     log.info("Scheduler started (poll interval: %ds)", POLL_SECONDS)
 
     while True:
@@ -87,10 +89,41 @@ async def scheduler_loop() -> None:
         await asyncio.sleep(POLL_SECONDS)
 
 
+async def _seed_missing_tasks() -> None:
+    """
+    Ensure every library has at least one SCAN_LIBRARY scheduled task.
+    Called once at startup to backfill libraries that existed before
+    auto-task creation was introduced.
+    """
+    Session = AsyncSessionLocal
+    async with Session() as db:
+        libs = (await db.execute(select(Library))).scalars().all()
+        for lib in libs:
+            existing = (await db.execute(
+                select(ScheduledTask)
+                .where(ScheduledTask.library_id == lib.id)
+                .where(ScheduledTask.job_type == JobType.SCAN_LIBRARY)
+            )).scalars().first()
+            if not existing:
+                db.add(ScheduledTask(
+                    name=f"Auto-scan: {lib.name}",
+                    job_type=JobType.SCAN_LIBRARY,
+                    library_id=lib.id,
+                    interval_minutes=15,
+                    enabled=True,
+                ))
+                log.info("Seeded auto-scan task for library '%s'", lib.name)
+        await db.commit()
+
+
 def start_scheduler(app) -> None:
     """
     Called during app startup (inside lifespan). Creates the background task
     and stores it on app.state so it can be cancelled on shutdown.
     """
-    app.state.scheduler_task = asyncio.create_task(scheduler_loop())
+    async def _startup():
+        await _seed_missing_tasks()
+        await scheduler_loop()
+
+    app.state.scheduler_task = asyncio.create_task(_startup())
     log.info("Scheduler background task created.")

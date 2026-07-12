@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,18 +47,28 @@ async def get_continue_watching(
     )
     rows = result.all()
     out = []
+    seen_ids = set()
     for hist, item in rows:
+        # Skip older duplicate rows for the same item (rows are sorted
+        # newest-first, so the first occurrence is the current one).
+        if item.id in seen_ids:
+            continue
+        seen_ids.add(item.id)
         pct = 0
         if hist.duration_seconds and hist.duration_seconds > 0:
             pct = min(100, round(hist.position_seconds / hist.duration_seconds * 100))
         link = f"/movie/{item.id}" if item.kind.value == "movie" else f"/show/{item.id}"
-        # For episodes, link to the parent show
+        season_number = None
+        show_id = None
+        # For episodes, link to the parent show and resolve season number
         if item.kind.value == "episode" and item.parent_id:
-            # Walk up to find the show (parent of parent)
             season_res = await db.execute(select(MediaItem).where(MediaItem.id == item.parent_id))
             season = season_res.scalar_one_or_none()
-            if season and season.parent_id:
-                link = f"/show/{season.parent_id}"
+            if season:
+                season_number = season.season_number
+                if season.parent_id:
+                    link = f"/show/{season.parent_id}"
+                    show_id = season.parent_id
         out.append({
             "media_id": item.id,
             "title": item.title,
@@ -66,7 +76,8 @@ async def get_continue_watching(
             "backdrop_url": item.backdrop_url,
             "kind": item.kind.value,
             "episode_number": item.episode_number,
-            "season_number": None,
+            "season_number": season_number,
+            "show_id": show_id,
             "position_seconds": hist.position_seconds,
             "duration_seconds": hist.duration_seconds,
             "progress_pct": pct,
@@ -90,6 +101,9 @@ async def get_batch_progress(
             WatchHistory.user_id == current_user.id,
             WatchHistory.media_item_id.in_(body.media_ids),
         )
+        # Ascending: if duplicate rows exist, the newest one overwrites the
+        # older entries in the dict below.
+        .order_by(WatchHistory.last_watched_at.asc(), WatchHistory.id.asc())
     )
     return {
         str(row.media_item_id): {
@@ -114,6 +128,9 @@ async def get_progress(
             WatchHistory.user_id == current_user.id,
             WatchHistory.media_item_id == media_id,
         )
+        # Concurrent progress POSTs can race and create duplicate rows;
+        # always resolve to the most recently written one.
+        .order_by(WatchHistory.last_watched_at.desc(), WatchHistory.id.desc())
     )
     row = result.scalars().first()
     if not row:
@@ -130,6 +147,7 @@ async def get_progress(
 async def update_progress(
     media_id: int,
     body: ProgressUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -138,12 +156,25 @@ async def update_progress(
             WatchHistory.user_id == current_user.id,
             WatchHistory.media_item_id == media_id,
         )
+        .order_by(WatchHistory.last_watched_at.desc(), WatchHistory.id.desc())
     )
-    row = result.scalars().first()
+    rows = result.scalars().all()
+    row = rows[0] if rows else None
+    # Self-heal duplicates created by racing progress updates: keep the
+    # newest row, drop the rest.
+    for dup in rows[1:]:
+        await db.delete(dup)
 
     completed = False
     if body.duration_seconds and body.duration_seconds > 0:
         completed = (body.position_seconds / body.duration_seconds) >= 0.9
+
+    # Capture client context for Live View.
+    # Always use the direct TCP connection IP — never trust X-Forwarded-For headers
+    # unless behind an explicitly configured trusted reverse proxy, because they can
+    # be trivially spoofed by any client.
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
 
     if row:
         row.position_seconds = body.position_seconds
@@ -151,6 +182,8 @@ async def update_progress(
             row.duration_seconds = body.duration_seconds
         row.completed = completed
         row.last_watched_at = datetime.now(timezone.utc)
+        row.last_ip = client_ip
+        row.last_user_agent = user_agent
     else:
         row = WatchHistory(
             user_id=current_user.id,
@@ -159,6 +192,8 @@ async def update_progress(
             duration_seconds=body.duration_seconds,
             completed=completed,
             last_watched_at=datetime.now(timezone.utc),
+            last_ip=client_ip,
+            last_user_agent=user_agent,
         )
         db.add(row)
 

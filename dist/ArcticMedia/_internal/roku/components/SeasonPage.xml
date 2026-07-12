@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="SeasonPage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/SeasonPage.brs" />
+    <children>
+        <!-- Background + backdrop -->
+        <Rectangle color="0x080818FF" width="1920" height="1080" />
+        <Poster id="backdrop" width="1920" height="1080" opacity="0.14" loadDisplayMode="scaleToZoom" />
+
+        <!-- Show title -->
+        <Label id="showTitle" translation="[40, 32]" width="760"
+               font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+
+        <!-- ═══ LEFT PANEL: seasons + episodes ═══ -->
+
+        <!-- SEASONS column -->
+        <Label translation="[40, 96]" text="SEASONS"
+               color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="200" />
+        <LabelList id="seasonList"
+                   translation="[40, 128]"
+                   width="210"
+                   height="882"
+                   itemSize="[210, 52]"
+                   itemSpacing="[0, 4]"
+                   focusBitmapUri=""
+                   focusedColor="0x4A9FFFFF"
+                   color="0xCCCCCCFF"
+                   font="font:SmallBoldSystemFont"
+                   focusedFont="font:SmallBoldSystemFont" />
+
+        <!-- Divider: seasons | episodes -->
+        <Rectangle translation="[262, 90]" width="2" height="950" color="0x1C1C3AFF" />
+
+        <!-- EPISODES column -->
+        <Label translation="[278, 96]" text="EPISODES"
+               color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
+        <LabelList id="episodeList"
+                   translation="[278, 128]"
+                   width="500"
+                   height="882"
+                   itemSize="[500, 56]"
+                   itemSpacing="[0, 2]"
+                   focusBitmapUri=""
+                   focusedColor="0x4A9FFFFF"
+                   color="0xCCCCCCFF"
+                   font="font:SmallSystemFont"
+                   focusedFont="font:SmallBoldSystemFont" />
+
+        <!-- Divider: episode list | preview panel -->
+        <Rectangle translation="[790, 90]" width="2" height="950" color="0x1C1C3AFF" />
+
+        <!-- ═══ RIGHT PANEL: episode preview ═══ -->
+
+        <!-- Episode thumbnail (16:9) -->
+        <Poster id="epThumb" translation="[814, 80]" width="1066" height="600"
+                loadDisplayMode="scaleToZoom" />
+
+        <!-- Episode title -->
+        <Label id="epTitle" translation="[814, 698]" width="1066"
+               font="font:MediumBoldSystemFont" color="0xFFFFFFFF" wrap="true" />
+
+        <!-- Season · Episode · Year -->
+        <Label id="epInfo" translation="[814, 742]" width="1066"
+               font="font:SmallSystemFont" color="0x4A9FFFFF" />
+
+        <!-- Divider -->
+        <Rectangle translation="[814, 768]" width="1066" height="2" color="0x1C1C3AFF" />
+
+        <!-- Episode overview -->
+        <Label id="epOverview" translation="[814, 782]" width="1066"
+               font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" />
+
+        <!-- Bottom hint -->
+        <Label translation="[40, 1046]"
+               text="Back = return     Right = episodes     OK = play"
+               color="0x33334AFF" font="font:SmallSystemFont" width="900" />
+    </children>
+</component>

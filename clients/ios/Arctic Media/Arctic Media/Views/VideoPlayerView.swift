@@ -31,6 +31,8 @@ struct VideoPlayerView: View {
     @State private var audioTracks: [AudioTrack] = []
     @State private var selectedAudioIdx: Int = 0
     @State private var showAudioPicker = false
+    @State private var selectedQuality: Int? = nil   // nil = Auto (original)
+    @State private var showQualityPicker = false
 
     var body: some View {
         GeometryReader { geo in
@@ -68,6 +70,19 @@ struct VideoPlayerView: View {
 
                         Spacer()
 
+                        if !url.isFileURL {
+                            Button { showQualityPicker = true } label: {
+                                Image(systemName: "slider.horizontal.3")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(
+                                        selectedQuality != nil ? Color.yellow : Color.white
+                                    )
+                                    .padding(6)
+                                    .background(Color.black.opacity(0.5), in: Circle())
+                                    .shadow(radius: 4)
+                            }
+                        }
+
                         if audioTracks.count > 1 {
                             Button { showAudioPicker = true } label: {
                                 Image(systemName: "waveform.circle.fill")
@@ -102,6 +117,7 @@ struct VideoPlayerView: View {
         .onDisappear { teardown() }
         .sheet(isPresented: $showAudioPicker) { audioPickerSheet }
         .sheet(isPresented: $showSubtitlePicker) { subtitlePickerSheet }
+        .sheet(isPresented: $showQualityPicker) { qualityPickerSheet }
     }
 
     // MARK: - Setup / teardown
@@ -240,6 +256,7 @@ struct VideoPlayerView: View {
         let pos = currentTime
         var urlStr = "\(serverURL)/api/v1/stream/\(mediaId)/master.m3u8?token=\(token)&aidx=\(aidx)"
         if let sidx { urlStr += "&sidx=\(sidx)&stype=text" }
+        if let q = selectedQuality { urlStr += "&quality=\(q)" }
         guard let newURL = URL(string: urlStr) else { return }
 
         statusObserver?.invalidate()
@@ -280,6 +297,39 @@ struct VideoPlayerView: View {
             self.dismiss()
         }
         endObserver = eo
+    }
+
+    // MARK: - Quality picker sheet
+
+    private var qualityPickerSheet: some View {
+        NavigationStack {
+            List {
+                ForEach([(nil, "Auto (Original)"), (1080, "1080p"), (720, "720p"), (480, "480p")] as [(Int?, String)], id: \.1) { value, name in
+                    Button {
+                        selectedQuality = value
+                        showQualityPicker = false
+                        reload(aidx: selectedAudioIdx, sidx: selectedSubtitleIdx)
+                    } label: {
+                        HStack {
+                            Text(name)
+                            Spacer()
+                            if selectedQuality == value {
+                                Image(systemName: "checkmark").foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+            }
+            .navigationTitle("Quality")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showQualityPicker = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 
     // MARK: - Audio picker sheet

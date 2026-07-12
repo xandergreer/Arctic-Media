@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 import enum
-from sqlalchemy import String, Integer, ForeignKey, Enum as SAEnum, Text, DateTime
+from sqlalchemy import String, Integer, Float, ForeignKey, Enum as SAEnum, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.base import IDMixin, TimestampMixin
@@ -32,10 +32,7 @@ class MediaItem(Base, IDMixin, TimestampMixin):
     # -- Metadata --
     overview: Mapped[Optional[str]] = mapped_column(Text)
     release_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    # -- Metadata --
-    overview: Mapped[Optional[str]] = mapped_column(Text)
-    release_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    tmdb_id: Mapped[Optional[int]] = mapped_column(Integer, index=True) 
+    tmdb_id: Mapped[Optional[int]] = mapped_column(Integer, index=True)
 
     poster_url: Mapped[Optional[str]] = mapped_column(String)
     backdrop_url: Mapped[Optional[str]] = mapped_column(String)
@@ -106,7 +103,7 @@ class MediaFile(Base, IDMixin, TimestampMixin):
 
     path: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer)
-    duration_seconds: Mapped[Optional[float]] = mapped_column(Integer)
+    duration_seconds: Mapped[Optional[float]] = mapped_column(Float)
 
     # CRITICAL: do NOT default this to 'now'.
     # force the Scanner to provide the file's 'mtime'.

@@ -1,0 +1,50 @@
+name: Build Windows exe
+
+# Builds ArcticMedia.exe on every push to main (and on version tags).
+# Grab it from the run's Artifacts, or from the Release page for tags.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Download FFmpeg binaries into bin/
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_tmp
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          $dir = Get-ChildItem ffmpeg_tmp -Directory | Select-Object -First 1
+          Copy-Item "$($dir.FullName)\bin\ffmpeg.exe"  bin\
+          Copy-Item "$($dir.FullName)\bin\ffprobe.exe" bin\
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      # build.py installs requirements.txt itself, then runs PyInstaller
+      - name: Build ArcticMedia.exe
+        run: python build.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcticMedia-windows
+          path: dist/ArcticMedia.exe
+          if-no-files-found: error
+
+      - name: Attach to release (version tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/ArcticMedia.exe

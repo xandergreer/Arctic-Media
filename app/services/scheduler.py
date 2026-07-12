@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_sessionmaker
+from app.core.database import AsyncSessionLocal
 from app.models.library import Library
 from app.models.scheduler import ScheduledTask, JobType
 from app.services.scanner import scan_library
@@ -29,8 +29,9 @@ async def _run_job(db: AsyncSession, task: ScheduledTask) -> None:
 
     try:
         if task.job_type == JobType.SCAN_LIBRARY:
-            # scan_library handles both movie and show libraries internally
-            await scan_library(db, task.library_id)
+            # scan_library handles both movie and show libraries internally,
+            # and opens its own DB session
+            await scan_library(task.library_id)
 
         elif task.job_type == JobType.REFRESH_METADATA:
             await enrich_library(db, task.library_id)
@@ -57,7 +58,7 @@ async def scheduler_loop() -> None:
 
     A task is considered due when next_run_at IS NULL (never run) or <= now.
     """
-    Session = get_sessionmaker()
+    Session = AsyncSessionLocal
     log.info("Scheduler started (poll interval: %ds)", POLL_SECONDS)
 
     while True:
@@ -94,7 +95,7 @@ async def _seed_missing_tasks() -> None:
     Called once at startup to backfill libraries that existed before
     auto-task creation was introduced.
     """
-    Session = get_sessionmaker()
+    Session = AsyncSessionLocal
     async with Session() as db:
         libs = (await db.execute(select(Library))).scalars().all()
         for lib in libs:

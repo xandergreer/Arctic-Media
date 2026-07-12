@@ -132,6 +132,12 @@ async def lifespan(app: FastAPI):
     from app.api.v1.stream_hls import _reap_idle_jobs
     asyncio.create_task(_resilient_task(_reap_idle_jobs, "hls-reaper"))
 
+    # Start the scheduled-task loop (auto library scans every 15 min).
+    # Seeds a scan task for any library that predates auto-task creation.
+    from app.services.scheduler import scheduler_loop, _seed_missing_tasks
+    await _seed_missing_tasks()
+    asyncio.create_task(_resilient_task(scheduler_loop, "scheduler"))
+
     yield
 
     # Graceful shutdown: terminate all active FFmpeg jobs before closing.
@@ -197,6 +203,8 @@ app.include_router(admin_router, prefix="/api/v1")
 app.include_router(requests_router, prefix="/api/v1")
 app.include_router(remote_router) # /pair endpoints
 app.include_router(subtitles_router, prefix="/api/v1")
+from app.api.v1.arr import router as arr_router
+app.include_router(arr_router, prefix="/api/v1")
 
 
 

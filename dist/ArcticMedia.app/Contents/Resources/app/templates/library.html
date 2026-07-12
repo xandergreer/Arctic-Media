@@ -13,11 +13,18 @@
 </div>
 
 <div class="section" style="padding-top:1.5rem;">
-    <!-- Sort chips -->
-    <div style="display:flex;gap:0.5rem;margin-bottom:1.75rem;flex-wrap:wrap;" id="sort-strip">
-        <span class="chip active" data-sort="added">Newly Added</span>
-        <span class="chip" data-sort="az">A → Z</span>
-        <span class="chip" data-sort="year">Year</span>
+    <!-- Sort chips + request button -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:0.75rem;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;" id="sort-strip">
+            <span class="chip active" data-sort="added">Newly Added</span>
+            <span class="chip" data-sort="az">A → Z</span>
+            <span class="chip" data-sort="year">Year</span>
+        </div>
+        <button onclick="openRequestModal()"
+            style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-pill);padding:0.45rem 1.1rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.15s;"
+            onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'">
+            <span class="material-icons" style="font-size:16px;">add</span>Make a Request
+        </button>
     </div>
 
     <div id="media-grid" class="media-grid">
@@ -42,7 +49,42 @@
 </div>
 
 <script>const LIBRARY_TYPE = "{{ lib_type }}";</script>
-<script src="/static/js/library.js?v=3"></script>
+<script src="/static/js/library.js?v=4"></script>
+
+<!-- Request Modal -->
+<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:90%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+            <h3 style="margin:0;font-size:1.1rem;">Make a Request</h3>
+            <button onclick="closeRequestModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.4rem;line-height:1;padding:0;">&times;</button>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin:0 0 1rem;">
+            Describe the <span id="req-kind-label">title</span> you'd like added.
+        </p>
+        <textarea id="request-message" rows="4"
+            placeholder="e.g. The Dark Knight (2008), or Severance Season 2…"
+            style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:0.75rem;font-size:0.9rem;font-family:var(--font);resize:vertical;outline:none;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div id="request-error" style="color:#f87171;font-size:0.8rem;margin-top:0.5rem;display:none;"></div>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="closeRequestModal()"
+                style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-pill);padding:0.45rem 1.1rem;font-size:0.85rem;cursor:pointer;font-family:var(--font);">
+                Cancel
+            </button>
+            <button id="request-send-btn" onclick="submitRequest()"
+                style="background:var(--primary);color:#fff;border:none;border-radius:var(--radius-pill);padding:0.45rem 1.25rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font);">
+                Send
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Request Success Toast -->
+<div id="request-toast" style="display:none;position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:0.65rem 1.4rem;border-radius:var(--radius-pill);font-size:0.875rem;font-weight:600;z-index:2000;box-shadow:0 8px 24px rgba(0,0,0,0.35);">
+    Request sent!
+</div>
+
+<script src="/static/js/request_modal.js?v=1"></script>
 <script>
     // Sort chips
     document.getElementById('sort-strip')?.addEventListener('click', e => {

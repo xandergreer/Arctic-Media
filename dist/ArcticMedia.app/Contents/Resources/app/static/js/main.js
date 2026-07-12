@@ -1,52 +1,55 @@
 // Arctic Media 2.0 - Main Logic
 
-// Helper: Get Cookie
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+// Helper: fetch with credentials included (sends HttpOnly cookie automatically)
+function authFetch(url, options = {}) {
+    return fetch(url, { credentials: 'include', ...options });
 }
 
-// Helper: Set Cookie
-function setCookie(name, value, days) {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
+// Obtain a short-lived streaming token for use in media/HLS URL query params.
+// Resolves to a string token or null on failure.
+async function getStreamToken() {
+    try {
+        const res = await authFetch('/api/v1/auth/stream-token', { method: 'POST' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.token || null;
+    } catch (_) {
+        return null;
     }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Strict";
-}
-
-// Helper: Get Auth Headers
-function getAuthHeaders() {
-    const token = getCookie("access_token");
-    if (token) {
-        return { 'Authorization': `Bearer ${token}` };
-    }
-    return {};
 }
 
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- AUTHENTICATION CHECK ---
-    const token = getCookie("access_token");
+    // Cookie is HttpOnly so JS cannot read it directly.
+    // Check login state and admin status via /api/v1/auth/me.
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    if (token) {
-        if (loginBtn) loginBtn.style.display = "none";
-        if (logoutBtn) {
-            logoutBtn.style.display = "inline-block";
-            logoutBtn.addEventListener("click", () => {
-                setCookie("access_token", "", -1); // Delete cookie
-                window.location.href = "/login";
-            });
-        }
-    } else {
-        // Redirect logic if on protected pages could go here
-        // For now, we just rely on API 401s
-    }
+    (async () => {
+        try {
+            const res = await fetch("/api/v1/auth/me", { credentials: "include" });
+            if (res.ok) {
+                const me = await res.json();
+                if (loginBtn) loginBtn.style.display = "none";
+                if (logoutBtn) {
+                    logoutBtn.style.display = "inline-block";
+                    logoutBtn.addEventListener("click", async () => {
+                        await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+                        window.location.href = "/login";
+                    });
+                }
+                if (me.is_superuser) {
+                    const adminLink = document.getElementById('nav-admin');
+                    if (adminLink) adminLink.style.display = 'inline-block';
+                }
+            } else {
+                // Not logged in — show login button
+                if (loginBtn) loginBtn.style.display = "inline-block";
+                if (logoutBtn) logoutBtn.style.display = "none";
+            }
+        } catch (_) {}
+    })();
 
     // --- LOGIN FORM ---
     const loginForm = document.getElementById("loginForm");
@@ -72,8 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
-                    setCookie("access_token", data.access_token, 7); // 7 days
+                    // Server sets the HttpOnly cookie; no need to store the token in JS
                     window.location.href = "/";
                 } else {
                     let errorText = "Invalid credentials";
@@ -96,6 +98,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- REGISTER FORM ---
     const registerForm = document.getElementById("registerForm");
     if (registerForm) {
+        // Pre-fill invite code from URL param and show the field
+        const urlCode = new URLSearchParams(window.location.search).get('code');
+        const inviteGroup = document.getElementById('invite-group');
+        const inviteInput = document.getElementById('invite_code');
+        if (urlCode && inviteInput) {
+            inviteInput.value = urlCode;
+            if (inviteGroup) inviteGroup.style.display = 'block';
+        }
+
         registerForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const msgBox = document.getElementById("msg-box");
@@ -104,21 +115,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const username = document.getElementById("username").value;
             const password = document.getElementById("password").value;
+            const inviteCode = inviteInput ? inviteInput.value.trim() : '';
+
+            const registerPayload = { username, password };
+            if (inviteCode) registerPayload.invite_code = inviteCode;
 
             try {
-                const response = await fetch(`/api/v1/auth/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-                    method: "POST"
+                const response = await fetch("/api/v1/auth/register", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(registerPayload),
                 });
 
                 if (response.ok) {
-                    msgBox.style.color = "#22c55e"; // Green
+                    msgBox.style.color = "#22c55e";
                     msgBox.innerHTML = 'Account created! Redirecting to login...';
                     msgBox.style.display = "block";
                     setTimeout(() => window.location.href = "/login", 2000);
                 } else {
                     const data = await response.json();
-                    msgBox.innerText = data.detail || "Registration failed";
+                    const detail = data.detail || "Registration failed";
+                    msgBox.innerText = detail;
                     msgBox.style.display = "block";
+                    // Show invite field if server says it's required
+                    if (detail.toLowerCase().includes('invite') && inviteGroup) {
+                        inviteGroup.style.display = 'block';
+                    }
                 }
             } catch (err) {
                 msgBox.innerText = "Server connection failure";

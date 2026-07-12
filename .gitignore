@@ -24,3 +24,5 @@ debug_clover.txt
 *.db
 *.sqlite
 *.sqlite3
+.claude/
+.DS_Store

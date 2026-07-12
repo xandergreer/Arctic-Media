@@ -10,6 +10,7 @@ from typing import Annotated, Optional
 from app.core.database import get_db
 from app.api.deps import get_current_active_superuser
 from app.models.library import Library, LibraryType
+from app.models.scheduler import ScheduledTask, JobType
 from app.models.user import User
 
 router = APIRouter()
@@ -67,12 +68,29 @@ async def create_library(
             )
         )
 
-    # 3. Save to DB
+    # 3. Resolve symlinks so the canonical real path is stored in the DB.
+    #    This prevents a symlink from silently pointing elsewhere after the fact
+    #    while still allowing admins to use symlinks intentionally.
+    real_path = await asyncio.to_thread(os.path.realpath, item.path)
+
+    # 4. Save to DB
     final_name = item.name if item.name.strip() else lib_type.value.title()
-    new_library = Library(name=final_name, path=item.path, type=lib_type)
+    new_library = Library(name=final_name, path=real_path, type=lib_type)
 
     try:
         db.add(new_library)
+        await db.flush()  # get new_library.id without closing transaction
+
+        # Auto-create a recurring scan task so new files are picked up automatically.
+        # next_run_at=None → scheduler runs it within 30 s (on first poll).
+        db.add(ScheduledTask(
+            name=f"Auto-scan: {final_name}",
+            job_type=JobType.SCAN_LIBRARY,
+            library_id=new_library.id,
+            interval_minutes=15,
+            enabled=True,
+        ))
+
         await db.commit()
         await db.refresh(new_library)
     except Exception:

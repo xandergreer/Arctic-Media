@@ -1,19 +1,12 @@
 // Arctic Media 2.0 – Home Page
 
-function getAuthHeaders() {
-    const v = `; ${document.cookie}`;
-    const p = v.split(`; access_token=`);
-    if (p.length === 2) return { 'Authorization': `Bearer ${p.pop().split(';').shift()}` };
-    return {};
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     const loading = document.getElementById('loading');
 
     try {
         const [recentRes, continueRes] = await Promise.all([
-            fetch('/api/v1/media/recently-added?limit=12', { headers: getAuthHeaders() }),
-            fetch('/api/v1/history', { headers: getAuthHeaders() }),
+            fetch('/api/v1/media/recently-added?limit=12', { credentials: 'include' }),
+            fetch('/api/v1/history', { credentials: 'include' }),
         ]);
 
         if (!recentRes.ok) throw new Error('Failed to load dashboard');
@@ -29,11 +22,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (continueItems.length > 0) {
             renderContinueRow('continue-row', continueItems);
             document.getElementById('continue-section').classList.remove('hidden');
+            // Sections after continue-watching should not double-pad the top
+            const moviesSection = document.getElementById('movies-section');
+            if (moviesSection) moviesSection.style.paddingTop = '0';
+            const tvSection = document.getElementById('tv-section');
+            if (tvSection) tvSection.style.paddingTop = '0';
         }
 
         if (data.movies && data.movies.length > 0) {
             document.getElementById('movies-section').classList.remove('hidden');
             renderRow('movies-row', data.movies, 'movie');
+            // TV section always follows movies without extra top padding
+            const tvSection = document.getElementById('tv-section');
+            if (tvSection) tvSection.style.paddingTop = '0';
         }
 
         if (data.shows && data.shows.length > 0) {
@@ -58,7 +59,9 @@ function renderContinueRow(containerId, items) {
         const poster = item.poster_url
             ? `<img src="${item.poster_url}" alt="${item.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`
             : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text-muted);font-size:2rem;font-weight:700;">${item.title.charAt(0)}</div>`;
-        const epLabel = item.kind === 'episode' && item.episode_number ? `<div style="font-size:0.75rem;color:var(--text-muted);">E${item.episode_number}</div>` : '';
+        const epLabel = item.kind === 'episode' && item.episode_number
+            ? `<div style="font-size:0.75rem;color:var(--text-muted);">${item.season_number ? `S${item.season_number}` : ''}E${String(item.episode_number).padStart(2, '0')}</div>`
+            : '';
         return `
         <div class="media-card h-scroll-item" onclick="window.location.href='${item.link}'" style="width:175px;">
             <div class="poster-wrap" style="position:relative;">

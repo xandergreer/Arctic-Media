@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Admin — Arctic Media{% endblock %}
+
+{% block full_content %}
+<div style="padding-top: calc(var(--nav-height) + 2rem); padding-bottom: 4rem;">
+<div class="section" style="max-width:1200px;">
+
+    <!-- Page header -->
+    <div style="margin-bottom:2.5rem;">
+        <div class="section-label" style="margin-bottom:0.5rem;">
+            <h2>Admin Panel</h2>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">Server management and monitoring tools.</p>
+    </div>
+
+    <!-- Nav tabs -->
+    <div id="admin-tabs" style="display:flex;gap:0.5rem;margin-bottom:2rem;border-bottom:1px solid var(--border);padding-bottom:0;">
+        <button class="admin-tab active" data-tab="live" onclick="switchTab('live')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">sensors</span>Live View
+        </button>
+        <button class="admin-tab" data-tab="server" onclick="switchTab('server')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">dns</span>Server
+        </button>
+        <button class="admin-tab" data-tab="users" onclick="switchTab('users')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">group</span>Users
+        </button>
+        <button class="admin-tab" data-tab="invites" onclick="switchTab('invites')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">mail</span>Invites
+        </button>
+        <button class="admin-tab" data-tab="history" onclick="switchTab('history')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">history</span>History
+        </button>
+        <button class="admin-tab" data-tab="requests" onclick="switchTab('requests')">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">inbox</span>Requests
+        </button>
+    </div>
+
+    <!-- Tab: Live View -->
+    <div id="tab-live" class="admin-tab-content">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div id="viewer-count-badge"
+                    style="background:var(--blue-glow);border:1px solid var(--border-bright);color:var(--blue-300);padding:0.2rem 0.75rem;border-radius:var(--radius-pill);font-size:0.8rem;font-weight:600;">
+                    Loading…
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);">
+                    <span class="material-icons" style="font-size:14px;">sync</span>
+                    <span id="refresh-countdown">10s</span>
+                </div>
+                <button onclick="loadLive()" class="btn btn-ghost" style="padding:0.4rem 0.9rem;font-size:0.85rem;">
+                    <span class="material-icons" style="font-size:15px;vertical-align:middle;">refresh</span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div id="viewer-grid">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span style="font-size:2.5rem;">❄️</span>
+                <p style="margin-top:1rem;">Loading…</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tab: Invites -->
+    <div id="tab-invites" class="admin-tab-content">
+        <div id="invites-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">mail</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Users -->
+    <div id="tab-users" class="admin-tab-content">
+        <div id="users-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">group</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: History -->
+    <div id="tab-history" class="admin-tab-content">
+        <div id="history-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">history</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Requests -->
+    <div id="tab-requests" class="admin-tab-content">
+        <div id="requests-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">inbox</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Server -->
+    <div id="tab-server" class="admin-tab-content">
+        <div id="server-content">
+            <div style="text-align:center;padding:5rem 2rem;color:var(--text-muted);">
+                <span class="material-icons" style="font-size:2.5rem;display:block;margin-bottom:1rem;">dns</span>
+                <p>Loading…</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<style>
+.admin-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+    font-family: var(--font);
+}
+.admin-tab:hover { color: var(--text); }
+.admin-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+.admin-tab-content { display: none; }
+.admin-tab-content.visible { display: block; }
+</style>
+
+<script>
+function switchTab(name) {
+    if (name !== 'server' && typeof stopServerMetrics === 'function') stopServerMetrics();
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('visible'));
+    document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+    document.getElementById(`tab-${name}`).classList.add('visible');
+    if (name === 'server' && typeof loadServer === 'function') loadServer();
+    if (name === 'users' && typeof loadUsers === 'function') loadUsers();
+    if (name === 'invites' && typeof loadInvites === 'function') loadInvites();
+    if (name === 'history' && typeof loadHistory === 'function') loadHistory();
+    if (name === 'requests' && typeof loadRequests === 'function') loadRequests();
+}
+// Show default tab
+switchTab('live');
+</script>
+
+<script src="/static/js/admin_live.js?v=1"></script>
+<script src="/static/js/admin_server.js?v=3"></script>
+<script src="/static/js/admin_users.js?v=3"></script>
+<script src="/static/js/admin_invites.js?v=1"></script>
+<script src="/static/js/admin_history.js?v=1"></script>
+<script src="/static/js/admin_requests.js?v=1"></script>
+{% endblock %}

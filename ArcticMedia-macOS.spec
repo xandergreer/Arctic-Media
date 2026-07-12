@@ -9,7 +9,7 @@ a = Analysis(
     datas=[
         ('app', 'app'),  # Include app directory (templates, static, etc.)
         ('icons', 'icons'),  # Include icons
-        ('roku', 'roku'),  # Include roku module
+        ('clients/Roku', 'roku'),  # Roku channel source (moved from ./roku)
         ('.env', '.'),  # Bundle API keys
     ],
     hiddenimports=[

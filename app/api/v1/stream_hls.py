@@ -199,13 +199,13 @@ async def _reap_idle_jobs() -> None:
             shutil.rmtree(job.workdir, ignore_errors=True)
             print(f"[HLS] Reaped idle job {jid}")
 
-def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0) -> str:
+def make_job_id(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0, v_height: Optional[int] = None) -> str:
     h = hashlib.sha1()
-    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|{v_bsf or ''}|{start_seg}|v16".encode())
+    h.update(f"{item_id}|{file_id}|{container}|{vcodec}|{acodec}|{a_map or ''}|{s_index}|{s_type}|{s_path or ''}|{v_bsf or ''}|{start_seg}|{v_height or ''}|v17".encode())
     return h.hexdigest()[:16]
 
-async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0) -> TranscodeJob:
-    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path, v_bsf, start_seg)
+async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: str, acodec: str, a_map: Optional[str] = None, s_index: Optional[int] = None, s_type: str = "text", s_path: Optional[str] = None, v_bsf: Optional[str] = None, start_seg: int = 0, v_height: Optional[int] = None) -> TranscodeJob:
+    job_id = make_job_id(item_id, file_id, container, vcodec, acodec, a_map, s_index, s_type, s_path, v_bsf, start_seg, v_height)
     job = _JOBS.get(job_id)
     if not job:
         # Evict old job for same item only if it has been idle for >5 minutes.
@@ -223,7 +223,7 @@ async def get_or_create_job(item_id: int, file_id: int, container: str, vcodec: 
                 finally:
                     _JOBS.pop(prev_id, None)
 
-        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path, v_bsf=v_bsf, start_seg=start_seg)
+        job = TranscodeJob(job_id=job_id, item_id=item_id, file_id=file_id, container=container, vcodec=vcodec, acodec=acodec, a_map=a_map, s_index=s_index, s_type=s_type, s_path=s_path, v_bsf=v_bsf, start_seg=start_seg, v_height=v_height)
         _JOBS[job_id] = job
         _ITEM_JOB[item_id] = job_id
         
@@ -270,6 +270,11 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
 
         cmd.extend(["-i", src_path])
         
+        # Downscale filter for quality selection (-2 keeps aspect, even width).
+        # Only meaningful when transcoding; the playlist endpoint disables
+        # stream-copy whenever a quality is requested.
+        scale = f"scale=-2:{job.v_height}" if (job.v_height and job.vcodec != "copy") else None
+
         # Subtitle Burn-In
         if job.s_index is not None:
             if job.s_type == 'text':
@@ -277,22 +282,30 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
                 from app.api.v1.stream import _ffmpeg_filtergraph_escape
                 if job.s_path:
                     escaped_sub = _ffmpeg_filtergraph_escape(job.s_path)
-                    cmd.extend(["-map", "0:v:0"])
-                    cmd.extend(["-vf", f"subtitles='{escaped_sub}'"])
+                    vf = f"subtitles='{escaped_sub}'"
                 else:
                     escaped_path = _ffmpeg_filtergraph_escape(src_path)
-                    cmd.extend(["-map", "0:v:0"])
-                    cmd.extend(["-vf", f"subtitles='{escaped_path}':si={job.s_index}"])
+                    vf = f"subtitles='{escaped_path}':si={job.s_index}"
+                if scale:
+                    vf += f",{scale}"
+                cmd.extend(["-map", "0:v:0"])
+                cmd.extend(["-vf", vf])
             else:
-                # Image subs (PGS/DVD) — overlay directly without scaling.
+                # Image subs (PGS/DVD) — overlay directly without pre-scaling.
                 # PGS is already at the video resolution; explicit scale fails when
                 # the stream has unspecified dimensions, dropping the video output.
                 # shortest=0:repeatlast=0 keeps video playing past the last subtitle cue.
-                cmd.extend(["-filter_complex", f"[0:v:0][0:s:{job.s_index}]overlay=shortest=0:repeatlast=0,format=yuv420p[v]"])
+                # Quality downscale happens AFTER the overlay so subs stay aligned.
+                graph = f"[0:v:0][0:s:{job.s_index}]overlay=shortest=0:repeatlast=0,format=yuv420p"
+                if scale:
+                    graph += f",{scale}"
+                cmd.extend(["-filter_complex", graph + "[v]"])
                 cmd.extend(["-map", "[v]"])
         else:
              # No Subs - Just map video
              cmd.extend(["-map", "0:v:0"])
+             if scale:
+                 cmd.extend(["-vf", scale])
 
         # Audio Map
         cmd.extend(["-map", job.a_map or "0:a:0"])
@@ -314,6 +327,13 @@ async def start_or_warm_job(src_path: str, job: TranscodeJob) -> None:
                 "-sc_threshold", "0",
                 "-pix_fmt", "yuv420p"
             ])
+            # Bitrate cap per quality tier so lower tiers actually save bandwidth
+            if job.v_height:
+                _RATE = {1080: "8M", 720: "4M", 480: "2M"}
+                _BUF  = {1080: "16M", 720: "8M", 480: "4M"}
+                rate = _RATE.get(job.v_height)
+                if rate:
+                    cmd.extend(["-crf", "23", "-maxrate", rate, "-bufsize", _BUF[job.v_height]])
             
         # Ensure timestamps are non-negative (required for some source files with
         # leading B-frames or DTS < 0). Keeps HLS segments well-formed.
@@ -378,6 +398,7 @@ async def get_master_playlist(
     stype: str = Query("text"),
     file_id: Optional[int] = Query(None),
     t: float = Query(0),
+    quality: Optional[int] = Query(None, description="Target height (1080/720/480); omit for original"),
     db: AsyncSession = Depends(get_db)
 ):
     """Proper HLS master playlist. AVPlayer and AVAssetDownloadURLSession both need this."""
@@ -389,6 +410,9 @@ async def get_master_playlist(
     mf = result.scalars().first()
     if not mf: raise HTTPException(404, "Media Not Found")
 
+    if quality not in (None, 1080, 720, 480):
+        raise HTTPException(400, "quality must be 1080, 720 or 480")
+
     server_base = f"{request.url.scheme}://{request.url.netloc}"
     playlist_url = (f"{server_base}/api/v1/stream/{media_id}/playlist.m3u8"
                     f"?token={token or ''}&aidx={aidx}")
@@ -398,11 +422,32 @@ async def get_master_playlist(
         playlist_url += f"&file_id={file_id}"
     if t > 0:
         playlist_url += f"&t={int(t)}"
+    if quality:
+        playlist_url += f"&quality={quality}"
+
+    # Advertise the codec that will actually be in the segments. The media
+    # playlist stream-copies HEVC when no subtitle burn-in or quality change
+    # is requested (see get_media_playlist); advertising avc1 for HEVC
+    # segments makes strict clients (AVPlayer) reject or mis-decode.
+    file_info = await asyncio.to_thread(get_detailed_media_info, mf.path)
+    probe_vcodec = (file_info.get("vcodec") or "").lower()
+    # Mirror get_media_playlist's no-upscale rule: a quality at or above the
+    # source height is treated as "original", which re-enables stream copy.
+    src_height = int(file_info.get("height") or 0)
+    effective_q = quality
+    if effective_q and src_height and src_height <= effective_q:
+        effective_q = None
+    if effective_q is None and sidx is None and probe_vcodec in ("hevc", "h265"):
+        codecs = "hvc1.1.6.L123.B0,mp4a.40.2"
+    else:
+        codecs = "avc1.64001f,mp4a.40.2"
+
+    bandwidth = {1080: 8500000, 720: 4500000, 480: 2200000}.get(quality, 2500000)
 
     lines = [
         "#EXTM3U",
         "#EXT-X-VERSION:3",
-        "#EXT-X-STREAM-INF:BANDWIDTH=2500000,CODECS=\"avc1.64001f,mp4a.40.2\"",
+        f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},CODECS=\"{codecs}\"",
         playlist_url,
     ]
     return Response(
@@ -422,6 +467,7 @@ async def get_media_playlist(
     stype: str = Query("text"),
     file_id: Optional[int] = Query(None),
     t: float = Query(0),
+    quality: Optional[int] = Query(None, description="Target height (1080/720/480); omit for original"),
     db: AsyncSession = Depends(get_db)
 ):
     # Verify user and capture username for HLS token generation
@@ -458,13 +504,24 @@ async def get_media_playlist(
                 s_path = track.get("path")
                 resolved_sidx = None  # no si= needed for a standalone file
 
+    if quality not in (None, 1080, 720, 480):
+        raise HTTPException(400, "quality must be 1080, 720 or 480")
+
+    # Don't upscale: if the source is already at or below the requested
+    # height, treat the request as "original" (enables stream copy again).
+    src_height = int(file_info.get("height") or 0)
+    v_height = quality
+    if v_height and src_height and src_height <= v_height:
+        v_height = None
+
     # Determine video codec — can only stream-copy when NOT burning subtitles
-    # (FFmpeg refuses -vf + -c:v copy simultaneously).
+    # and NOT changing quality (both need a video filter, which FFmpeg
+    # refuses alongside -c:v copy).
     # Copy works for any container: H.264/HEVC → TS just needs the Annex B BSF.
     probe_vcodec = (file_info.get("vcodec") or "").lower()
     vcodec = "libx264"
     v_bsf = None
-    if sidx is None:
+    if sidx is None and v_height is None:
         if probe_vcodec == "h264":
             vcodec = "copy"
             v_bsf = "h264_mp4toannexb"
@@ -479,7 +536,7 @@ async def get_media_playlist(
 
     # Create Job with Audio Map
     a_map = await _pick_audio_map(mf.path, aidx)
-    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path, v_bsf, start_seg)
+    job = await get_or_create_job(media_id, mf.id, "ts", vcodec, "aac", a_map, resolved_sidx, stype, s_path, v_bsf, start_seg, v_height)
     await start_or_warm_job(mf.path, job)
     
     # Wait for at least 1 segment before responding

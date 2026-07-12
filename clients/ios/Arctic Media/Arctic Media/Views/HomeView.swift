@@ -155,6 +155,7 @@ private struct ContinueWatchingCard: View {
     @State private var episodeItem: MediaItem?      // episodes → episode detail sheet
     @State private var playRequest: _CWPlayRequest?
     @State private var fetching = false
+    @State private var autoPlayAfter: MediaItem?    // episode that just finished; queue its successor
 
     var body: some View {
         Button {
@@ -222,16 +223,45 @@ private struct ContinueWatchingCard: View {
                     let resolvedStart = startAt ?? (item.positionSeconds > 30 ? item.positionSeconds : nil)
                     playRequest = _CWPlayRequest(
                         id: ep.id, url: url, title: ep.title,
-                        startAt: resolvedStart)
+                        startAt: resolvedStart,
+                        onFinished: makeFinishedHandler(for: ep))
                 }
             )
         }
-        .fullScreenCover(item: $playRequest) { req in
+        .fullScreenCover(item: $playRequest, onDismiss: {
+            guard let finished = autoPlayAfter else { return }
+            autoPlayAfter = nil
+            Task {
+                guard let token = appState.token,
+                      let seasonId = finished.parentId,
+                      let eps = try? await APIService.shared.episodes(
+                          serverURL: appState.serverURL, token: token, seasonId: seasonId),
+                      let idx = eps.firstIndex(where: { $0.id == finished.id }),
+                      idx + 1 < eps.count else { return }
+                let next = eps[idx + 1]
+                guard let url = APIService.shared.hlsURL(
+                          serverURL: appState.serverURL, token: token, mediaId: next.id) else { return }
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                await MainActor.run {
+                    playRequest = _CWPlayRequest(
+                        id: next.id, url: url, title: next.title, startAt: nil,
+                        onFinished: makeFinishedHandler(for: next))
+                }
+            }
+        }) { req in
             VideoPlayerView(
                 url: req.url, title: req.title, mediaId: req.id,
                 serverURL: appState.serverURL, token: appState.token ?? "",
-                startAt: req.startAt)
+                startAt: req.startAt,
+                onFinished: req.onFinished)
         }
+    }
+
+    private func makeFinishedHandler(for ep: MediaItem) -> (() -> Void)? {
+        guard appState.autoPlayEnabled, ep.parentId != nil else { return nil }
+        // Just mark which episode finished; the next-episode lookup happens
+        // in onDismiss so the fetch can't race the cover dismissal.
+        return { autoPlayAfter = ep }
     }
 }
 
@@ -240,4 +270,5 @@ private struct _CWPlayRequest: Identifiable {
     let url: URL
     let title: String
     let startAt: Double?
+    var onFinished: (() -> Void)? = nil
 }

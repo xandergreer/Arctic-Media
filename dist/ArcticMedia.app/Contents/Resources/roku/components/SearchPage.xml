@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="SearchPage" extends="Group">
+    <interface>
+        <field id="navRequest" type="assocarray" alwaysNotify="true" />
+        <field id="params"     type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/SearchPage.brs" />
+    <children>
+        <!-- Background -->
+        <Rectangle color="0x080818FF" width="1920" height="1080" />
+
+        <!-- Header bar -->
+        <Rectangle color="0x0E0E28FF" width="1920" height="108" />
+        <Rectangle color="0x4A9FFF33" width="1920" height="2" translation="[0, 108]" />
+        <Label translation="[40, 28]" text="Arctic Media" color="0x4A9FFFFF"
+               font="font:MediumBoldSystemFont" width="280" />
+        <Label translation="[370, 34]" text="Search" color="0xFFFFFFFF"
+               font="font:SmallBoldSystemFont" width="160" />
+
+        <!-- Keyboard (left panel) -->
+        <Keyboard id="keyboard" translation="[40, 130]" />
+
+        <!-- Divider -->
+        <Rectangle color="0x1A1A3AFF" width="2" height="930" translation="[922, 110]" />
+
+        <!-- Results panel (right) -->
+        <Label id="hintLabel" translation="[960, 430]"
+               text="Type to search your library"
+               color="0x333355FF" font="font:SmallBoldSystemFont"
+               width="880" horizAlign="center" />
+
+        <Label id="noResultsLabel" translation="[960, 430]"
+               text="No results found"
+               color="0x666688FF" font="font:SmallBoldSystemFont"
+               width="880" horizAlign="center" visible="false" />
+
+        <Label id="labelMovies" translation="[960, 136]" text="Movies"
+               color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
+        <Group id="movieRow" translation="[960, 174]" visible="false" />
+
+        <Label id="labelShows" translation="[960, 490]" text="TV Shows"
+               color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
+        <Group id="showRow" translation="[960, 528]" visible="false" />
+
+        <!-- Footer hints -->
+        <Label id="kbHint" translation="[40, 1052]"
+               text="Back = exit     * = browse results"
+               color="0x333333FF" font="font:SmallSystemFont" width="860" />
+        <Label id="resHint" translation="[40, 1052]"
+               text="* = back to keyboard     Up / Down = switch rows     Left / Right = browse     OK = select"
+               color="0x333333FF" font="font:SmallSystemFont" width="1800" visible="false" />
+    </children>
+</component>

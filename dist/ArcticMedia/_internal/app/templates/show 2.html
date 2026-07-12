@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Loading… — Arctic Media{% endblock %}
+
+{% block full_content %}
+<!-- Backdrop -->
+<div class="detail-backdrop-wrap">
+    <img id="backdrop-img" class="detail-backdrop-img" src="" alt="">
+    <div class="detail-backdrop-overlay"></div>
+</div>
+
+<!-- Detail content -->
+<div class="detail-content">
+    <!-- Poster -->
+    <div class="detail-poster">
+        <img id="poster-img" src="" alt="">
+    </div>
+
+    <!-- Info -->
+    <div class="detail-info">
+        <h1 class="detail-title" id="title">Loading…</h1>
+        <div class="detail-meta-row">
+            <span id="year"></span>
+            <span class="detail-meta-dot">·</span>
+            <span id="seasons-count"></span>
+            <span class="detail-meta-dot">·</span>
+            <span class="badge">TV SHOW</span>
+        </div>
+
+        <div class="detail-actions">
+            <!-- Subtitles -->
+            <button id="subtitleBtn" onclick="requestSubtitles()" class="btn btn-ghost" title="Download subtitles for all episodes">
+                <span class="material-icons">subtitles</span>
+            </button>
+            <!-- Edit (admin only, shown by JS) -->
+            <button id="editBtn" class="btn btn-ghost hidden" title="Edit metadata">
+                <span class="material-icons">edit</span>
+            </button>
+            <!-- Delete (admin only, shown by JS) -->
+            <button id="deleteBtn" class="btn btn-danger hidden" title="Remove from library">
+                <span class="material-icons">delete</span>
+            </button>
+        </div>
+
+        <p class="detail-overview" id="overview"></p>
+        <div id="external-links" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem;"></div>
+
+        <!-- Video player (hidden until episode is played) -->
+        <div class="video-container" id="video-container">
+            <video id="video-player" controls crossorigin playsinline muted></video>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal hidden">
+    <div class="modal-content edit-modal-content">
+        <div class="edit-modal-header">
+            <h2 style="margin:0;font-size:1.1rem;font-weight:700;">Edit Metadata</h2>
+            <button id="closeEditModal" class="btn btn-ghost" style="padding:0.3rem;">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        <div class="edit-tabs">
+            <button class="edit-tab active" data-tab="info">Info</button>
+            <button class="edit-tab" data-tab="ids">IDs</button>
+            <button class="edit-tab" data-tab="genres">Genres</button>
+            <button class="edit-tab" data-tab="cast">Cast</button>
+            <button class="edit-tab" data-tab="images">Images</button>
+        </div>
+        <div class="edit-modal-body">
+            <!-- Info -->
+            <div id="edit-tab-info" class="edit-tab-panel">
+                <div class="form-group"><label>Title</label><input id="edit-title" type="text" class="form-control"></div>
+                <div class="form-group"><label>Original Title</label><input id="edit-original-title" type="text" class="form-control" placeholder="Leave blank if same as title"></div>
+                <div class="form-group"><label>Sort Title</label><input id="edit-sort-title" type="text" class="form-control" placeholder="e.g. Mandalorian, The"></div>
+                <div class="form-group"><label>Tagline</label><input id="edit-tagline" type="text" class="form-control"></div>
+                <div class="form-group"><label>Overview</label><textarea id="edit-overview" class="form-control" rows="5" style="resize:vertical;"></textarea></div>
+                <div class="form-group"><label>First Air Date</label><input id="edit-release-date" type="date" class="form-control"></div>
+            </div>
+            <!-- IDs -->
+            <div id="edit-tab-ids" class="edit-tab-panel hidden">
+                <div class="form-group"><label>TheMovieDB ID</label><input id="edit-tmdb" type="number" class="form-control" placeholder="e.g. 87108"></div>
+                <div class="form-group"><label>IMDb ID</label><input id="edit-imdb" type="text" class="form-control" placeholder="e.g. tt4532826"></div>
+                <div class="form-group"><label>TheTVDB ID</label><input id="edit-tvdb" type="number" class="form-control" placeholder="e.g. 328487"></div>
+                <button id="edit-fetch-tmdb" class="btn btn-primary" style="margin-top:0.25rem;">
+                    <span class="material-icons" style="font-size:1rem;">download</span> Fetch from TMDB
+                </button>
+            </div>
+            <!-- Genres -->
+            <div id="edit-tab-genres" class="edit-tab-panel hidden">
+                <div id="edit-genres-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;min-height:2.5rem;margin-bottom:1rem;padding:0.75rem;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border);"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <input id="edit-genre-input" type="text" class="form-control" placeholder="Add genre…">
+                    <button id="edit-genre-add" class="btn btn-primary" style="flex-shrink:0;"><span class="material-icons" style="font-size:1rem;">add</span></button>
+                </div>
+            </div>
+            <!-- Cast -->
+            <div id="edit-tab-cast" class="edit-tab-panel hidden">
+                <div id="edit-cast-list" style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:1rem;"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <input id="edit-cast-name" type="text" class="form-control" placeholder="Actor name">
+                    <input id="edit-cast-role" type="text" class="form-control" placeholder="Role / character">
+                    <button id="edit-cast-add" class="btn btn-primary" style="flex-shrink:0;"><span class="material-icons" style="font-size:1rem;">add</span></button>
+                </div>
+            </div>
+            <!-- Images -->
+            <div id="edit-tab-images" class="edit-tab-panel hidden">
+                <div class="form-group">
+                    <label>Poster URL</label>
+                    <input id="edit-poster" type="text" class="form-control">
+                    <div id="edit-poster-preview" style="margin-top:0.75rem;display:none;"><img src="" style="max-height:220px;border-radius:var(--radius-sm);"></div>
+                </div>
+                <div class="form-group">
+                    <label>Backdrop URL</label>
+                    <input id="edit-backdrop" type="text" class="form-control">
+                    <div id="edit-backdrop-preview" style="margin-top:0.75rem;display:none;"><img src="" style="max-width:100%;border-radius:var(--radius-sm);"></div>
+                </div>
+            </div>
+        </div>
+        <div id="edit-msg" style="display:none;padding:0 1.5rem 0.5rem;font-size:0.85rem;"></div>
+        <div class="edit-modal-footer">
+            <button id="cancelEditModal" class="btn btn-ghost">Cancel</button>
+            <button id="saveEditModal" class="btn btn-primary">
+                <span class="material-icons" style="font-size:1rem;">save</span> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal hidden">
+    <div class="modal-content" style="max-width:420px;text-align:center;">
+        <span class="material-icons" style="font-size:3rem;color:#f87171;margin-bottom:0.75rem;">delete_forever</span>
+        <h2 style="margin-bottom:0.5rem;">Remove from Library?</h2>
+        <p id="deleteModalMsg" style="color:var(--text-muted);margin-bottom:1.75rem;font-size:0.95rem;">This item will
+            be removed from Arctic Media. Files on disk will NOT be deleted.</p>
+        <div style="display:flex;gap:0.75rem;justify-content:center;">
+            <button id="cancelDeleteBtn" class="btn btn-ghost">Cancel</button>
+            <button id="confirmDeleteBtn" class="btn btn-danger">
+                <span class="material-icons" style="font-size:1rem;">delete</span> Remove
+            </button>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="media-id" value="{{ item_id }}">
+<input type="hidden" id="is-show" value="true">
+
+<!-- Seasons & Episodes -->
+<div class="section">
+    <!-- Season tabs -->
+    <div id="season-list" class="season-tabs"><!-- JS --></div>
+
+    <div class="section-label" style="margin-bottom:1rem;">
+        <h3 id="season-title">Episodes</h3>
+    </div>
+
+    <div id="episodes-grid" class="episode-grid"><!-- JS --></div>
+</div>
+
+<!-- ── Below-hero sections ───────────────────────────────────────── -->
+<div class="detail-below">
+
+    <!-- Cast & Crew -->
+    <section id="cast-section" class="detail-section hidden">
+        <div class="detail-section-header">Cast &amp; Crew</div>
+        <div class="cast-scroll-row" id="cast-list"></div>
+    </section>
+
+    <!-- More Like This -->
+    <section id="similar-section" class="detail-section hidden">
+        <div class="detail-section-header">More Like This</div>
+        <div class="similar-scroll-row" id="similar-list"></div>
+    </section>
+
+    <!-- About -->
+    <section id="about-section" class="detail-section hidden">
+        <div class="detail-section-header">About</div>
+        <div class="about-grid">
+            <div id="genres-section" class="hidden">
+                <div class="about-item-label">Genres</div>
+                <div id="genres-list" class="about-item-value"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cast Modal -->
+    <div id="castModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="margin-bottom:1.5rem;">Cast to Roku</h2>
+            <div id="cast-device-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;">
+                Loading devices...
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:1rem;">
+                <button id="closeCastModal" class="btn btn-ghost"
+                    onclick="document.getElementById('castModal').classList.add('hidden')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/details.js?v=PlyrV35"></script>
+{% endblock %}

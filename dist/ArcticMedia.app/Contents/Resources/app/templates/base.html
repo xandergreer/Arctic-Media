@@ -11,7 +11,7 @@
         rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
-    <link rel="stylesheet" href="/static/css/style.css?v=21">
+    <link rel="stylesheet" href="/static/css/style.css?v=23">
 </head>
 
 <body>
@@ -27,6 +27,7 @@
                 <a href="/" id="nav-home">Home</a>
                 <a href="/libraries/movies" id="nav-movies">Movies</a>
                 <a href="/libraries/shows" id="nav-shows">TV Shows</a>
+                <a href="/admin" id="nav-admin" style="display:none;">Admin</a>
                 <a href="/settings" id="nav-settings">Settings</a>
             </div>
 
@@ -77,7 +78,7 @@
         </p>
     </footer>
 
-    <script src="/static/js/main.js?v=3"></script>
+    <script src="/static/js/main.js?v=5"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script src="/static/js/search.js?v=2"></script>
@@ -90,7 +91,8 @@
                 '/': 'nav-home',
                 '/libraries/movies': 'nav-movies',
                 '/libraries/shows': 'nav-shows',
-                '/settings': 'nav-settings'
+                '/settings': 'nav-settings',
+                '/admin': 'nav-admin',
             };
             let best = '', bestId = '';
             for (const [p, id] of Object.entries(map)) {

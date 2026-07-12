@@ -1,6 +1,9 @@
 import asyncio
+import json
 import os
 import re
+import subprocess
+import sys
 import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,14 +21,41 @@ from app.services.metadata import enrich_library, _search_tv, _get
 from app.services import subtitles as subs_svc
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
+from app.core.ffmpeg_manager import get_binary as _get_ffmpeg
+
+
+def _probe_duration(file_path: str) -> float | None:
+    """Return duration in seconds from ffprobe, or None on any failure."""
+    try:
+        ffprobe = _get_ffmpeg("ffprobe")
+        si = None
+        if os.name == "nt":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        result = subprocess.run(
+            [ffprobe, "-v", "error", "-show_entries", "format=duration",
+             "-of", "json", file_path],
+            capture_output=True, text=True, startupinfo=si, timeout=15,
+        )
+        data = json.loads(result.stdout)
+        dur = data.get("format", {}).get("duration")
+        return float(dur) if dur else None
+    except Exception:
+        return None
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v"}
 
 # Regex for "Title (Year)"
 MOVIE_REGEX = re.compile(r"^(.*?)\s*\((\d{4})\).*$")
 
-# Regex for "Show S01E01"
-EPISODE_REGEX = re.compile(r"([sS](\d{1,2})[eE](\d{1,2}))|(\d{1,2})[xX](\d{1,2})")
+# Regex for "Show S01E01". Also matches separator variants (S01.E01, S01 E01,
+# S01_E01) and multi-episode files (S01E01E02, S01E01-E02, S01E01-02) — the
+# extra episode numbers land in the "extra" group.
+EPISODE_REGEX = re.compile(
+    r"[sS](?P<season>\d{1,2})[ ._-]?[eE](?P<episode>\d{1,2})"
+    r"(?P<extra>(?:[ ._-]?[eE-]\d{1,2})*)"
+    r"|(?P<x_season>\d{1,2})[xX](?P<x_episode>\d{1,2})"
+)
 
 STOPWORDS = {
     # services/groups
@@ -422,7 +452,15 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 MediaItem.kind == MediaKind.MOVIE,
                 MediaItem.title == title,
             ))
-            media_item = result.scalars().first()
+            # Same title from a different year is a different movie (remakes:
+            # "Dune (1984)" vs "Dune (2021)"). Only merge when the years match
+            # or either side has no year to compare.
+            media_item = None
+            for cand in result.scalars().all():
+                cand_year = cand.release_date.year if cand.release_date else None
+                if year is None or cand_year is None or cand_year == year:
+                    media_item = cand
+                    break
 
             if not media_item:
                 media_item = MediaItem(
@@ -441,17 +479,29 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 print(f"    [ERROR] Could not stat {filename}")
                 continue
 
-            # Use the file's mtime as added_at so "recently added" sorts by
-            # when the file actually landed on disk, not when we scanned it.
+            # Use the file's creation time as added_at so "recently added"
+            # reflects when the file landed in the library, not when we scanned.
+            # On Windows ctime = file creation time (when copied/downloaded here).
+            # On macOS/Linux ctime = inode change time, so we use mtime there.
             try:
-                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path))
+                st = os.stat(full_path)
+                if sys.platform == "win32":
+                    file_added = datetime.datetime.fromtimestamp(st.st_ctime)
+                elif hasattr(st, "st_birthtime"):
+                    file_added = datetime.datetime.fromtimestamp(st.st_birthtime)
+                else:
+                    file_added = datetime.datetime.fromtimestamp(st.st_mtime)
             except OSError:
-                file_mtime = datetime.datetime.now()
+                file_added = datetime.datetime.now()
+            duration = await asyncio.get_event_loop().run_in_executor(
+                None, _probe_duration, full_path
+            )
             db.add(MediaFile(
                 media_item_id=media_item.id,
                 path=full_path,
                 size_bytes=size,
-                added_at=file_mtime,
+                added_at=file_added,
+                duration_seconds=duration,
             ))
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, title, year))
@@ -533,12 +583,17 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 no_match += 1
                 continue
 
-            if match.group(2):
-                season_num = int(match.group(2))
-                episode_num = int(match.group(3))
+            if match.group("season"):
+                season_num = int(match.group("season"))
+                episode_num = int(match.group("episode"))
+                # Multi-episode file: S01E01E02 covers episodes 1 and 2
+                extra = match.group("extra") or ""
+                extra_eps = [int(n) for n in re.findall(r"\d{1,2}", extra)]
             else:
-                season_num = int(match.group(4))
-                episode_num = int(match.group(5))
+                season_num = int(match.group("x_season"))
+                episode_num = int(match.group("x_episode"))
+                extra_eps = []
+            ep_nums = [episode_num] + [n for n in extra_eps if n > episode_num]
 
             # Determine show name from filename then folder
             path_parts = os.path.normpath(full_path).split(os.sep)
@@ -580,39 +635,54 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 season_item = await _get_or_create_season(db, show_item, season_num, lib_id)
                 season_cache[season_key] = season_item
 
-            ep_title = f"Episode {episode_num}"
-            if tmdb_cache:
-                try:
-                    tmdb_title = await tmdb_cache.episode_title(show_name, season_num, episode_num)
-                    if tmdb_title:
-                        ep_title = tmdb_title
-                except Exception as e:
-                    print(f"      [TMDB] Lookup failed for {show_name} S{season_num:02d}E{episode_num:02d}: {e}")
-
-            ep_key = (season_item.id, episode_num)
-            if ep_key in episode_cache:
-                episode_item = episode_cache[ep_key]
-            else:
-                episode_item = await _get_or_create_episode(db, season_item, episode_num, ep_title, lib_id)
-                episode_cache[ep_key] = episode_item
-
             # Size already collected by _walk_and_stat - no extra syscall needed
             size = file_sizes.get(filename)
             if size is None:
                 continue
 
             try:
-                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path))
+                st = os.stat(full_path)
+                if sys.platform == "win32":
+                    file_added = datetime.datetime.fromtimestamp(st.st_ctime)
+                elif hasattr(st, "st_birthtime"):
+                    file_added = datetime.datetime.fromtimestamp(st.st_birthtime)
+                else:
+                    file_added = datetime.datetime.fromtimestamp(st.st_mtime)
             except OSError:
-                file_mtime = datetime.datetime.now()
-            db.add(MediaFile(
-                media_item_id=episode_item.id,
-                path=full_path,
-                size_bytes=size,
-                added_at=file_mtime,
-            ))
+                file_added = datetime.datetime.now()
+            ep_duration = await asyncio.get_event_loop().run_in_executor(
+                None, _probe_duration, full_path
+            )
+
+            # A multi-episode file is attached to every episode it covers, so
+            # each episode exists in the library and plays the same file.
+            for ep_no in ep_nums:
+                ep_title = f"Episode {ep_no}"
+                if tmdb_cache:
+                    try:
+                        tmdb_title = await tmdb_cache.episode_title(show_name, season_num, ep_no)
+                        if tmdb_title:
+                            ep_title = tmdb_title
+                    except Exception as e:
+                        print(f"      [TMDB] Lookup failed for {show_name} S{season_num:02d}E{ep_no:02d}: {e}")
+
+                ep_key = (season_item.id, ep_no)
+                if ep_key in episode_cache:
+                    episode_item = episode_cache[ep_key]
+                else:
+                    episode_item = await _get_or_create_episode(db, season_item, ep_no, ep_title, lib_id)
+                    episode_cache[ep_key] = episode_item
+
+                db.add(MediaFile(
+                    media_item_id=episode_item.id,
+                    path=full_path,
+                    size_bytes=size,
+                    added_at=file_added,
+                    duration_seconds=ep_duration,
+                ))
+                print(f"    [EP] {show_name} S{season_num:02d}E{ep_no:02d}  <- {filename}")
+
             known_paths.add(full_path)  # prevent intra-scan duplicates
-            print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
             new_paths.append((full_path, show_name, season_num, episode_num))
             added += 1
 

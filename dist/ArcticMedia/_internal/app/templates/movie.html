@@ -18,12 +18,16 @@
     <!-- Info -->
     <div class="detail-info">
         <h1 class="detail-title" id="title">Loading…</h1>
+        <p id="tagline" class="hidden" style="font-style:italic;color:var(--text-muted);margin:0 0 0.5rem 0;"></p>
         <div class="detail-meta-row" style="margin-bottom: 0.5rem;">
             <span id="year"></span>
             <span class="detail-meta-dot" id="dot-duration" style="display:none;">·</span>
             <span id="duration"></span>
             <span class="detail-meta-dot">·</span>
             <span class="badge">MOVIE</span>
+            <span id="rating-badge" class="hidden" style="display:inline-flex;align-items:center;gap:0.25rem;color:#f5c518;font-weight:600;">
+                <span class="material-icons" style="font-size:1rem;">star</span><span id="rating-value"></span>
+            </span>
         </div>
 
         <div id="file-versions-container" class="hidden"
@@ -60,7 +64,7 @@
 
         <!-- Video player -->
         <div class="video-container" id="video-container">
-            <video id="video-player" controls crossorigin playsinline></video>
+            <video id="video-player" controls crossorigin playsinline muted></video>
         </div>
     </div>
 </div>
@@ -192,7 +196,6 @@
 </div>
 
 <input type="hidden" id="media-id" value="{{ item_id }}">
-{% endblock %}
 
 <!-- Cast Modal -->
 <div id="castModal" class="modal hidden">
@@ -207,7 +210,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
-<script src="/static/js/details.js?v=PlyrV34"></script>
+<script src="/static/js/details.js?v=PlyrV36"></script>
 {% endblock %}

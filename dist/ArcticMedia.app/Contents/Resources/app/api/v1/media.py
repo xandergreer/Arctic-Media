@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import desc, func, or_
+from sqlalchemy import case, desc, func, or_
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
@@ -169,10 +169,15 @@ async def get_seasons(
     """
     Get seasons for a specific show.
     """
+    # Specials (season 0) sort after all numbered seasons, not before them,
+    # so shows with a Specials folder still default to Season 1.
     query = select(MediaItem).where(
         MediaItem.kind == MediaKind.SEASON,
         MediaItem.parent_id == show_id
-    ).order_by(MediaItem.season_number)
+    ).order_by(
+        case((MediaItem.season_number == 0, 1), else_=0),
+        MediaItem.season_number
+    )
     
     result = await db.execute(query)
     return result.scalars().all()
@@ -208,6 +213,7 @@ async def get_episodes(
             rd = ep.release_date.strftime("%Y-%m-%d")
         out.append({
             "id": ep.id,
+            "kind": ep.kind,
             "title": ep.title,
             "episode_number": ep.episode_number,
             "season_number": ep.season_number,

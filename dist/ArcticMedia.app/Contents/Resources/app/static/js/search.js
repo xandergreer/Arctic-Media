@@ -178,43 +178,67 @@ class Search {
             return;
         }
 
+        // Use DOM methods (not innerHTML) so untrusted title/overview text
+        // can never be interpreted as HTML → prevents XSS.
         if (movies.length > 0) {
-            this.searchResultsPopup.innerHTML += this.renderSection('Movies', movies, 'movie');
+            this.searchResultsPopup.appendChild(this._renderSection('Movies', movies, 'movie'));
         }
         if (tvShows.length > 0) {
-            this.searchResultsPopup.innerHTML += this.renderSection('TV Shows', tvShows, 'show');
+            this.searchResultsPopup.appendChild(this._renderSection('TV Shows', tvShows, 'show'));
         }
     }
 
-    renderSection(title, items, type) {
-        let html = `<div class="search-section"><h4 class="search-section-title">${title}</h4>`;
+    _renderSection(title, items, type) {
+        const section = document.createElement('div');
+        section.className = 'search-section';
+
+        const heading = document.createElement('h4');
+        heading.className = 'search-section-title';
+        heading.textContent = title; // static string — safe
+        section.appendChild(heading);
+
         items.forEach(item => {
-            const posterUrl = item.poster_url || '/static/img/placeholder.png'; // Assuming you have a placeholder
-            const itemYear = item.year ? `<span class="search-result-year">(${item.year})</span>` : '';
-
-            // Limit overview length
-            let itemOverview = item.overview || '';
-            if (itemOverview.length > 80) {
-                itemOverview = itemOverview.substring(0, 80) + '...';
-            } else if (!itemOverview) {
-                itemOverview = 'No overview available.';
-            }
-
-            // Route correctly depending on the app's structure
             const routeType = type === 'movie' ? 'movie' : 'show';
 
-            html += `
-                <a href="/${routeType}/${item.id}" class="search-result-item">
-                    <img src="${posterUrl}" alt="${item.title}" class="search-result-poster" loading="lazy">
-                    <div class="search-result-info">
-                        <div class="search-result-title">${item.title} ${itemYear}</div>
-                        <div class="search-result-overview">${itemOverview}</div>
-                    </div>
-                </a>
-            `;
+            const a = document.createElement('a');
+            a.href = `/${routeType}/${item.id}`; // item.id is a server-generated integer
+            a.className = 'search-result-item';
+
+            const img = document.createElement('img');
+            img.src = item.poster_url || '/static/img/placeholder.png';
+            img.alt = ''; // decorative — title shown in text below
+            img.className = 'search-result-poster';
+            img.loading = 'lazy';
+
+            const info = document.createElement('div');
+            info.className = 'search-result-info';
+
+            // Title row — textContent prevents any embedded HTML from executing
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'search-result-title';
+            titleDiv.textContent = item.title;
+            if (item.year) {
+                const yearSpan = document.createElement('span');
+                yearSpan.className = 'search-result-year';
+                yearSpan.textContent = ` (${item.year})`;
+                titleDiv.appendChild(yearSpan);
+            }
+
+            // Overview row
+            const overviewDiv = document.createElement('div');
+            overviewDiv.className = 'search-result-overview';
+            let overview = item.overview || '';
+            if (overview.length > 80) overview = overview.substring(0, 80) + '…';
+            overviewDiv.textContent = overview || 'No overview available.';
+
+            info.appendChild(titleDiv);
+            info.appendChild(overviewDiv);
+            a.appendChild(img);
+            a.appendChild(info);
+            section.appendChild(a);
         });
-        html += `</div>`;
-        return html;
+
+        return section;
     }
 
     showLoading() {

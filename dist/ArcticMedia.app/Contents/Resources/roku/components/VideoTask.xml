@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="VideoTask" extends="Task">
+    <interface>
+        <!-- inputs -->
+        <field id="mediaId"    type="integer" value="0" />
+        <field id="title"      type="string"  value="" />
+        <field id="hlsUrl"     type="string"  value="" />
+        <field id="startSec"   type="float"   value="0.0" />
+        <field id="episodes"   type="array" />
+        <field id="episodeIdx" type="integer" value="-1" />
+        <!-- outputs -->
+        <field id="done"    type="boolean" value="false" alwaysNotify="true" />
+        <field id="nextIdx" type="integer" value="-1"   alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+    <script type="text/brightscript" uri="pkg:/components/VideoTask.brs" />
+</component>

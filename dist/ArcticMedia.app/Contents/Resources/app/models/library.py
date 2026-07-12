@@ -1,6 +1,8 @@
 import enum
+from datetime import datetime
+from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Enum as SAEnum
+from sqlalchemy import String, Enum as SAEnum, DateTime
 from app.core.database import Base
 from app.models.base import IDMixin, TimestampMixin
 
@@ -34,6 +36,9 @@ class Library(Base, IDMixin, TimestampMixin):
         nullable=False
     )
     
+    # Timestamp of the last completed scan — used for mtime-based incremental scanning
+    last_scanned_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # Cascade Delete: When Library is deleted, delete all MediaItems
     items: Mapped[list["MediaItem"]] = relationship(
         "MediaItem", 

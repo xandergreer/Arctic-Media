@@ -18,12 +18,16 @@
     <!-- Info -->
     <div class="detail-info">
         <h1 class="detail-title" id="title">Loading…</h1>
+        <p id="tagline" class="hidden" style="font-style:italic;color:var(--text-muted);margin:0 0 0.5rem 0;"></p>
         <div class="detail-meta-row">
             <span id="year"></span>
             <span class="detail-meta-dot">·</span>
             <span id="seasons-count"></span>
             <span class="detail-meta-dot">·</span>
             <span class="badge">TV SHOW</span>
+            <span id="rating-badge" class="hidden" style="display:inline-flex;align-items:center;gap:0.25rem;color:#f5c518;font-weight:600;">
+                <span class="material-icons" style="font-size:1rem;">star</span><span id="rating-value"></span>
+            </span>
         </div>
 
         <div class="detail-actions">
@@ -46,7 +50,7 @@
 
         <!-- Video player (hidden until episode is played) -->
         <div class="video-container" id="video-container">
-            <video id="video-player" controls crossorigin playsinline></video>
+            <video id="video-player" controls crossorigin playsinline muted></video>
         </div>
     </div>
 </div>
@@ -184,23 +188,23 @@
         </div>
     </section>
 
+    <!-- Cast Modal -->
+    <div id="castModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="margin-bottom:1.5rem;">Cast to Roku</h2>
+            <div id="cast-device-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;">
+                Loading devices...
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:1rem;">
+                <button id="closeCastModal" class="btn btn-ghost"
+                    onclick="document.getElementById('castModal').classList.add('hidden')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
-<!-- Cast Modal -->
-<div id="castModal" class="modal hidden">
-    <div class="modal-content" style="max-width: 400px;">
-        <h2 style="margin-bottom:1.5rem;">Cast to Roku</h2>
-        <div id="cast-device-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;">
-            Loading devices...
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:1rem;">
-            <button id="closeCastModal" class="btn btn-ghost"
-                onclick="document.getElementById('castModal').classList.add('hidden')">Cancel</button>
-        </div>
-    </div>
-</div>
-
 {% block scripts %}
-<script src="/static/js/details.js?v=PlyrV34"></script>
+<script src="/static/js/details.js?v=PlyrV36"></script>
 {% endblock %}
