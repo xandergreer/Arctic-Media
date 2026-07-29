@@ -1,6 +1,5 @@
 sub init()
     m.pageStack  = []
-    m.videoTask  = invalid
 
     m.top.observeField("navRequest",    "onNavRequest")
     m.top.observeField("launchContent", "onLaunchContent")
@@ -34,6 +33,12 @@ sub popPage()
     if m.pageStack.count() > 0
         prevPage = m.pageStack[m.pageStack.count() - 1]
         prevPage.setFocus(true)
+        ' Pages with internal focusable lists (SeasonPage, SearchPage) need to
+        ' re-focus the right child — page-level focus alone leaves their lists
+        ' deaf to up/down.
+        if prevPage.hasField("restoreFocus")
+            prevPage.restoreFocus = true
+        end if
         ' Notify HomePage to refresh Continue Watching row
         if prevPage.hasField("onReturnedToHome")
             prevPage.onReturnedToHome = true
@@ -67,8 +72,7 @@ sub onNavRequest(event as object)
         pushPage("SeasonPage", req)
 
     else if action = "play"
-        ' VideoPage uses SceneGraph Video node (guaranteed to work).
-        ' Swap for runVideoTask(req) to test native roVideoScreen OSD instead.
+        ' VideoPage is the SceneGraph Video-node player (OSD, subtitles, autoplay).
         pushPage("VideoPage", req)
 
     else if action = "back"
@@ -84,10 +88,14 @@ sub onNavRequest(event as object)
         if token <> "" and serverUrl <> ""
             q    = Chr(34)
             body = "{" + q + "access_token" + q + ":" + q + token + q + "}"
-            req2 = CreateObject("roUrlTransfer")
-            req2.SetUrl(serverUrl + "/pair/signout")
-            req2.AddHeader("Content-Type", "application/json")
-            req2.PostFromString(body)  ' fire-and-forget, ignore response
+            ' Must go through a Task — roUrlTransfer is unavailable on the
+            ' render thread. Fire-and-forget; we don't wait for the response.
+            signoutTask = CreateObject("roSGNode", "ApiTask")
+            signoutTask.url     = serverUrl + "/pair/signout"
+            signoutTask.method  = "POST"
+            signoutTask.reqBody = body
+            signoutTask.control = "run"
+            m.signoutTask = signoutTask
         end if
         ClearAuth()
         clearAndPush("PairingPage", {serverUrl: GetReg("server_url")})
@@ -95,63 +103,7 @@ sub onNavRequest(event as object)
     end if
 end sub
 
-' ── Video Task (roVideoScreen with native OSD) ────────────────────────────
-
-sub runVideoTask(req as object)
-    ' Stop any existing task
-    if m.videoTask <> invalid
-        m.videoTask.control = "stop"
-        m.videoTask = invalid
-    end if
-
-    task = CreateObject("roSGNode", "VideoTask")
-    task.mediaId    = req.mediaId
-    task.title      = req.title
-    task.hlsUrl     = req.url
-    task.startSec   = req.position
-    if req.episodeList <> invalid then task.episodes   = req.episodeList
-    if req.episodeIdx  <> invalid then task.episodeIdx = req.episodeIdx
-    task.observeField("done",    "onVideoTaskDone")
-    task.observeField("nextIdx", "onVideoTaskNext")
-    task.control = "run"
-    m.videoTask = task
-end sub
-
-sub onVideoTaskDone(event as object)
-    if event.getData() = true
-        m.videoTask = invalid
-        ' Restore focus to the top page in our stack
-        if m.pageStack.count() > 0
-            m.pageStack[m.pageStack.count() - 1].setFocus(true)
-        end if
-    end if
-end sub
-
-sub onVideoTaskNext(event as object)
-    nextIdx = event.getData()
-    if nextIdx < 0 then return
-    ' The task already has the episode list — just restart with new index
-    if m.videoTask = invalid then return
-    episodes = m.videoTask.episodes
-    if episodes = invalid then return
-    if nextIdx >= episodes.count() then return
-
-    ep = episodes[nextIdx]
-    serverUrl = GetReg("server_url")
-    token     = GetReg("access_token")
-    req = {
-        action:      "play"
-        mediaId:     ep.id
-        title:       ep.title
-        url:         BuildHlsUrl(serverUrl, token, ep.id)
-        position:    0.0
-        episodeList: episodes
-        episodeIdx:  nextIdx
-    }
-    runVideoTask(req)
-end sub
-
-' ── ECP deep-link (cast from iOS) ─────────────────────────────────────────
+' ── Deep-link (cast from iOS / voice launch) ──────────────────────────────
 
 sub onLaunchContent(event as object)
     content = event.getData()
@@ -160,18 +112,92 @@ sub onLaunchContent(event as object)
     serverUrl = GetReg("server_url")
     if token = "" or serverUrl = "" then return
 
+    ' contentId arrives boxed from the node field (roString/roInt), so check
+    ' interfaces rather than type() names.
     mediaId = 0
-    if type(content.contentId) = "String"
-        mediaId = content.contentId.ToInt()
-    else if type(content.contentId) = "Integer"
-        mediaId = content.contentId
+    cid = content.contentId
+    if cid <> invalid
+        if GetInterface(cid, "ifString") <> invalid
+            mediaId = cid.ToInt()
+        else if GetInterface(cid, "ifInt") <> invalid
+            mediaId = cid
+        end if
     end if
     if mediaId = 0 then return
 
-    runVideoTask({
-        mediaId:  mediaId
+    ' Before playing, look up this title's saved resume position so a deep link
+    ' picks up where the user left off (e.g. started on the iOS app). The
+    ' history fetch has to run on a Task thread — roUrlTransfer is unavailable
+    ' on the render thread — so playback continues in onDeepLinkHistory once the
+    ' position is known.
+    m.pendingDeepLink = {mediaId: mediaId, serverUrl: serverUrl, token: token}
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = serverUrl + "/api/v1/history"
+    task.token = token
+    task.observeField("resultArr", "onDeepLinkHistory")
+    task.observeField("apiError",  "onDeepLinkHistoryError")
+    task.observeField("state",     "onDeepLinkTaskState")
+    task.control = "run"
+    m.deepLinkTask = task
+end sub
+
+sub onDeepLinkHistory(event as object)
+    rows = event.getData()
+    if rows = invalid then return
+    ' alwaysNotify fields can fire once with an empty payload the moment the
+    ' observer attaches; a genuinely empty history still plays — from 0:00 —
+    ' via onDeepLinkTaskState when the task finishes.
+    if rows.count() = 0 then return
+    if m.pendingDeepLink = invalid then return
+    posSec = 0.0
+    for each row in rows
+        rowId = row.media_id
+        if rowId <> invalid and rowId = m.pendingDeepLink.mediaId
+            if row.position_seconds <> invalid then posSec = row.position_seconds
+            exit for
+        end if
+    end for
+    playDeepLink(posSec)
+end sub
+
+sub onDeepLinkTaskState(event as object)
+    ' Fallback: task finished but no usable history row consumed the pending
+    ' deep link (empty history, or resultArr never fired). Play from the start.
+    st = event.getData()
+    if (st = "done" or st = "stop") and m.pendingDeepLink <> invalid
+        playDeepLink(0.0)
+    end if
+end sub
+
+sub onDeepLinkHistoryError(event as object)
+    ' History unavailable — play from the start rather than not at all.
+    playDeepLink(0.0)
+end sub
+
+' Push the VideoPage for a resolved deep link. Same SceneGraph player as normal
+' playback, so it keeps the OSD, subtitles and next-episode autoplay.
+sub playDeepLink(position as dynamic)
+    if m.pendingDeepLink = invalid then return
+    dl = m.pendingDeepLink
+    m.pendingDeepLink = invalid
+
+    ' Warm deep link while something is already playing: tear the old player
+    ' down first so we don't stack two Video nodes (double audio + bandwidth).
+    if m.pageStack.count() > 0
+        topPage = m.pageStack[m.pageStack.count() - 1]
+        if topPage.subtype() = "VideoPage"
+            m.pageStack.pop()
+            m.top.removeChild(topPage)
+        end if
+    end if
+
+    print "[deeplink] mediaId="; dl.mediaId; " resume position="; position
+
+    pushPage("VideoPage", {
+        action:   "play"
+        mediaId:  dl.mediaId
         title:    "Loading…"
-        url:      BuildHlsUrl(serverUrl, token, mediaId)
-        position: 0.0
+        url:      BuildHlsUrl(dl.serverUrl, dl.token, dl.mediaId)
+        position: position
     })
 end sub

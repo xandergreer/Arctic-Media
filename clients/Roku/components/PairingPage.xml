@@ -7,101 +7,89 @@
     <script type="text/brightscript" uri="pkg:/source/utils.brs" />
     <script type="text/brightscript" uri="pkg:/components/PairingPage.brs" />
     <children>
-        <Rectangle color="0x0A0A1AFF" width="1920" height="1080" />
 
-        <!-- App logo / title -->
-        <Label id="appTitle"
-               translation="[160, 90]"
-               text="❄ Arctic Media"
-               color="0x4A9FFFFF"
-               font="font:LargeBoldSystemFont"
-               width="800" />
+        <!-- ═══ Cinematic backdrop ═══ -->
+        <Poster id="bg" uri="pkg:/images/bg_pairing.png" width="1920" height="1080" translation="[0,0]" />
 
-        <!-- Setup view (URL entry) -->
+        <!-- Wordmark (shown on every view) -->
+        <Label id="wordmark"
+               translation="[0, 300]" width="1920" horizAlign="center"
+               text="❄  ARCTIC MEDIA"
+               font="font:LargeBoldSystemFont" color="0xEAF3FFFF" />
+
+        <!-- ═══ SETUP VIEW — connect to server ═══ -->
         <Group id="setupView" visible="false">
-            <Label translation="[160, 200]"
-                   text="Enter your server address to get started."
-                   color="0xCCCCCCFF"
-                   font="font:MediumSystemFont"
-                   width="1200" />
-            <Label id="urlDisplay"
-                   translation="[160, 290]"
-                   text="http://"
-                   color="0x4A9FFFFF"
-                   font="font:LargeSystemFont"
-                   width="1400" />
-            <Label translation="[160, 400]"
-                   text="Keyboard starts with http:// — just type your IP:port, e.g. 10.0.0.5:8085"
-                   color="0x888888FF"
-                   font="font:SmallSystemFont"
-                   width="1400" />
-            <Label id="setupPrompt"
-                   translation="[160, 470]"
-                   text="Press OK to open keyboard"
-                   color="0xFFFFFFFF"
-                   font="font:SmallSystemFont"
-                   width="900" />
-            <Keyboard id="urlKeyboard"
-                      translation="[160, 540]"
-                      visible="false" />
+            <Label translation="[0, 392]" width="1920" horizAlign="center"
+                   text="Your library. Every screen."
+                   font="font:MediumSystemFont" color="0x6F97C8FF" />
+
+            <!-- Focal connect button -->
+            <Rectangle id="connectCard" translation="[700, 520]" width="520" height="104" color="0x152540E6" />
+            <Rectangle translation="[700, 520]" width="520" height="4" color="0x4A9FFFFF" />
+            <Label id="connectLabel"
+                   translation="[700, 553]" width="520" horizAlign="center"
+                   text="▶   Connect to Server"
+                   font="font:MediumBoldSystemFont" color="0xEAF3FFFF" />
+
+            <!-- Remembered / failed server (only shown when relevant) -->
+            <Label id="savedUrl"
+                   translation="[0, 648]" width="1920" horizAlign="center"
+                   text="" font="font:SmallSystemFont" color="0x5B7BA8FF" />
+
+            <Label id="setupHint"
+                   translation="[0, 704]" width="1920" horizAlign="center"
+                   text="Press OK to enter your server address"
+                   font="font:SmallSystemFont" color="0x5B7BA8FF" />
+
+            <Label id="setupError"
+                   translation="[0, 752]" width="1920" horizAlign="center"
+                   text="" font="font:SmallSystemFont" color="0xFF6B6BFF" />
         </Group>
 
-        <!-- Pairing view (show code) -->
+        <!-- ═══ LOADING VIEW ═══ -->
+        <Group id="loadingView" visible="false">
+            <Label id="loadingLabel"
+                   translation="[0, 512]" width="1920" horizAlign="center"
+                   text="Connecting to your server…"
+                   font="font:MediumSystemFont" color="0xCCD8EAFF" />
+        </Group>
+
+        <!-- ═══ PAIRING VIEW — link code ═══ -->
         <Group id="pairingView" visible="false">
-            <Label translation="[160, 200]"
-                   text="Step 1 — Sign in to your server in a browser:"
-                   color="0x888888FF"
-                   font="font:SmallSystemFont"
-                   width="1200" />
+            <Label translation="[0, 398]" width="1920" horizAlign="center"
+                   text="1     Sign in to your server in a browser"
+                   font="font:MediumSystemFont" color="0x9FB6D4FF" />
             <Label id="loginUrl"
-                   translation="[160, 240]"
-                   text=""
-                   color="0x4A9FFFFF"
-                   font="font:MediumBoldSystemFont"
-                   width="1400" />
-            <Label translation="[160, 320]"
-                   text="Step 2 — Go to /pair and enter this code:"
-                   color="0x888888FF"
-                   font="font:SmallSystemFont"
-                   width="1200" />
+                   translation="[0, 444]" width="1920" horizAlign="center"
+                   text="" font="font:MediumBoldSystemFont" color="0x4A9FFFFF" />
+
+            <Label translation="[0, 520]" width="1920" horizAlign="center"
+                   text="2     Open /pair and enter this code"
+                   font="font:MediumSystemFont" color="0x9FB6D4FF" />
             <Label id="pairUrl"
-                   translation="[160, 355]"
-                   text=""
-                   color="0x555577FF"
-                   font="font:SmallSystemFont"
-                   width="1400" />
+                   translation="[0, 562]" width="1920" horizAlign="center"
+                   text="" font="font:SmallSystemFont" color="0x55557799" />
+
+            <!-- Code card -->
+            <Rectangle translation="[660, 618]" width="600" height="140" color="0x0C1830E6" />
+            <Rectangle translation="[660, 754]" width="600" height="4" color="0x4A9FFFFF" />
             <Label id="codeLabel"
-                   translation="[160, 430]"
-                   text="---- - ----"
-                   color="0xFFFFFFFF"
-                   font="font:LargeSystemFont"
-                   width="800" />
+                   translation="[660, 654]" width="600" horizAlign="center"
+                   text="----  ----"
+                   font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+
             <Label id="statusLabel"
-                   translation="[160, 580]"
+                   translation="[0, 800]" width="1920" horizAlign="center"
                    text="Waiting for authorization…"
-                   color="0x888888FF"
-                   font="font:SmallSystemFont"
-                   width="1200" />
+                   font="font:SmallSystemFont" color="0x6F97C8FF" />
             <Label id="errorLabel"
-                   translation="[160, 640]"
-                   text=""
-                   color="0xFF4444FF"
-                   font="font:SmallSystemFont"
-                   width="1400" />
-            <Label translation="[160, 920]"
-                   text="Press * (Options) to change server address"
-                   color="0x333344FF"
-                   font="font:SmallSystemFont"
-                   width="1000" />
+                   translation="[0, 846]" width="1920" horizAlign="center"
+                   text="" font="font:SmallSystemFont" color="0xFF6B6BFF" />
+
+            <Label translation="[0, 1006]" width="1920" horizAlign="center"
+                   text="Press * (Options) to change server"
+                   font="font:SmallSystemFont" color="0x3A4A66FF" />
         </Group>
 
-        <!-- Loading state -->
-        <Label id="loadingLabel"
-               translation="[160, 300]"
-               text="Connecting to server…"
-               color="0xCCCCCCFF"
-               font="font:MediumSystemFont"
-               width="900"
-               visible="false" />
     </children>
 </component>

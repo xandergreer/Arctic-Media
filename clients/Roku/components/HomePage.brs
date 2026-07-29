@@ -72,9 +72,7 @@ sub init()
             if m.qualityOptions[i] = savedQ then m.qualityIdx = i
         end for
     end if
-    ' Same registry key the in-player subtitle toggle uses (VideoPage.brs),
-    ' so the Settings screen and the player stay in sync.
-    savedS = GetReg("subtitles")
+    savedS = GetReg("subtitle_pref")
     if savedS <> ""
         for i = 0 to m.subtitleOptions.count() - 1
             if m.subtitleOptions[i] = savedS then m.subtitleIdx = i
@@ -90,6 +88,8 @@ sub init()
     m.activeIdx      = 0
     m.inContent      = false
     m.homeRowsBuilt  = false
+    m.homeDirty      = false
+    m.launchBeaconFired = false
     m.movieGridBuilt = false
     m.showGridBuilt  = false
 
@@ -208,6 +208,10 @@ sub onContinueResult(event as object)
     if not m.inContent
         m.homeRowsBuilt = false
         if m.activeIdx = 0 then buildHomeRows()
+    else
+        ' User is browsing the rows — rebuild would yank focus. Apply the
+        ' fresh CW data the moment they step back to the tab bar.
+        m.homeDirty = true
     end if
 end sub
 
@@ -216,7 +220,16 @@ sub onContinueError(event as object)
     if not m.inContent
         m.homeRowsBuilt = false
         if m.activeIdx = 0 then buildHomeRows()
+    else
+        m.homeDirty = true
     end if
+end sub
+
+sub refreshHomeIfDirty()
+    if not m.homeDirty then return
+    m.homeDirty     = false
+    m.homeRowsBuilt = false
+    if m.activeIdx = 0 then buildHomeRows()
 end sub
 
 sub onReturnedToHome(event as object)
@@ -389,6 +402,12 @@ sub buildHomeRows()
     updateRowLabels()
     m.homeRowsBuilt = true
     m.loadingLabel.visible = false
+
+    ' Home screen is now fully rendered — signal launch is complete (cert 3.2).
+    if not m.launchBeaconFired
+        m.launchBeaconFired = true
+        m.top.signalBeacon("AppLaunchComplete")
+    end if
 end sub
 
 sub buildCategoryRow()
@@ -809,7 +828,7 @@ sub activateSettingsItem()
         m.top.navRequest = {action: "signout"}
     else if idx = 3
         m.subtitleIdx = (m.subtitleIdx + 1) mod m.subtitleOptions.count()
-        SetReg("subtitles", m.subtitleOptions[m.subtitleIdx])
+        SetReg("subtitle_pref", m.subtitleOptions[m.subtitleIdx])
         m.sValue[3].text = m.subtitleOptions[m.subtitleIdx]
     else if idx = 4
         m.qualityIdx = (m.qualityIdx + 1) mod m.qualityOptions.count()
@@ -875,6 +894,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             m.gridHint.visible   = false
             m.headerHint.visible = true
             m.top.setFocus(true)
+            refreshHomeIfDirty()
             return true
         end if
 
@@ -888,6 +908,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 m.gridHint.visible   = false
                 m.headerHint.visible = true
                 m.top.setFocus(true)
+                refreshHomeIfDirty()
             end if
             return true
         end if
@@ -983,7 +1004,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
 
         if key = "right"
-            maxCol = rows[m.gridFocusRow].getChildCount() - 1
+            ' Grid may be empty (fetch still in flight, or fetch error)
+            rg = rows[m.gridFocusRow]
+            if rg = invalid then return true
+            maxCol = rg.getChildCount() - 1
             if m.gridFocusCol < maxCol
                 setGridItemFocus(m.gridFocusRow, m.gridFocusCol, 0.0)
                 m.gridFocusCol = m.gridFocusCol + 1
@@ -1016,7 +1040,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     ' ── Tab bar navigation ───────────────────────────────
     if not m.inContent
-        if key = "back" then return true
+        ' Back on the top-level screen must exit the channel (cert 3.7)
+        if key = "back" then return false
 
         if key = "left"
             if m.activeIdx > 0
@@ -1050,6 +1075,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 return true
             end if
             if m.activeIdx = 0
+                refreshHomeIfDirty()
                 buildHomeRows()
                 if m.numHomeRows > 0
                     m.inContent          = true

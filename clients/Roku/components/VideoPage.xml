@@ -57,14 +57,19 @@
                    font="font:SmallSystemFont" color="0x2A2A4AFF" width="1800" horizAlign="center" />
         </Group>
 
-        <!-- ═══ SUBTITLE PANEL (rows built dynamically from the file's tracks) ═══ -->
+        <!-- ═══ SUBTITLE PANEL ═══ -->
         <Group id="subtitlePanel" visible="false">
-            <Rectangle id="subPanelBg" color="0x080818F2" width="500" height="286" translation="[710, 380]" />
+            <Rectangle color="0x080818F2" width="500" height="286" translation="[710, 380]" />
             <Rectangle color="0x4A9FFFFF" width="500" height="4"   translation="[710, 380]" />
             <Label translation="[734, 400]" text="SUBTITLES"
                    font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="460" />
-            <Group id="subListGroup" />
-            <Label id="subHintLabel" translation="[730, 596]"
+            <Rectangle id="subItem0" color="0x152840FF" width="460" height="58" translation="[730, 438]" />
+            <Label     id="subLabel0" translation="[754, 457]" text="Off"
+                       font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="420" />
+            <Rectangle id="subItem1" color="0x0A0A20FF" width="460" height="58" translation="[730, 506]" />
+            <Label     id="subLabel1" translation="[754, 525]" text="On (Captions)"
+                       font="font:SmallBoldSystemFont" color="0xCCCCCCFF" width="420" />
+            <Label translation="[730, 596]"
                    text="Up / Down = navigate     OK = select     Back = close"
                    font="font:SmallSystemFont" color="0x444466FF" width="460" />
         </Group>

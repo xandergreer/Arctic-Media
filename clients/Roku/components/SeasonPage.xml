@@ -1,82 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component name="SeasonPage" extends="Group">
     <interface>
-        <field id="navRequest" type="assocarray" alwaysNotify="true" />
-        <field id="params"     type="assocarray" />
+        <field id="navRequest"   type="assocarray" alwaysNotify="true" />
+        <field id="params"       type="assocarray" />
+        <field id="restoreFocus" type="boolean"    alwaysNotify="true" />
     </interface>
     <script type="text/brightscript" uri="pkg:/source/utils.brs" />
     <script type="text/brightscript" uri="pkg:/components/SeasonPage.brs" />
     <children>
-        <!-- Background + backdrop -->
-        <Rectangle color="0x080818FF" width="1920" height="1080" />
-        <Poster id="backdrop" width="1920" height="1080" opacity="0.14" loadDisplayMode="scaleToZoom" />
-
-        <!-- Show title -->
-        <Label id="showTitle" translation="[40, 32]" width="760"
-               font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
-
-        <!-- ═══ LEFT PANEL: seasons + episodes ═══ -->
-
-        <!-- SEASONS column -->
-        <Label translation="[40, 96]" text="SEASONS"
-               color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="200" />
-        <LabelList id="seasonList"
-                   translation="[40, 128]"
-                   width="210"
-                   height="882"
-                   itemSize="[210, 52]"
-                   itemSpacing="[0, 4]"
-                   focusBitmapUri=""
-                   focusedColor="0x4A9FFFFF"
-                   color="0xCCCCCCFF"
-                   font="font:SmallBoldSystemFont"
-                   focusedFont="font:SmallBoldSystemFont" />
-
-        <!-- Divider: seasons | episodes -->
-        <Rectangle translation="[262, 90]" width="2" height="950" color="0x1C1C3AFF" />
-
-        <!-- EPISODES column -->
-        <Label translation="[278, 96]" text="EPISODES"
-               color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
-        <LabelList id="episodeList"
-                   translation="[278, 128]"
-                   width="500"
-                   height="882"
-                   itemSize="[500, 56]"
-                   itemSpacing="[0, 2]"
-                   focusBitmapUri=""
-                   focusedColor="0x4A9FFFFF"
-                   color="0xCCCCCCFF"
-                   font="font:SmallSystemFont"
-                   focusedFont="font:SmallBoldSystemFont" />
-
-        <!-- Divider: episode list | preview panel -->
-        <Rectangle translation="[790, 90]" width="2" height="950" color="0x1C1C3AFF" />
-
-        <!-- ═══ RIGHT PANEL: episode preview ═══ -->
-
-        <!-- Episode thumbnail (16:9) -->
-        <Poster id="epThumb" translation="[814, 80]" width="1066" height="600"
+        <!-- ═══ Backdrop + scrim ═══
+             The backdrop follows the focused episode's artwork; the scrim keeps
+             card text readable over busy frames. -->
+        <Rectangle color="0x06060FFF" width="1920" height="1080" />
+        <Poster id="backdrop" width="1920" height="1080" opacity="0.20"
                 loadDisplayMode="scaleToZoom" />
+        <Rectangle color="0x06060FCC" width="1920" height="1080" />
 
-        <!-- Episode title -->
-        <Label id="epTitle" translation="[814, 698]" width="1066"
-               font="font:MediumBoldSystemFont" color="0xFFFFFFFF" wrap="true" />
+        <!-- ═══ Header ═══ -->
+        <Label id="showTitle" translation="[80, 48]" width="1500"
+               font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+        <Label id="seasonInfo" translation="[80, 120]" width="900"
+               font="font:SmallBoldSystemFont" color="0x6F97C8FF" />
+        <Rectangle color="0x4A9FFFFF" width="64" height="4" translation="[80, 160]" />
 
-        <!-- Season · Episode · Year -->
-        <Label id="epInfo" translation="[814, 742]" width="1066"
-               font="font:SmallSystemFont" color="0x4A9FFFFF" />
+        <!-- ═══ SEASONS rail ═══ -->
+        <Label translation="[80, 198]" text="SEASONS"
+               color="0x6F97C8FF" font="font:SmallBoldSystemFont" width="240" />
+        <LabelList id="seasonList"
+                   translation="[80, 246]"
+                   itemSize="[270, 60]"
+                   itemSpacing="[0, 6]"
+                   focusBitmapUri=""
+                   focusedColor="0x4A9FFFFF"
+                   color="0xB9C6DAFF"
+                   font="font:MediumSystemFont"
+                   focusedFont="font:MediumBoldSystemFont" />
 
-        <!-- Divider -->
-        <Rectangle translation="[814, 768]" width="1066" height="2" color="0x1C1C3AFF" />
+        <Rectangle translation="[398, 198]" width="2" height="760" color="0x1C2C4AFF" />
 
-        <!-- Episode overview -->
-        <Label id="epOverview" translation="[814, 782]" width="1066"
-               font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" />
+        <!-- ═══ EPISODE cards ═══ -->
+        <MarkupGrid id="episodeGrid"
+                    translation="[440, 200]"
+                    itemComponentName="EpisodeCard"
+                    itemSize="[1420, 176]"
+                    itemSpacing="[0, 16]"
+                    numColumns="1"
+                    numRows="4"
+                    drawFocusFeedback="false"
+                    vertFocusAnimationStyle="floatingFocus" />
 
-        <!-- Bottom hint -->
-        <Label translation="[40, 1046]"
-               text="Back = return     Right = episodes     OK = play"
-               color="0x33334AFF" font="font:SmallSystemFont" width="900" />
+        <!-- Hint — kept inside the action-safe area (bottom limit ≈1027) -->
+        <Label translation="[80, 1000]" width="1400"
+               text="Left/Right = switch column     OK = play     Back = return"
+               color="0x44557AFF" font="font:SmallSystemFont" />
     </children>
 </component>

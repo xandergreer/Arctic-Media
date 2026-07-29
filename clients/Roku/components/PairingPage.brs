@@ -2,19 +2,27 @@ sub init()
     m.serverUrl  = ""
     m.deviceCode = ""
     m.pollTimer  = invalid
-    m.pollTask   = invalid
+    m.serverDialog = invalid
 
-    m.setupView   = m.top.findNode("setupView")
-    m.pairingView = m.top.findNode("pairingView")
+    m.setupView    = m.top.findNode("setupView")
+    m.loadingView  = m.top.findNode("loadingView")
+    m.pairingView  = m.top.findNode("pairingView")
+
+    m.connectLabel = m.top.findNode("connectLabel")
+    m.savedUrl     = m.top.findNode("savedUrl")
+    m.setupHint    = m.top.findNode("setupHint")
+    m.setupError   = m.top.findNode("setupError")
+
     m.loadingLabel = m.top.findNode("loadingLabel")
-    m.codeLabel   = m.top.findNode("codeLabel")
-    m.loginUrl    = m.top.findNode("loginUrl")
-    m.pairUrl     = m.top.findNode("pairUrl")
-    m.statusLabel = m.top.findNode("statusLabel")
-    m.errorLabel  = m.top.findNode("errorLabel")
-    m.urlDisplay  = m.top.findNode("urlDisplay")
-    m.setupPrompt = m.top.findNode("setupPrompt")
-    m.urlKeyboard = m.top.findNode("urlKeyboard")
+    m.codeLabel    = m.top.findNode("codeLabel")
+    m.loginUrl     = m.top.findNode("loginUrl")
+    m.pairUrl      = m.top.findNode("pairUrl")
+    m.statusLabel  = m.top.findNode("statusLabel")
+    m.errorLabel   = m.top.findNode("errorLabel")
+
+    ' This auth screen is a dialog shown before the home page — bracket it with
+    ' AppDialog beacons so its time is excluded from the launch metric (cert 3.2).
+    m.top.signalBeacon("AppDialogInitiate")
 
     ' Slight delay before starting (let scene settle)
     m.startTimer = CreateObject("roSGNode", "Timer")
@@ -44,24 +52,28 @@ end sub
 
 sub showSetup()
     m.setupView.visible   = true
+    m.loadingView.visible = false
     m.pairingView.visible = false
-    m.loadingLabel.visible = false
-    m.urlKeyboard.visible  = false
-    m.urlDisplay.text = "http://"
-    m.setupPrompt.text = "Press OK to open keyboard, then Back to connect"
+
+    if m.serverUrl <> ""
+        m.savedUrl.text = "Last used:  " + m.serverUrl
+    else
+        m.savedUrl.text = ""
+    end if
+    m.setupHint.text  = "Press OK to enter your server address"
     m.top.setFocus(true)
 end sub
 
 sub showLoading()
-    m.setupView.visible    = false
-    m.pairingView.visible  = false
-    m.loadingLabel.visible = true
+    m.setupView.visible   = false
+    m.pairingView.visible = false
+    m.loadingView.visible = true
 end sub
 
 sub showPairing(userCode as string, serverUrl as string)
-    m.setupView.visible    = false
-    m.loadingLabel.visible = false
-    m.pairingView.visible  = true
+    m.setupView.visible   = false
+    m.loadingView.visible = false
+    m.pairingView.visible = true
     m.codeLabel.text   = userCode
     m.loginUrl.text    = serverUrl
     m.pairUrl.text     = serverUrl + "/pair"
@@ -70,11 +82,64 @@ sub showPairing(userCode as string, serverUrl as string)
 end sub
 
 ' -------------------------------------------------------
+' Server-address entry (on-screen keyboard with a Connect button)
+' -------------------------------------------------------
+
+sub openServerDialog()
+    ' StandardKeyboardDialog is Roku's recommended text/voice entry node (cert
+    ' 4.12). It shares the Dialog base class, so buttons / buttonSelected / text
+    ' behave the same (per Roku's standard-dialog-framework sample).
+    dlg = CreateObject("roSGNode", "StandardKeyboardDialog")
+    dlg.title = "Server Address"
+    dlg.message = ["Enter your media server — e.g.  192.168.1.50:8085"]
+    if m.serverUrl <> "" then
+        dlg.text = m.serverUrl
+    else
+        dlg.text = "https://"
+    end if
+    dlg.buttons = ["Connect", "Cancel"]
+    dlg.observeField("buttonSelected", "onServerDialogButton")
+    m.serverDialog = dlg
+    m.top.getScene().dialog = dlg
+end sub
+
+sub onServerDialogButton(event as object)
+    idx = event.getData()
+    dlg = m.serverDialog
+    if dlg = invalid then return
+
+    if idx = 0    ' Connect
+        url = dlg.text.Trim()
+        dismissServerDialog()
+        if Len(url) > 10 and Left(url, 4) = "http"
+            m.serverUrl = url
+            SetReg("server_url", url)
+            m.setupError.text = ""
+            showLoading()
+            startPairRequest()
+        else
+            showSetup()
+            m.setupError.text = "That doesn't look like a valid address. Try again."
+        end if
+    else          ' Cancel
+        dismissServerDialog()
+        showSetup()
+    end if
+end sub
+
+sub dismissServerDialog()
+    if m.serverDialog <> invalid
+        m.top.getScene().dialog = invalid
+        m.serverDialog = invalid
+    end if
+    m.top.setFocus(true)
+end sub
+
+' -------------------------------------------------------
 ' Pairing API calls
 ' -------------------------------------------------------
 
 sub startPairRequest()
-
     task = CreateObject("roSGNode", "ApiTask")
     task.url    = m.serverUrl + "/pair/request"
     task.method = "POST"
@@ -105,10 +170,9 @@ end sub
 
 sub onPairRequestError(event as object)
     errMsg = event.getData()
-    m.loadingLabel.visible = false
-    m.setupView.visible    = true
-    m.urlDisplay.text = m.serverUrl
-    m.setupPrompt.text = "Error: " + errMsg + " — Press OK to change server"
+    showSetup()
+    m.savedUrl.text  = "Last used:  " + m.serverUrl
+    m.setupError.text = "Couldn't reach server: " + errMsg
 end sub
 
 sub startPollTimer()
@@ -143,8 +207,10 @@ sub onPollResult(event as object)
     status = data.status
     if status = "authorized"
         stopPoll()
-        SetReg("access_token",  data.access_token)
-        SetReg("refresh_token", data.refresh_token)
+        if data.access_token <> invalid then SetReg("access_token", data.access_token)
+        if data.refresh_token <> invalid then SetReg("refresh_token", data.refresh_token)
+        ' User finished the pre-home dialog — close the AppDialog beacon window.
+        m.top.signalBeacon("AppDialogComplete")
         m.top.navRequest = {action: "home"}
 
     else if status = "expired"
@@ -177,41 +243,19 @@ sub stopPoll()
 end sub
 
 ' -------------------------------------------------------
-' Key handling (setup mode + options)
+' Key handling
 ' -------------------------------------------------------
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    if m.urlKeyboard <> invalid and m.urlKeyboard.visible
-        if key = "back"
-            url = m.urlKeyboard.text.Trim()
-            if Len(url) > 10 and Left(url, 4) = "http"
-                m.urlKeyboard.visible = false
-                m.top.setFocus(true)
-                m.serverUrl = url
-                SetReg("server_url", url)
-                showLoading()
-                startPairRequest()
-            else
-                m.urlKeyboard.visible = false
-                m.top.setFocus(true)
-            end if
-            return true
-        end if
-        return false
-    end if
-
     if key = "OK" and m.setupView.visible
-        m.urlKeyboard.text = "http://"
-        m.urlKeyboard.visible = true
-        m.urlKeyboard.setFocus(true)
-        m.setupPrompt.text = "Type your server URL, then press Back to connect"
+        openServerDialog()
         return true
     end if
 
     if key = "options"
-        ' Force re-enter server URL
+        ' Force re-enter server address
         stopPoll()
         m.deviceCode = ""
         showSetup()

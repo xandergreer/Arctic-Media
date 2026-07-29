@@ -15,6 +15,10 @@ sub init()
     m.castData        = []
     m.similarData     = []
     m.durationSeconds = 0.0
+    m.firstEpisode    = invalid   ' shows: first episode, so Play works
+    m.showEpisodes    = []
+    m.firstSeasonNum  = 1
+    m.resumeEp        = invalid   ' shows: most recent in-progress episode
 
     m.scrollGroup         = m.top.findNode("scrollGroup")
     m.poster              = m.top.findNode("poster")
@@ -81,6 +85,9 @@ sub onParams(event as object)
         m.episodesBtn.visible    = true
         m.episodesBtnLbl.visible = true
         m.numBtns = 2
+        ' Prefetch S1E1 so Play on a show actually plays an episode (a show
+        ' has no stream of its own — only its episodes do).
+        fetchFirstEpisode()
     else
         m.numBtns = 1
     end if
@@ -89,9 +96,101 @@ sub onParams(event as object)
     fetchMediaDetail()
     fetchSimilar()
     fetchHistory()
-    ' /media/{id} has no duration field — runtime lives in /mediainfo.
-    ' Shows have no media file of their own, so skip them.
-    if m.kind <> "show" then fetchMediaInfo()
+end sub
+
+' ── Show: prefetch first episode so Play works ──────────────────────────────
+
+sub fetchFirstEpisode()
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/shows/" + m.mediaId.ToStr() + "/seasons"
+    task.token = m.token
+    task.observeField("resultArr", "onFirstSeasonsResult")
+    task.control = "run"
+    m.firstSeasonsTask = task
+end sub
+
+sub onFirstSeasonsResult(event as object)
+    data = event.getData()
+    if data = invalid or data.count() = 0 then return
+    season = data[0]
+    sNum = season.season_number
+    if sNum = invalid then sNum = 1
+    m.firstSeasonNum = sNum
+
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/seasons/" + season.id.ToStr() + "/episodes"
+    task.token = m.token
+    task.observeField("resultArr", "onFirstEpisodesResult")
+    task.control = "run"
+    m.firstEpisodesTask = task
+end sub
+
+sub onFirstEpisodesResult(event as object)
+    data = event.getData()
+    if data = invalid or data.count() = 0 then return
+    m.showEpisodes = data
+    m.firstEpisode = data[0]
+end sub
+
+sub playShowFirstEpisode()
+    ' If episodes haven't loaded yet, fall back to the episode browser so Play
+    ' always does something sensible.
+    if m.firstEpisode = invalid then
+        m.top.navRequest = {action: "episodes", showId: m.mediaId, title: m.title, posterUrl: m.posterUri}
+        return
+    end if
+
+    ep    = m.firstEpisode
+    epNum = ep.episode_number
+    if epNum = invalid then epNum = 1
+    durSec = 0.0
+    if ep.duration_seconds <> invalid then durSec = ep.duration_seconds
+
+    req = {
+        action:          "play"
+        mediaId:         ep.id
+        title:           ep.title
+        url:             BuildHlsUrl(m.serverUrl, m.token, ep.id)
+        durationSeconds: durSec
+        episodeList:     m.showEpisodes
+        episodeIdx:      0
+        episodeLabel:    "S" + m.firstSeasonNum.ToStr() + " E" + epNum.ToStr()
+    }
+    req["position"] = 0.0
+    m.top.navRequest = req
+end sub
+
+' Resume the show's most recent in-progress episode (from server history).
+' Same param shape as HomePage's Continue Watching play, so VideoPage fetches
+' the episode list in the background for next-episode autoplay.
+sub playShowResumeEpisode()
+    row = m.resumeEp
+    if row = invalid then return
+
+    posSec = 0.0
+    if row.position_seconds <> invalid then posSec = row.position_seconds
+    durSec = 0.0
+    if row.duration_seconds <> invalid then durSec = row.duration_seconds
+    epTitle = m.title
+    if row.title <> invalid and row.title <> "" then epTitle = row.title
+
+    req = {
+        action:          "play"
+        mediaId:         row.media_id
+        title:           epTitle
+        url:             BuildHlsUrl(m.serverUrl, m.token, row.media_id)
+        durationSeconds: durSec
+    }
+    req["position"] = posSec
+    req["showId"]   = m.mediaId
+    sn = row.season_number
+    en = row.episode_number
+    if sn <> invalid then req["seasonNumber"] = sn
+    if en <> invalid then req["episodeNumber"] = en
+    if sn <> invalid and en <> invalid then
+        req["episodeLabel"] = "S" + sn.ToStr() + " E" + en.ToStr()
+    end if
+    m.top.navRequest = req
 end sub
 
 ' ── API fetches ────────────────────────────────────────────────────────────
@@ -117,11 +216,55 @@ end sub
 
 sub fetchHistory()
     task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/history/" + m.mediaId.ToStr()
+    if m.kind = "show" then
+        ' Progress lives on episodes, not the show row — scan the recent
+        ' history list for this show's most recent in-progress episode.
+        task.url = m.serverUrl + "/api/v1/history"
+        task.observeField("resultArr", "onShowHistoryResult")
+    else
+        task.url = m.serverUrl + "/api/v1/history/" + m.mediaId.ToStr()
+        task.observeField("result", "onHistoryResult")
+    end if
     task.token = m.token
-    task.observeField("result", "onHistoryResult")
     task.control = "run"
     m.historyTask = task
+end sub
+
+sub onShowHistoryResult(event as object)
+    rows = event.getData()
+    if rows = invalid or rows.count() = 0 then return
+    for each row in rows
+        sid = row.show_id
+        if sid <> invalid and sid = m.mediaId then
+            pct = 0
+            if row.progress_pct <> invalid then pct = row.progress_pct
+            posSec = 0.0
+            if row.position_seconds <> invalid then posSec = row.position_seconds
+            if pct < 95 and posSec > 5 then
+                m.resumeEp = row
+                lbl = "Resume"
+                sn = row.season_number
+                en = row.episode_number
+                if sn <> invalid and en <> invalid then
+                    lbl = "Resume S" + sn.ToStr() + " E" + en.ToStr()
+                end if
+                setPlayButtonLabel(lbl)
+            end if
+            ' First matching row is the most recent one — it decides.
+            exit for
+        end if
+    end for
+end sub
+
+sub setPlayButtonLabel(lbl as string)
+    m.playBtnLabel.text = lbl
+    if Len(lbl) > 6 then
+        ' Widen Play and shift Browse Episodes so the longer label fits
+        m.playBtn.width              = 300
+        m.playBtnLabel.width         = 260
+        m.episodesBtn.translation    = [678, 500]
+        m.episodesBtnLbl.translation = [694, 519]
+    end if
 end sub
 
 ' ── Result handlers ────────────────────────────────────────────────────────
@@ -162,20 +305,6 @@ sub onDetailResult(event as object)
     extra = data.extra_json
     if extra = invalid then return
 
-    ' Rating (TMDB) — append "★ 7.0" to the meta line
-    rating = extra.rating
-    if rating <> invalid and rating > 0 then
-        r10 = Int(rating * 10 + 0.5)
-        ratingStr = "★ " + Int(r10 / 10).ToStr() + "." + (r10 mod 10).ToStr()
-        if Instr(1, m.metaLabel.text, "★") = 0 then
-            if m.metaLabel.text <> "" then
-                m.metaLabel.text = m.metaLabel.text + "  ·  " + ratingStr
-            else
-                m.metaLabel.text = ratingStr
-            end if
-        end if
-    end if
-
     ' Genres
     genres = extra.genres
     if genres <> invalid and genres.count() > 0 then
@@ -199,35 +328,6 @@ end sub
 sub onDetailError(event as object)
 end sub
 
-sub fetchMediaInfo()
-    task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/media/" + m.mediaId.ToStr() + "/mediainfo"
-    task.token = m.token
-    task.observeField("result", "onMediaInfoResult")
-    task.control = "run"
-    m.mediaInfoTask = task
-end sub
-
-sub onMediaInfoResult(event as object)
-    data = event.getData()
-    if data = invalid then return
-    dur = data.duration
-    if dur <> invalid and dur > 0 then
-        m.durationSeconds = dur
-        ' Show runtime in the meta line for movies
-        if m.kind = "movie" then
-            runtime = FormatDuration(Int(dur))
-            if Instr(1, m.metaLabel.text, runtime) = 0 then
-                if m.metaLabel.text <> "" then
-                    m.metaLabel.text = m.metaLabel.text + "  ·  " + runtime
-                else
-                    m.metaLabel.text = runtime
-                end if
-            end if
-        end if
-    end if
-end sub
-
 sub onSimilarResult(event as object)
     data = event.getData()
     if data = invalid then return
@@ -242,11 +342,8 @@ sub onHistoryResult(event as object)
     posSec = data["position_seconds"]
     if posSec <> invalid and posSec > 5 then
         m.savedPosition = posSec
-        ' Show the saved position on the Play button (movies only — for
-        ' shows this button routes to episode browsing).
-        if m.kind = "movie" then
-            m.playBtnLabel.text = "Resume " + FormatVideoTime(Int(posSec))
-        end if
+        ' VideoPage only seeks past 30s — mirror that in the button label
+        if posSec > 30 then m.playBtnLabel.text = "Resume"
     end if
 end sub
 
@@ -539,12 +636,15 @@ function onKeyEvent(key as string, press as boolean) as boolean
             return true
         end if
         if key = "OK" then
-            ' A show has no playable media file of its own -- both buttons
-            ' must route to episode browsing, or "Play" would send the
-            ' show's container id to the player as if it were a video file.
-            if m.selectedBtn = 1 or m.kind = "show" then
+            if m.selectedBtn = 1 then
                 req = {action: "episodes", showId: m.mediaId, title: m.title, posterUrl: m.posterUri}
                 m.top.navRequest = req
+            else if m.kind = "show" then
+                if m.resumeEp <> invalid then
+                    playShowResumeEpisode()
+                else
+                    playShowFirstEpisode()
+                end if
             else
                 req = {action: "play", mediaId: m.mediaId, title: m.title, url: m.hlsUrl, durationSeconds: m.durationSeconds}
                 req["position"] = m.savedPosition
@@ -576,7 +676,17 @@ function onKeyEvent(key as string, press as boolean) as boolean
         if key = "OK" then
             sim = m.similarData[m.similarIdx]
             if sim <> invalid then
-                req = {action: "details", mediaId: sim.id, title: sim.title, kind: m.kind, posterUrl: sim.poster_url}
+                ' Use the similar item's own kind (a show's similar row can
+                ' contain movies and vice versa) and resolve the poster path —
+                ' a raw relative path would permanently break the next page's
+                ' poster because onDetailResult only back-fills when empty.
+                simKind = sim.kind
+                if simKind = invalid or simKind = "" then simKind = m.kind
+                simPoster = ""
+                if sim.poster_url <> invalid and sim.poster_url <> "" then
+                    simPoster = ResolveUrl(m.serverUrl, sim.poster_url)
+                end if
+                req = {action: "details", mediaId: sim.id, title: sim.title, kind: simKind, posterUrl: simPoster}
                 m.top.navRequest = req
             end if
             return true

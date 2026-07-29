@@ -9,9 +9,8 @@ sub init()
     m.osdCurrentTime = m.top.findNode("osdCurrentTime")
     m.osdTotalTime   = m.top.findNode("osdTotalTime")
     m.subtitlePanel  = m.top.findNode("subtitlePanel")
-    m.subPanelBg     = m.top.findNode("subPanelBg")
-    m.subListGroup   = m.top.findNode("subListGroup")
-    m.subHintLabel   = m.top.findNode("subHintLabel")
+    m.subItems       = [m.top.findNode("subItem0"), m.top.findNode("subItem1")]
+    m.subLabels      = [m.top.findNode("subLabel0"), m.top.findNode("subLabel1")]
     m.autoplayPanel        = m.top.findNode("autoplayPanel")
     m.autoplayTitle        = m.top.findNode("autoplayTitle")
     m.autoplayLabel        = m.top.findNode("autoplayLabel")
@@ -30,8 +29,6 @@ sub init()
 
     m.episodeList  = invalid
     m.episodeIdx   = -1
-    m.epListPending        = false   ' background episode-list fetch in flight
-    m.pendingAutoplayCheck = false   ' video finished before the fetch returned
     m.autoplayIdx  = -1
     m.autoplaySecs = 0
     m.autoplaying  = false
@@ -43,14 +40,11 @@ sub init()
     m.cwEpisodeNum = 0
     m.episodeLabel = ""
 
-    m.ccEnabled        = (GetReg("subtitles") = "On")
+    ' Same registry key the Settings screen writes (HomePage.brs), so the
+    ' Settings toggle and the in-player toggle stay in sync.
+    m.ccEnabled        = (GetReg("subtitle_pref") = "On")
     m.subtitleMenuOpen = false
     m.subFocusIdx      = 0
-    m.subTracks        = []      ' subtitle tracks of the current file (from /stream/info)
-    m.subMenuRows      = []      ' dynamically built menu row nodes
-    m.currentSidx      = -1      ' server-side subtitle index being burned in (-1 = off)
-    m.posOffset        = 0.0     ' playlist time offset after a mid-stream restart (t param)
-    m.segDur           = 4.0     ' keep in sync with server HLS_SEG_DUR
 
     m.hideTimer = CreateObject("roSGNode", "Timer")
     m.hideTimer.duration = 5
@@ -86,10 +80,6 @@ sub onParams(event as object)
     if p = invalid then return
     m.mediaId = p.mediaId
     m.upNextShown = false
-    m.posOffset   = 0.0
-    m.currentSidx = -1
-    m.subTracks   = []
-    fetchStreamInfo()
 
     ' Episode label (e.g. "S1 E3") — shown left of title in OSD
     m.episodeLabel = ""
@@ -114,10 +104,16 @@ sub onParams(event as object)
     durParam = p.durationSeconds
     if durParam <> invalid and durParam > 0 then m.totalDur = durParam
 
+    startPos = p["position"]
+    if startPos = invalid then startPos = 0.0
+
     cn = CreateObject("roSGNode", "ContentNode")
     cn.url          = p.url
     cn.title        = p.title
     cn.streamFormat = "hls"
+    ' Resume belt-and-braces: playStart is honored when playback begins, and
+    ' the pre-play seek below covers firmware that latches it. Same position.
+    if startPos > 30 then cn.playStart = Int(startPos)
     m.video.content = cn
 
     if not m.videoSetup
@@ -127,8 +123,6 @@ sub onParams(event as object)
         m.videoSetup = true
     end if
 
-    startPos = p["position"]
-    if startPos = invalid then startPos = 0.0
     if startPos > 30 then m.video.seek = Int(startPos)
 
     applySubtitlePref()
@@ -147,22 +141,17 @@ end sub
 ' -------------------------------------------------------
 
 sub fetchEpisodeListBg()
-    m.epListPending = true
     task = CreateObject("roSGNode", "ApiTask")
     task.url   = m.serverUrl + "/api/v1/media/shows/" + m.showId.ToStr() + "/seasons"
     task.token = m.token
     task.observeField("resultArr", "onBgSeasonsResult")
-    task.observeField("apiError",  "onBgFetchError")
     task.control = "run"
     m.bgSeasonsTask = task
 end sub
 
 sub onBgSeasonsResult(event as object)
     data = event.getData()
-    if data = invalid or data.count() = 0 then
-        onBgFetchError(invalid)
-        return
-    end if
+    if data = invalid or data.count() = 0 then return
 
     ' Find season matching m.cwSeasonNum; fall back to first season
     seasonId = data[0].id
@@ -177,19 +166,14 @@ sub onBgSeasonsResult(event as object)
     task.url   = m.serverUrl + "/api/v1/media/seasons/" + seasonId.ToStr() + "/episodes"
     task.token = m.token
     task.observeField("resultArr", "onBgEpisodesResult")
-    task.observeField("apiError",  "onBgFetchError")
     task.control = "run"
     m.bgEpisodesTask = task
 end sub
 
 sub onBgEpisodesResult(event as object)
     data = event.getData()
-    if data = invalid or data.count() = 0 then
-        onBgFetchError(invalid)
-        return
-    end if
+    if data = invalid or data.count() = 0 then return
     m.episodeList = data
-    m.epListPending = false
 
     ' Find our current episode index by id
     for i = 0 to data.count() - 1
@@ -199,20 +183,6 @@ sub onBgEpisodesResult(event as object)
             exit for
         end if
     end for
-
-    ' The video finished while we were still fetching — run autoplay now.
-    if m.pendingAutoplayCheck then
-        m.pendingAutoplayCheck = false
-        checkAutoplay()
-    end if
-end sub
-
-sub onBgFetchError(event as object)
-    m.epListPending = false
-    if m.pendingAutoplayCheck then
-        m.pendingAutoplayCheck = false
-        exitPlayer()
-    end if
 end sub
 
 sub updateOsdHeader(title as string)
@@ -231,91 +201,25 @@ sub updateOsdHeader(title as string)
 end sub
 
 sub applySubtitlePref()
+    ' globalCaptionMode is the real Video-node field; captionMode doesn't exist
     if m.ccEnabled
-        m.video.captionMode = "On"
+        m.video.globalCaptionMode = "On"
     else
-        m.video.captionMode = "Off"
+        m.video.globalCaptionMode = "Off"
     end if
 end sub
 
 ' -------------------------------------------------------
-' Subtitle track info (fetched per file from /stream/info)
-' -------------------------------------------------------
-
-sub fetchStreamInfo()
-    task = CreateObject("roSGNode", "ApiTask")
-    task.url   = m.serverUrl + "/api/v1/stream/" + m.mediaId.ToStr() + "/info?token=" + m.token
-    task.token = m.token
-    task.observeField("result", "onStreamInfoResult")
-    task.control = "run"
-    m.streamInfoTask = task
-end sub
-
-sub onStreamInfoResult(event as object)
-    data = event.getData()
-    if data = invalid then return
-    tracks = data.subtitle_tracks
-    if tracks <> invalid then m.subTracks = tracks
-end sub
-
-' -------------------------------------------------------
-' Subtitle panel — "Off" + one row per embedded/sidecar track.
-' Selecting a track restarts the stream with server-side burn-in.
+' Subtitle panel
 ' -------------------------------------------------------
 
 sub openSubtitleMenu()
     m.subtitleMenuOpen = true
-    buildSubtitleMenu()
-    ' Focus the current selection
     m.subFocusIdx = 0
-    if m.currentSidx >= 0 and m.currentSidx + 1 < m.subMenuRows.count() + 1 then
-        m.subFocusIdx = m.currentSidx + 1
-    end if
+    if m.ccEnabled then m.subFocusIdx = 1
     updateSubtitleMenu()
     m.subtitlePanel.visible = true
     m.hideTimer.control = "stop"
-end sub
-
-sub buildSubtitleMenu()
-    ' Clear previous rows
-    while m.subListGroup.getChildCount() > 0
-        m.subListGroup.removeChildIndex(0)
-    end while
-    m.subMenuRows = []
-
-    labels = ["Off"]
-    maxTracks = 7
-    count = m.subTracks.count()
-    if count > maxTracks then count = maxTracks
-    for i = 0 to count - 1
-        t = m.subTracks[i]
-        lang = "UND"
-        if t.language <> invalid and t.language <> "" then lang = UCase(t.language)
-        kind = "Text"
-        if t.is_image = true then kind = "Image"
-        labels.push(lang + "  (" + kind + ")")
-    end for
-
-    y = 438
-    for each text in labels
-        bg = m.subListGroup.createChild("Rectangle")
-        bg.color       = "0x0A0A20FF"
-        bg.width       = 460
-        bg.height      = 58
-        bg.translation = [730, y]
-        lbl = m.subListGroup.createChild("Label")
-        lbl.text        = text
-        lbl.font        = "font:SmallBoldSystemFont"
-        lbl.color       = "0xCCCCCCFF"
-        lbl.width       = 420
-        lbl.translation = [754, y + 19]
-        m.subMenuRows.push({bg: bg, lbl: lbl})
-        y = y + 68
-    end for
-
-    ' Resize panel + move hint to fit the row count
-    m.subHintLabel.translation = [730, y + 10]
-    m.subPanelBg.height = (y + 50) - 380
 end sub
 
 sub closeSubtitleMenu()
@@ -328,71 +232,25 @@ sub closeSubtitleMenu()
 end sub
 
 sub updateSubtitleMenu()
-    for i = 0 to m.subMenuRows.count() - 1
-        row = m.subMenuRows[i]
+    for i = 0 to 1
         if i = m.subFocusIdx
-            row.bg.color  = "0x152840FF"
-            row.lbl.color = "0xFFFFFFFF"
+            m.subItems[i].color  = "0x152840FF"
+            m.subLabels[i].color = "0xFFFFFFFF"
         else
-            row.bg.color  = "0x0A0A20FF"
-            row.lbl.color = "0xCCCCCCFF"
+            m.subItems[i].color  = "0x0A0A20FF"
+            m.subLabels[i].color = "0xCCCCCCFF"
         end if
     end for
 end sub
 
 sub applySubtitleSelection()
-    if m.subFocusIdx = 0 then
-        SetReg("subtitles", "Off")
-        m.ccEnabled = false
-        if m.currentSidx >= 0 then
-            restartStream(invalid)   ' remove burn-in
-        else
-            applySubtitlePref()
-        end if
+    m.ccEnabled = (m.subFocusIdx = 1)
+    if m.ccEnabled
+        SetReg("subtitle_pref", "On")
     else
-        track = m.subTracks[m.subFocusIdx - 1]
-        if track = invalid then return
-        SetReg("subtitles", "On")
-        m.ccEnabled = true
-        restartStream(track)
+        SetReg("subtitle_pref", "Off")
     end if
-end sub
-
-' Restart the current stream (used for subtitle burn-in changes), resuming
-' near the current position via the server's t param. The served playlist
-' then starts at that segment, so all absolute positions must be offset.
-sub restartStream(track as dynamic)
-    pos = m.lastPos
-    url = BuildHlsUrl(m.serverUrl, m.token, m.mediaId)
-
-    if track <> invalid then
-        stype = "text"
-        if track.is_image = true then stype = "image"
-        m.currentSidx = track.index
-        url = url + "&sidx=" + track.index.ToStr() + "&stype=" + stype
-    else
-        m.currentSidx = -1
-    end if
-
-    if pos > 8 then
-        startSeg = Int(pos / m.segDur)
-        m.posOffset = startSeg * m.segDur
-        url = url + "&t=" + Int(pos).ToStr()
-    else
-        m.posOffset = 0.0
-    end if
-
-    cn = CreateObject("roSGNode", "ContentNode")
-    cn.url          = url
-    cn.title        = m.osdTitle.text
-    cn.streamFormat = "hls"
-    m.video.control = "stop"
-    m.video.content = cn
-    ' Subtitles are burned into the video — keep Roku's own captions off
-    ' so they can't double-render.
-    m.video.captionMode = "Off"
-    m.video.control = "play"
-    m.top.setFocus(true)
+    applySubtitlePref()
 end sub
 
 ' -------------------------------------------------------
@@ -459,14 +317,7 @@ function seekBy(direction as integer) as integer
     newPos   = Int(m.lastPos) + amount
     if newPos < 0 then newPos = 0
     if m.totalDur > 0 and newPos > m.totalDur then newPos = Int(m.totalDur)
-    ' The player's own timeline starts at posOffset after a mid-stream
-    ' restart; can't seek before it without another restart, so clamp.
-    playerPos = newPos - Int(m.posOffset)
-    if playerPos < 0 then
-        playerPos = 0
-        newPos = Int(m.posOffset)
-    end if
-    m.video.seek = playerPos
+    m.video.seek = newPos
     m.lastPos    = newPos
     updateOsd()
     return amount
@@ -502,12 +353,6 @@ end sub
 
 sub checkAutoplay()
     if m.episodeList = invalid
-        ' Background episode-list fetch (CW plays) hasn't returned yet —
-        ' defer the decision until it resolves instead of exiting.
-        if m.epListPending then
-            m.pendingAutoplayCheck = true
-            return
-        end if
         exitPlayer()
         return
     end if
@@ -548,6 +393,10 @@ sub updateAutoplayLabel()
 end sub
 
 sub playNext()
+    ' Save the outgoing episode's final position before m.mediaId is swapped —
+    ' the countdown fires ~25s before the end, so the natural finished-state
+    ' save never happens on this path.
+    doSaveProgress()
     m.autoplaying = false
     m.upNextShown = false
     m.autoplayPanel.visible = false
@@ -556,11 +405,6 @@ sub playNext()
     m.mediaId    = nextEp.id
     m.lastPos    = 0.0
     m.totalDur   = 0.0
-    ' New file: reset subtitle burn-in state and refetch its tracks
-    m.posOffset   = 0.0
-    m.currentSidx = -1
-    m.subTracks   = []
-    fetchStreamInfo()
     if nextEp.duration_seconds <> invalid and nextEp.duration_seconds > 0 then
         m.totalDur = nextEp.duration_seconds
     end if
@@ -592,10 +436,17 @@ end sub
 
 sub cancelAutoplay()
     m.autoplaying = false
-    m.upNextShown = false
     m.autoplayTimer.control = "stop"
     m.autoplayPanel.visible = false
-    exitPlayer()
+    vs = m.video.state
+    if vs = "playing" or vs = "paused"
+        ' Toast dismissed mid-video: keep watching, and don't re-show it for
+        ' this episode. Only leave the player when the video already ended.
+        m.upNextShown = true
+    else
+        m.upNextShown = false
+        exitPlayer()
+    end if
 end sub
 
 sub onDurationChange(event as object)
@@ -605,15 +456,15 @@ sub onDurationChange(event as object)
 end sub
 
 sub onPositionChange(event as object)
-    ' posOffset accounts for mid-stream restarts (subtitle changes) where the
-    ' served playlist starts at a t offset, so player position restarts at 0.
-    m.lastPos = event.getData() + m.posOffset
+    m.lastPos = event.getData()
 
     ' Show Up Next toast when ≤30s remain — plays next after 5s countdown
     if not m.autoplaying and not m.upNextShown and m.totalDur > 60 then
         remaining = m.totalDur - m.lastPos
         if remaining > 0 and remaining <= 30 then
-            if m.episodeList <> invalid then
+            ' episodeIdx >= 0 = current episode was actually found in the list;
+            ' otherwise nextIdx would be 0 and we'd autoplay S1E1 from mid-S3.
+            if m.episodeList <> invalid and m.episodeIdx >= 0 then
                 nextIdx = m.episodeIdx + 1
                 if nextIdx < m.episodeList.count() then
                     m.upNextShown = true
@@ -629,6 +480,9 @@ sub onSaveTimer(event as object)
 end sub
 
 sub exitPlayer()
+    ' Stop playback unconditionally — some paths reach here (error state,
+    ' deep-link replacement) without having stopped the video first.
+    m.video.control = "stop"
     if m.saveTimer     <> invalid then m.saveTimer.control     = "stop"
     if m.osdTimer      <> invalid then m.osdTimer.control      = "stop"
     if m.hideTimer     <> invalid then m.hideTimer.control     = "stop"
@@ -729,7 +583,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 updateSubtitleMenu()
             end if
         else if key = "down"
-            if m.subFocusIdx < m.subMenuRows.count() - 1
+            if m.subFocusIdx < 1
                 m.subFocusIdx = m.subFocusIdx + 1
                 updateSubtitleMenu()
             end if
@@ -797,8 +651,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     end if
 
-    ' ── Up / Down: show OSD ───────────────────────────────
-    if key = "up" or key = "down"
+    ' ── Up: show OSD (down falls through to skip-next below) ──
+    if key = "up"
         showOsd()
         return true
     end if
@@ -820,7 +674,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     ' ── Down: skip to next episode ────────────────────────
     if key = "down"
-        if m.episodeList <> invalid then
+        if m.episodeList <> invalid and m.episodeIdx >= 0 then
             nextIdx = m.episodeIdx + 1
             if nextIdx < m.episodeList.count() then
                 doSaveProgress()

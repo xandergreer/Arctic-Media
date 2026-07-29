@@ -7,7 +7,10 @@ function GetReg(key as string) as string
     return val
 end function
 
-sub SetReg(key as string, value as string)
+sub SetReg(key as string, value as dynamic)
+    ' Tolerate invalid/non-string values (e.g. a missing token in a response)
+    if value = invalid then value = ""
+    if type(value) <> "String" and type(value) <> "roString" then value = ""
     sec = CreateObject("roRegistrySection", "ArcticMedia")
     sec.Write(key, value)
     sec.Flush()
@@ -53,6 +56,30 @@ end function
 
 ' ── URL helpers ───────────────────────────────────────────────────────────
 
+' Percent-encode a query value. Implemented in pure BrightScript because
+' roUrlTransfer.Escape() is only available on a Task thread — calling it from
+' the render thread returns Invalid and throws a dot-operator error.
+function UrlEncode(raw as string) as string
+    if raw = invalid or raw = "" then return ""
+    unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~"
+    hexDigits  = "0123456789ABCDEF"
+    out = ""
+    for i = 0 to Len(raw) - 1
+        ch = Mid(raw, i + 1, 1)
+        if Instr(1, unreserved, ch) > 0
+            out = out + ch
+        else
+            code = Asc(ch)
+            if code <= 255
+                hi = Mid(hexDigits, Int(code / 16) + 1, 1)
+                lo = Mid(hexDigits, (code mod 16) + 1, 1)
+                out = out + "%" + hi + lo
+            end if
+        end if
+    end for
+    return out
+end function
+
 function ResolveUrl(serverUrl as string, rawUrl as string) as string
     if rawUrl = invalid or rawUrl = "" then return ""
     if Left(rawUrl, 4) = "http" then return rawUrl
@@ -60,18 +87,7 @@ function ResolveUrl(serverUrl as string, rawUrl as string) as string
 end function
 
 function BuildHlsUrl(serverUrl as string, token as string, mediaId as integer) as string
-    url = serverUrl + "/api/v1/stream/" + mediaId.ToStr() + "/master.m3u8?token=" + token
-    ' Apply the "Video Quality" setting (HomePage settings screen).
-    ' "Auto" / empty = original quality (server may stream-copy).
-    q = GetReg("quality_pref")
-    if q = "1080p" then
-        url = url + "&quality=1080"
-    else if q = "720p" then
-        url = url + "&quality=720"
-    else if q = "480p" then
-        url = url + "&quality=480"
-    end if
-    return url
+    return serverUrl + "/api/v1/stream/" + mediaId.ToStr() + "/master.m3u8?token=" + token
 end function
 
 ' ── Progress ──────────────────────────────────────────────────────────────
