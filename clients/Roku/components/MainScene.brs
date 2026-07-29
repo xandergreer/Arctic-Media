@@ -191,7 +191,9 @@ sub playDeepLink(position as dynamic)
         end if
     end if
 
-    print "[deeplink] mediaId="; dl.mediaId; " resume position="; position
+    #if DEBUG_ENABLED
+        print "[deeplink] mediaId="; dl.mediaId; " resume position="; position
+    #end if
 
     pushPage("VideoPage", {
         action:   "play"
