@@ -138,6 +138,41 @@ def _show_name_from_filename(filename_no_ext: str, episode_match_start: int) -> 
     return clean_title(before) if before else ""
 
 
+def resolve_show_name(full_path: str, filename_no_ext: str, episode_match_start: int) -> str:
+    """Work out which show an episode file belongs to.
+
+    The filename is trusted over the folder, because a release folder is often
+    per-episode ("Beast Games S01E08 Betray Your Friend ... -playWEB") and
+    cleaning it yields the episode title rather than the show. When one name is
+    a prefix of the other they describe the same show, so the shorter wins.
+
+    Splits on both separators so Windows paths recorded by the scanner can be
+    re-parsed from any host — the repair tooling relies on that.
+    """
+    path_parts = [p for p in re.split(r"[\\/]+", full_path.rstrip("\\/")) if p]
+    show_name_from_filename = _show_name_from_filename(filename_no_ext, episode_match_start)
+
+    show_name_raw = ""
+    if len(path_parts) >= 2:
+        parent = path_parts[-2]
+        grandparent = path_parts[-3] if len(path_parts) >= 3 else None
+        if "season" in parent.lower() or "specials" in parent.lower():
+            show_name_raw = grandparent if grandparent else parent
+        else:
+            show_name_raw = parent
+    show_name_from_folder = clean_title(show_name_raw) if show_name_raw else ""
+
+    if show_name_from_filename:
+        if not show_name_from_folder:
+            return show_name_from_filename
+        if show_name_from_folder.lower().startswith(show_name_from_filename.lower()):
+            return show_name_from_filename
+        if show_name_from_filename.lower().startswith(show_name_from_folder.lower()):
+            return show_name_from_folder
+        return show_name_from_folder or show_name_from_filename
+    return show_name_from_folder or "Unknown Show"
+
+
 def _title_case(s: str) -> str:
     """
     Title-case that doesn't capitalize the letter after an apostrophe.
@@ -595,31 +630,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 extra_eps = []
             ep_nums = [episode_num] + [n for n in extra_eps if n > episode_num]
 
-            # Determine show name from filename then folder
-            path_parts = os.path.normpath(full_path).split(os.sep)
-            show_name_from_filename = _show_name_from_filename(name, match.start())
-
-            show_name_raw = ""
-            if len(path_parts) >= 2:
-                parent = path_parts[-2]
-                grandparent = path_parts[-3] if len(path_parts) >= 3 else None
-                if "season" in parent.lower() or "specials" in parent.lower():
-                    show_name_raw = grandparent if grandparent else parent
-                else:
-                    show_name_raw = parent
-            show_name_from_folder = clean_title(show_name_raw) if show_name_raw else ""
-
-            if show_name_from_filename:
-                if not show_name_from_folder:
-                    show_name = show_name_from_filename
-                elif show_name_from_folder.lower().startswith(show_name_from_filename.lower()):
-                    show_name = show_name_from_filename
-                elif show_name_from_filename.lower().startswith(show_name_from_folder.lower()):
-                    show_name = show_name_from_folder
-                else:
-                    show_name = show_name_from_folder or show_name_from_filename
-            else:
-                show_name = show_name_from_folder or "Unknown Show"
+            show_name = resolve_show_name(full_path, name, match.start())
 
             # --- cached lookups ---
             if show_name in show_cache:
