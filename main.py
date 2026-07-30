@@ -118,6 +118,16 @@ async def lifespan(app: FastAPI):
                 logger.error(f"[{name}] crashed: {exc!r} — restarting in {restart_delay}s")
                 await asyncio.sleep(restart_delay)
 
+    # Locate ffmpeg/ffprobe before anything can need them, downloading a static
+    # build on first run. Off the loop because that download is ~60 MB, and
+    # non-fatal so a server without ffmpeg still starts.
+    from app.core.ffmpeg_manager import ensure_ffmpeg
+    ffmpeg_paths = await asyncio.to_thread(ensure_ffmpeg)
+    if all(ffmpeg_paths.values()):
+        logger.info("ffmpeg and ffprobe ready.")
+    else:
+        logger.warning("ffmpeg/ffprobe unavailable — transcoding and duration detection are disabled.")
+
     # Kill any FFmpeg orphans left over from a previous server run, then wipe
     # stale segment directories so disk space is reclaimed on every restart.
     from app.api.v1.stream_hls import startup_cleanup, shutdown_cleanup

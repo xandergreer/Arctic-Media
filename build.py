@@ -1,4 +1,3 @@
-import PyInstaller.__main__
 import os
 import shutil
 import subprocess
@@ -7,22 +6,75 @@ import sys
 APP_NAME = "ArcticMedia"
 MAIN_SCRIPT = "gui_main.py"
 
+
+def _fatal(*lines: str) -> "NoReturn":
+    """Report a setup problem so it is still readable when double-clicked.
+
+    Without the pause the console window closes the instant the script exits and
+    the message is gone before it can be read.
+    """
+    print("\n" + "=" * 70)
+    for line in lines:
+        print(line)
+    print("=" * 70)
+    if sys.platform == "win32" and sys.stdin is not None and sys.stdin.isatty():
+        try:
+            input("\nPress Enter to close...")
+        except EOFError:
+            pass
+    raise SystemExit(1)
+
+
 def build():
     print(f"Building {APP_NAME}...")
 
     # ── Pre-flight checks (BEFORE touching anything on disk) ──────────────────
+    if sys.version_info < (3, 10):
+        _fatal(
+            f"ERROR: Python 3.10+ required, this is {sys.version.split()[0]}.",
+            "The app uses 3.10 syntax (str | None) and will fail to import on older versions.",
+            f"Interpreter: {sys.executable}",
+        )
+
     if not os.path.exists(".env"):
-        print("\nERROR: .env file not found in project root.")
-        print("Create a .env file with your API keys before building:")
-        print("  TMDB_API_KEY=...")
-        print("  OPENSUBTITLES_API_KEY=...")
-        print("  SUBDL_API_KEY=...")
-        raise SystemExit(1)
+        _fatal(
+            "ERROR: .env file not found in project root.",
+            "Create a .env file with your API keys before building:",
+            "  TMDB_API_KEY=...",
+            "  OPENSUBTITLES_API_KEY=...",
+            "  SUBDL_API_KEY=...",
+        )
+
+    for required in ("bin/ffmpeg.exe", "bin/ffprobe.exe"):
+        if not os.path.exists(required):
+            _fatal(
+                f"ERROR: {required} not found.",
+                "bin/ is gitignored, so a fresh clone will not have it. PyInstaller",
+                "cannot bundle a missing --add-binary and would fail partway through.",
+                "Download a Windows ffmpeg build and place ffmpeg.exe and ffprobe.exe in bin\\.",
+            )
 
     # Install all dependencies into the current venv before bundling
+    print(f"Using interpreter: {sys.executable}")
     print("Installing dependencies from requirements.txt...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
     print("Dependencies installed.")
+
+    # Imported here, not at module scope: PyInstaller is a build-time tool, and a
+    # bare ImportError on line 1 just flashes a console window shut when this is
+    # double-clicked, leaving dist/ untouched with no visible reason.
+    try:
+        import PyInstaller.__main__
+    except ImportError:
+        _fatal(
+            "ERROR: PyInstaller is not installed in this interpreter.",
+            f"Interpreter: {sys.executable}",
+            "",
+            "Install it with:",
+            f"  {os.path.basename(sys.executable)} -m pip install pyinstaller",
+            "",
+            "If you have several Pythons, make sure this is the same one your venv uses.",
+        )
 
     # Clean previous build — but PRESERVE the database and any runtime files.
     #

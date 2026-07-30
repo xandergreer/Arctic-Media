@@ -35,6 +35,7 @@ multidict==6.7.1
 orjson==3.11.5
 passlib==1.7.4
 guessit>=3.0.0
+pyinstaller>=6.0.0
 subliminal>=2.1.0,<3
 babelfish>=0.6.0
 pysrt>=1.1.2
