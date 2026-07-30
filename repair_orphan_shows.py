@@ -11,15 +11,20 @@ _deduplicate_shows compares normalised titles for *equality* so it cannot tell
 that one title is a mangled version of another.
 
 For every SHOW this re-derives the show name from its episode files using the
-current parser (scanner.resolve_show_name) and repairs only rows where the
-derived name is a strict prefix of the stored title - i.e. the stored title is
-the real name plus leftover episode words. Rows with an empty title are also
-repaired.
+current parser (scanner.resolve_show_name). A row is only repaired when BOTH:
 
-That prefix rule is deliberately conservative. Titles that merely differ in
-punctuation or casing ("Bob's Burgers", "Alien: Earth", "The Last of Us") are
-normally *better* than what a filename yields, usually because metadata refresh
-corrected them, so they are left alone.
+  * it never matched metadata (tmdb_id is NULL), and
+  * the derived name is a strict prefix of the stored title - the stored title
+    is the real name with leftover episode words on the end - or the stored
+    title is empty.
+
+Both guards matter. Filename parsing is lossy in ways that look exactly like the
+bug: guessit reads the "Us" in "The Last of Us" as a region code and hands back
+"The Last Of", which passes the prefix test and would rename a perfectly good
+show. Every genuinely broken row here has no tmdb_id and no artwork, while every
+false positive found in testing ("The Last of Us", "Love, Death & Robots",
+"Adventure Time: Fionna and Cake") has both, so refusing to touch anything that
+matched TMDB rules them all out.
 
 Repaired rows are grouped by their real name: if a correctly-titled show already
 exists the seasons move onto it, otherwise the lowest-numbered row is renamed and
@@ -115,6 +120,11 @@ async def main(apply: bool):
 
         broken: list[tuple[MediaItem, str]] = []
         for show in shows:
+            # A show that matched TMDB has a real title; never overwrite it with
+            # something a filename produced.
+            if show.tmdb_id is not None:
+                continue
+
             paths = await _episode_paths(db, show.id)
             if not paths:
                 continue
