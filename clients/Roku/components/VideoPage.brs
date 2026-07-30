@@ -85,7 +85,13 @@ sub onParams(event as object)
     m.episodeLabel = ""
     el = p.episodeLabel
     if el <> invalid and el <> "" then m.episodeLabel = el
-    updateOsdHeader(p.title)
+
+    ' A deep link has no metadata to hand us, so it passes an empty title and we
+    ' fetch the name ourselves rather than leaving a placeholder on screen.
+    startTitle = p.title
+    if startTitle = invalid then startTitle = ""
+    updateOsdHeader(startTitle)
+    if startTitle = "" then fetchTitleBg()
 
     if p.episodeList <> invalid then m.episodeList = p.episodeList
     if p.episodeIdx  <> invalid then m.episodeIdx  = p.episodeIdx
@@ -109,7 +115,7 @@ sub onParams(event as object)
 
     cn = CreateObject("roSGNode", "ContentNode")
     cn.url          = p.url
-    cn.title        = p.title
+    cn.title        = startTitle
     cn.streamFormat = "hls"
     ' Resume belt-and-braces: playStart is honored when playback begins, and
     ' the pre-play seek below covers firmware that latches it. Same position.
@@ -134,6 +140,40 @@ sub onParams(event as object)
     m.saveTimer.repeat   = true
     m.saveTimer.observeField("fire", "onSaveTimer")
     m.saveTimer.control = "start"
+end sub
+
+' -------------------------------------------------------
+' Background title fetch (for deep links, which carry no metadata)
+' -------------------------------------------------------
+
+sub fetchTitleBg()
+    if m.mediaId = 0 then return
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url   = m.serverUrl + "/api/v1/media/" + m.mediaId.ToStr()
+    task.token = m.token
+    task.observeField("result", "onBgTitleResult")
+    task.control = "run"
+    m.bgTitleTask = task
+end sub
+
+sub onBgTitleResult(event as object)
+    data = event.getData()
+    ' alwaysNotify fires once with an empty AA the moment the observer attaches
+    if data = invalid then return
+    if data.title = invalid or data.title = "" then return
+
+    ' Episodes get the same "S1 E3" prefix the in-app player shows. season_number
+    ' lives on the parent season for some rows, so only use it when present.
+    sn = data.season_number
+    en = data.episode_number
+    if sn <> invalid and en <> invalid
+        m.episodeLabel = "S" + sn.ToStr() + " E" + en.ToStr()
+    end if
+
+    ' Only our own OSD label — assigning to the ContentNode's title mid-stream
+    ' wakes Roku's built-in trick-play overlay, which then draws a second copy
+    ' of the title over ours.
+    updateOsdHeader(data.title)
 end sub
 
 ' -------------------------------------------------------

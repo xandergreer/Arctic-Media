@@ -195,10 +195,13 @@ sub playDeepLink(position as dynamic)
         print "[deeplink] mediaId="; dl.mediaId; " resume position="; position
     #end if
 
+    ' Empty title tells VideoPage to look the name up itself. Fetching it here
+    ' would stall playback behind a second round trip; this way the video starts
+    ' immediately and the OSD fills in when the metadata lands.
     pushPage("VideoPage", {
         action:   "play"
         mediaId:  dl.mediaId
-        title:    "Loading…"
+        title:    ""
         url:      BuildHlsUrl(dl.serverUrl, dl.token, dl.mediaId)
         position: position
     })
