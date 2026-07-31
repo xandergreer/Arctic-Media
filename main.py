@@ -26,6 +26,9 @@ logger = logging.getLogger("arctic_media")
 
 if os.name == 'nt':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+import hashlib
+from functools import lru_cache
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -76,6 +79,38 @@ from app.models.pairing import PairingCode
 
 # Setup Templates
 templates = Jinja2Templates(directory=resource_path("app/templates"))
+
+
+@lru_cache(maxsize=None)
+def _asset_digest(rel_path: str) -> str:
+    """Short content hash of a file under app/static, or '0' if unreadable."""
+    full = resource_path(os.path.join("app", "static", rel_path))
+    try:
+        with open(full, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()[:10]
+    except OSError:
+        # Missing file: still emit a URL so the page renders and the 404 is
+        # obvious in the network tab, rather than failing the whole template.
+        return "0"
+
+
+def asset(rel_path: str) -> str:
+    """Cache-busting URL for a static file, keyed on its contents.
+
+    Hand-written "?v=5" markers meant every edit needed a matching bump, and a
+    forgotten one is invisible: the server serves new HTML while the browser
+    keeps running JS it already had. That is exactly how the settings page ended
+    up rendering a button whose click handler did not exist yet.
+
+    Hashing the bytes makes the URL change when, and only when, the file does.
+    Cached for the process lifetime, so this costs one read per file - static
+    files cannot change under a running server anyway, since PyInstaller unpacks
+    them fresh on each launch.
+    """
+    return f"/static/{rel_path}?v={_asset_digest(rel_path)}"
+
+
+templates.env.globals["asset"] = asset
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
