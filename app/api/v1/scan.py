@@ -23,11 +23,11 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-async def _run_scan(lib_id: int, lib_name: str):
+async def _run_scan(lib_id: int, lib_name: str, retitle: bool = True):
     _scan_state[lib_id]["status"] = "scanning"
     _scan_state[lib_id]["started_at"] = _now()
     try:
-        await scanner.scan_library(lib_id)
+        await scanner.scan_library(lib_id, retitle=retitle)
         _scan_state[lib_id]["status"] = "done"
         _scan_state[lib_id]["finished_at"] = _now()
         print(f"[SCAN] Finished: {lib_name}")
@@ -159,11 +159,13 @@ async def reset_all_metadata(
     Rows, files, watch history and the libraries themselves stay exactly as they
     are; they simply lose the data that came from TMDB.
 
-    Titles are deliberately left alone, because the scan that follows repairs
-    them anyway: _retitle_stale_items re-derives the title of every item missing
-    a poster, and clearing the posters is what brings each one back into its
-    scope. A wrong title that a stale tmdb_id was pinning in place therefore
-    gets a second chance here.
+    Titles are kept, and the rescan runs with retitle=False so they stay that
+    way. Letting the stale-title pass loose here was a mistake: clearing every
+    poster sweeps the whole library into its scope, and it replaced good TMDB
+    titles with filename guesses - "Scream 7" became "7", "28 Years Later: The
+    Bone Temple" became "28 Years Later The Temple", "Mr. Deeds" became "Mr
+    Deeds". Those titles are also the keys enrichment searches on, so keeping
+    them is what makes the refetch land on the right entries.
 
     Pass ?rescan=false to clear without rescanning, which leaves everything
     without artwork until something scans.
@@ -209,7 +211,19 @@ async def reset_all_metadata(
             "finished_at": None,
             "error": None,
         }
-        asyncio.create_task(_run_scan(lib.id, lib.name))
+
+    # One task walking the libraries in turn, not a task each. SQLite allows a
+    # single writer, so parallel scans just collide - the first attempt at this
+    # produced a wall of "database is locked" and lost writes partway through
+    # several libraries. /scan/run has always done it this way.
+    async def _run_all():
+        for lib in libraries:
+            # retitle=False: every poster was just cleared, which would otherwise
+            # drag the whole library through the stale-title pass and overwrite
+            # good TMDB titles with filename guesses.
+            await _run_scan(lib.id, lib.name, retitle=False)
+
+    asyncio.create_task(_run_all())
 
     return {
         "status": "started",

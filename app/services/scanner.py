@@ -400,9 +400,16 @@ async def _retitle_stale_items(db: AsyncSession, library_id: int):
         print(f"  [RETITLE] Updated {updated} stale title(s).")
 
 
-async def scan_library(library_id: int):
+async def scan_library(library_id: int, retitle: bool = True):
     """
     Scans a single library in its own DB session.
+
+    retitle=False skips the stale-title pass. Reset Metadata uses that: it clears
+    every poster, which would otherwise sweep the whole library into that pass
+    and overwrite good TMDB titles with whatever the filenames parse to -
+    "Scream 7" became "7", "28 Years Later: The Bone Temple" became "28 Years
+    Later The Temple". The existing titles are also the search keys enrichment
+    re-matches on, so keeping them gives better matches, not worse.
     - Batch path lookup: one SELECT loads all known paths into a set (O(1) per-file check)
     - mtime skip: folders not modified since last scan are skipped entirely
     - Updates library.last_scanned_at on completion
@@ -435,8 +442,11 @@ async def scan_library(library_id: int):
         library.last_scanned_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         await db.commit()
 
-        print(f"[SCAN] Finished: {library.name} - re-titling stale items")
-        await _retitle_stale_items(db, library.id)
+        if retitle:
+            print(f"[SCAN] Finished: {library.name} - re-titling stale items")
+            await _retitle_stale_items(db, library.id)
+        else:
+            print(f"[SCAN] Finished: {library.name} - keeping existing titles")
 
         print(f"[SCAN] Running enrichment for {library.name}")
         try:
