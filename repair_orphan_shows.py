@@ -125,7 +125,48 @@ async def _merge_show(db: AsyncSession, source: MediaItem, target: MediaItem):
     await db.delete(source)
 
 
-async def main(apply: bool):
+async def report(db: AsyncSession):
+    """Read-only summary of what has no artwork and why."""
+    from sqlalchemy import func
+
+    print("Items by kind:")
+    rows = (await db.execute(
+        select(MediaItem.kind, func.count(MediaItem.id)).group_by(MediaItem.kind)
+    )).all()
+    for kind, n in rows:
+        print(f"  {getattr(kind, 'value', kind):<8} {n:>5}")
+
+    no_art = (MediaItem.poster_url.is_(None)) | (MediaItem.poster_url == "")
+    print("\nMissing a poster:")
+    rows = (await db.execute(
+        select(MediaItem.kind, func.count(MediaItem.id)).where(no_art).group_by(MediaItem.kind)
+    )).all()
+    if not rows:
+        print("  none - every item has artwork")
+    for kind, n in rows:
+        print(f"  {getattr(kind, 'value', kind):<8} {n:>5}")
+
+    print("\nMissing a poster AND never matched TMDB (these are the blank tiles):")
+    for kind in (MediaKind.MOVIE, MediaKind.SHOW):
+        items = (await db.execute(
+            select(MediaItem).where(
+                MediaItem.kind == kind, no_art, MediaItem.tmdb_id.is_(None)
+            ).limit(15)
+        )).scalars().all()
+        total = (await db.execute(
+            select(func.count(MediaItem.id)).where(
+                MediaItem.kind == kind, no_art, MediaItem.tmdb_id.is_(None)
+            )
+        )).scalar_one()
+        label = getattr(kind, "value", kind)
+        print(f"\n  {label}: {total}")
+        for it in items:
+            print(f"    id={it.id:<5} {it.title!r}")
+        if total > len(items):
+            print(f"    ... and {total - len(items)} more")
+
+
+async def main(apply: bool, want_report: bool = False):
     # Say which file is being touched. Run from source this defaults to the copy
     # in the project root, while the packaged server keeps its database in
     # %LOCALAPPDATA%\ArcticMedia - so without --db this would happily repair the
@@ -137,6 +178,10 @@ async def main(apply: bool):
     print(f"          ({os.path.getsize(target):,} bytes)\n")
 
     async with AsyncSessionLocal() as db:
+        if want_report:
+            await report(db)
+            return
+
         shows = (await db.execute(
             select(MediaItem).where(MediaItem.kind == MediaKind.SHOW)
         )).scalars().all()
@@ -225,4 +270,7 @@ if __name__ == "__main__":
                     help="database to repair. Defaults to the one this checkout "
                          "would use, which is NOT the packaged server's copy in "
                          "%%LOCALAPPDATA%%\\ArcticMedia on Windows.")
-    asyncio.run(main(ap.parse_args().apply))
+    ap.add_argument("--report", action="store_true",
+                    help="read-only summary of what is missing artwork, and why")
+    _args = ap.parse_args()
+    asyncio.run(main(_args.apply, _args.report))
