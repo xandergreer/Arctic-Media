@@ -202,26 +202,61 @@ def resolve_show_name(full_path: str, filename_no_ext: str, episode_match_start:
     return show_name_from_folder or "Unknown Show"
 
 
-def _title_case(s: str) -> str:
+_ROMAN_RE = re.compile(r"^[IVXLC]+$")
+
+
+def _keep_word_case(word: str) -> bool:
+    """Does this word already carry casing worth keeping?
+
+    Rewriting every character flattened titles that were already right: Y2K
+    became Y2k, M3GAN became M3gan, SquarePants became Squarepants, and
+    "The Boondock Saints II" became "Saints Ii". Digits also left the
+    capitalise-next flag set, so "13th" came out as "13Th".
+
+    A word is left alone when it contains a digit, is a roman numeral, or mixes
+    upper and lower case. Words that are entirely uppercase are still
+    title-cased, so an ALL-CAPS release name doesn't survive as shouting.
     """
-    Title-case that doesn't capitalize the letter after an apostrophe.
-    Python's str.title() turns "ender's game" into "Ender'S Game" - this fixes that.
+    if any(ch.isdigit() for ch in word):
+        return True
+    letters = [ch for ch in word if ch.isalpha()]
+    if not letters:
+        return True
+    if _ROMAN_RE.match(word) and len(word) <= 5:
+        return True
+    has_upper = any(ch.isupper() for ch in letters)
+    has_lower = any(ch.islower() for ch in letters)
+    return has_upper and has_lower
+
+
+def _title_case_word(word: str) -> str:
+    """Title-case one word, without capitalising after an apostrophe.
+
+    str.title() turns "ender's" into "Ender'S".
     """
     result = []
     cap_next = True
-    for ch in s:
-        if ch in (" ", "-"):
+    for ch in word:
+        if ch == "-":
             result.append(ch)
             cap_next = True
         elif ch == "'":
             result.append(ch)
-            cap_next = False  # never capitalize after apostrophe
+            cap_next = False
         elif cap_next and ch.isalpha():
             result.append(ch.upper())
             cap_next = False
         else:
             result.append(ch.lower())
     return "".join(result)
+
+
+def _title_case(s: str) -> str:
+    """Title-case a title, preserving words that are already cased on purpose."""
+    return " ".join(
+        w if _keep_word_case(w) else _title_case_word(w)
+        for w in s.split(" ")
+    )
 
 
 def clean_title(title: str, *, year_already_known: bool = False) -> str:

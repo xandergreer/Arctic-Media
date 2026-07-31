@@ -2,6 +2,28 @@ from contextlib import asynccontextmanager
 import asyncio, logging, os, sys
 from fastapi import FastAPI, Request, Depends
 
+# ── Console encoding ──────────────────────────────────────────────────────────
+def _force_utf8_console() -> None:
+    """Stop non-ASCII titles from raising UnicodeEncodeError on Windows.
+
+    The Windows console defaults to cp1252, so printing a title like "Alien^3"
+    or an accented name raised 'charmap' codec can't encode - and because the
+    scan prints progress as it goes, that exception propagated and aborted the
+    enrichment for that item ("Failed to refresh S01: 'charmap' codec..."). It
+    read like a data problem but was only ever the console. errors="replace"
+    means an unprintable character shows as "?" instead of killing the scan;
+    what goes into the database and the log file is unaffected.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass  # already wrapped, or not a real stream (frozen, piped)
+
+
+_force_utf8_console()
+
+
 # ── Persistent file logging ───────────────────────────────────────────────────
 def _setup_logging() -> None:
     """Configure root logger: INFO to stdout + rotating file in the data dir."""
