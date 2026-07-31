@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated, Dict, Any
@@ -9,6 +10,7 @@ import traceback
 from app.core.database import get_db
 from app.api.deps import get_current_active_superuser
 from app.models.library import Library
+from app.models.media import MediaItem
 from app.services import scanner
 
 router = APIRouter()
@@ -125,3 +127,81 @@ async def rescan_library(
     asyncio.create_task(_run_scan(library_id, lib.name))
 
     return {"status": "started", "library": lib.name, "library_id": library_id, "force": force}
+
+
+@router.post("/library/{library_id}/reset-metadata")
+async def reset_library_metadata(
+    library_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user = Depends(get_current_active_superuser),
+    rescan: bool = True,
+):
+    """
+    Throw away everything TMDB gave this library so the next pass fetches it again.
+
+    Clears tmdb_id, artwork, overview, release date and extra_json on every item.
+    Files, watch history and the library itself are untouched - the rows stay put
+    and simply lose their metadata.
+
+    Titles are deliberately left alone, because the scan that follows repairs them
+    anyway: _retitle_stale_items re-derives the title of every item missing a
+    poster, and clearing the posters is what brings each one back into its scope.
+    So a wrong title that a stale tmdb_id was pinning in place gets a second
+    chance here.
+
+    Pass ?rescan=false to clear without kicking off the rescan, which leaves the
+    library with no artwork until something scans it.
+    """
+    result = await db.execute(select(Library).where(Library.id == library_id))
+    lib = result.scalar_one_or_none()
+    if not lib:
+        raise HTTPException(status_code=404, detail=f"Library {library_id} not found")
+
+    if _scan_state.get(library_id, {}).get("status") in ("pending", "scanning"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"'{lib.name}' is being scanned right now - wait for it to finish.",
+        )
+
+    count = (await db.execute(
+        select(MediaItem).where(MediaItem.library_id == library_id)
+    )).scalars().all()
+    cleared = len(count)
+
+    await db.execute(
+        update(MediaItem)
+        .where(MediaItem.library_id == library_id)
+        .values(
+            tmdb_id=None,
+            poster_url=None,
+            backdrop_url=None,
+            overview=None,
+            release_date=None,
+            extra_json=None,
+        )
+    )
+    # Force the following scan to re-walk every folder rather than trust mtimes.
+    lib.last_scanned_at = None
+    await db.commit()
+    print(f"[SCAN] Reset metadata for {cleared} item(s) in '{lib.name}'")
+
+    if not rescan:
+        return {"status": "cleared", "library": lib.name, "items_cleared": cleared, "rescan": False}
+
+    _scan_state[library_id] = {
+        "library_id": library_id,
+        "library_name": lib.name,
+        "status": "pending",
+        "started_at": None,
+        "finished_at": None,
+        "error": None,
+    }
+    asyncio.create_task(_run_scan(library_id, lib.name))
+
+    return {
+        "status": "started",
+        "library": lib.name,
+        "library_id": library_id,
+        "items_cleared": cleared,
+        "rescan": True,
+    }

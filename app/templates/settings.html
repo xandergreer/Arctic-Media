@@ -64,6 +64,12 @@
                         style="opacity:0.6;">
                         <span class="material-icons" style="font-size:0.9rem;">sync_problem</span>
                     </button>
+                    <button class="btn btn-ghost btn-sm reset-meta-lib-btn" data-id="{{ lib.id }}"
+                        data-name="{{ lib.name }}"
+                        title="Reset metadata — wipes posters, descriptions and TMDB matches, then refetches everything"
+                        style="opacity:0.6;">
+                        <span class="material-icons" style="font-size:0.9rem;">restart_alt</span>
+                    </button>
                     <button class="btn btn-danger btn-sm delete-lib-btn" data-id="{{ lib.id }}" title="Remove library">
                         <span class="material-icons" style="font-size:0.9rem;">delete</span>
                     </button>
@@ -165,6 +171,6 @@
 </div>
 
 <script src="/static/js/fsbrowser.js?v=2"></script>
-<script src="/static/js/settings.js?v=4"></script>
+<script src="/static/js/settings.js?v=5"></script>
 
 {% endblock %}

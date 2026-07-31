@@ -252,6 +252,40 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // --- RESET METADATA (destructive: wipes TMDB data, then refetches) ---
+    document.querySelectorAll('.reset-meta-lib-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const libId = e.currentTarget.getAttribute('data-id');
+            const libName = e.currentTarget.getAttribute('data-name') || `Library ${libId}`;
+            if (!confirm(
+                `Reset ALL metadata for "${libName}"?\n\n` +
+                `Posters, backdrops, descriptions, release dates and TMDB matches ` +
+                `will be wiped, then fetched again from scratch.\n\n` +
+                `Your files, watch history and the library itself are not touched. ` +
+                `Until the rescan finishes the library will look empty of artwork.`
+            )) return;
+
+            e.currentTarget.disabled = true;
+            try {
+                const res = await fetch(`/api/v1/scan/library/${libId}/reset-metadata`, {
+                    method: 'POST', credentials: 'include',
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.detail || 'Failed to reset metadata.');
+                } else {
+                    _startPolling([{
+                        library_id: data.library_id || parseInt(libId),
+                        library_name: data.library || libName,
+                        status: 'pending',
+                        started_at: null, finished_at: null, error: null,
+                    }]);
+                }
+            } catch { alert('Failed to reset metadata.'); }
+            e.currentTarget.disabled = false;
+        });
+    });
+
     // --- SCAN ALL ---
     const scanBtn = document.getElementById('scan-btn');
     if (scanBtn) {
