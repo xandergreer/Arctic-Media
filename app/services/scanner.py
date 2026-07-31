@@ -376,7 +376,11 @@ async def _retitle_stale_items(db: AsyncSession, library_id: int):
             # Pass original filename with dots intact - guessit works better with them
             raw = filename
 
-        new_title = clean_title(raw)
+        # Same reasoning as _scan_movies: when MOVIE_REGEX matched, the year has
+        # already been taken off, so what remains must keep any year in it.
+        # Without this the very rows this repairs - the ones with no artwork -
+        # clean straight back to "" and are skipped again on every scan.
+        new_title = clean_title(raw, year_already_known=bool(m))
         if not new_title or new_title == item.title:
             continue
 
