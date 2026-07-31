@@ -43,6 +43,9 @@ def _probe_duration(file_path: str) -> float | None:
     except Exception:
         return None
 
+# Only one scan may touch the database at a time - see scan_library().
+_SCAN_LOCK = asyncio.Lock()
+
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v"}
 
 # Regex for "Title (Year)"
@@ -143,6 +146,27 @@ def _show_name_from_filename(filename_no_ext: str, episode_match_start: int) -> 
     return clean_title(before) if before else ""
 
 
+_SEASON_FOLDER_RE = re.compile(
+    r"""(?ix) ^ (?:
+            s \s* \d{1,3}                 # S01, S1, S 01
+          | season [\s._-]* \d{1,3}       # Season 1, Season.01, Season_1
+          | specials?
+          | extras?
+        ) $""")
+
+
+def _is_season_folder(name: str) -> bool:
+    """Is this folder a season container rather than the show itself?
+
+    Looking for the word "season" alone missed the common bare form: Bluey is
+    stored as Bluey\\S01, so the parent read as the show name and 52 episodes
+    were filed under a show called "S01" - which TMDB then matched to something
+    unrelated. Anything that is only a season marker means the show name is one
+    level further up.
+    """
+    return bool(_SEASON_FOLDER_RE.match((name or "").strip()))
+
+
 def resolve_show_name(full_path: str, filename_no_ext: str, episode_match_start: int) -> str:
     """Work out which show an episode file belongs to.
 
@@ -161,7 +185,7 @@ def resolve_show_name(full_path: str, filename_no_ext: str, episode_match_start:
     if len(path_parts) >= 2:
         parent = path_parts[-2]
         grandparent = path_parts[-3] if len(path_parts) >= 3 else None
-        if "season" in parent.lower() or "specials" in parent.lower():
+        if _is_season_folder(parent):
             show_name_raw = grandparent if grandparent else parent
         else:
             show_name_raw = parent
@@ -452,7 +476,18 @@ async def scan_library(library_id: int, retitle: bool = True):
     - Batch path lookup: one SELECT loads all known paths into a set (O(1) per-file check)
     - mtime skip: folders not modified since last scan are skipped entirely
     - Updates library.last_scanned_at on completion
+
+    Serialised across the whole process by _SCAN_LOCK. SQLite takes one writer,
+    and the scheduler calls this directly rather than through the API, so it
+    never saw the endpoint's busy check - a 15-minute auto-scan landing on top of
+    a manual one filled the log with "database is locked" and lost whole batches
+    of inserts. Holding the lock here covers every caller.
     """
+    async with _SCAN_LOCK:
+        await _scan_library_locked(library_id, retitle)
+
+
+async def _scan_library_locked(library_id: int, retitle: bool = True):
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Library).where(Library.id == library_id))
         library = result.scalar_one_or_none()
