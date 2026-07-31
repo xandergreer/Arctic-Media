@@ -302,6 +302,31 @@ def _title_case(s: str) -> str:
     )
 
 
+_YEAR_RE = re.compile(r"(?<!\d)(19\d{2}|20\d{2})(?!\d)")
+
+
+def extract_year(text: str) -> Optional[int]:
+    """Pull the release year out of a filename.
+
+    Only folders shaped "Title (2022)" were yielding a year, so most movies
+    reached TMDB with no year at all and the search returned whatever was most
+    popular: Big (1988) came back as Big Hero 6, Friday as Freakier Friday,
+    Beetlejuice as Beetlejuice Beetlejuice, Silent Hill as Return to Silent
+    Hill. guessit has the year all along - it strips it to isolate the title.
+    """
+    if _GUESSIT_AVAILABLE:
+        try:
+            year = _guessit(text).get("year")
+            if isinstance(year, int) and 1900 <= year <= 2100:
+                return year
+        except Exception:
+            pass
+    # Last match, not first: the release year follows the title, and a title can
+    # open with one of its own ("1992 2022 BLURAY").
+    found = _YEAR_RE.findall(text or "")
+    return int(found[-1]) if found else None
+
+
 def clean_title(title: str, *, year_already_known: bool = False) -> str:
     """
     Cleans a filename into a search-friendly title.
@@ -667,6 +692,10 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 year = None
 
             title = clean_title(title_raw, year_already_known=bool(match))
+            if year is None:
+                # Try the folder first - it usually carries the release name in
+                # full - then the filename.
+                year = extract_year(folder_name) or extract_year(name)
             print(f"    [MOVIE] {title} ({year or '?'})  <- {filename}")
 
             result = await db.execute(select(MediaItem).where(
