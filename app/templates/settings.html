@@ -38,9 +38,15 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
             <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Configure where Arctic Media looks for your
                 content.</p>
-            <button id="scan-btn" class="btn btn-primary btn-sm">
-                <span class="material-icons" style="font-size:0.95rem;">sync</span> Scan All
-            </button>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+                <button id="reset-meta-btn" class="btn btn-ghost btn-sm"
+                    title="Wipes every poster, description and TMDB match across all libraries, then fetches them again">
+                    <span class="material-icons" style="font-size:0.95rem;">restart_alt</span> Reset Metadata
+                </button>
+                <button id="scan-btn" class="btn btn-primary btn-sm">
+                    <span class="material-icons" style="font-size:0.95rem;">sync</span> Scan All
+                </button>
+            </div>
         </div>
 
         {% if libraries %}
@@ -63,12 +69,6 @@
                         title="Force rescan — ignores mtime cache, re-checks every folder"
                         style="opacity:0.6;">
                         <span class="material-icons" style="font-size:0.9rem;">sync_problem</span>
-                    </button>
-                    <button class="btn btn-ghost btn-sm reset-meta-lib-btn" data-id="{{ lib.id }}"
-                        data-name="{{ lib.name }}"
-                        title="Reset metadata — wipes posters, descriptions and TMDB matches, then refetches everything"
-                        style="opacity:0.6;">
-                        <span class="material-icons" style="font-size:0.9rem;">restart_alt</span>
                     </button>
                     <button class="btn btn-danger btn-sm delete-lib-btn" data-id="{{ lib.id }}" title="Remove library">
                         <span class="material-icons" style="font-size:0.9rem;">delete</span>
