@@ -41,11 +41,24 @@ import argparse
 import asyncio
 import os
 import re
+import sys
 from collections import Counter, defaultdict
+
+# --db has to be handled before app.core.database is imported, because the engine
+# is built from settings.DATABASE_URL at import time.
+_argp = argparse.ArgumentParser(add_help=False)
+_argp.add_argument("--db")
+_pre, _ = _argp.parse_known_args()
+if _pre.db:
+    _db = os.path.abspath(_pre.db)
+    if not os.path.isfile(_db):
+        sys.exit(f"ERROR: no database at {_db}")
+    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///" + _db.replace("\\", "/")
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.media import MediaFile, MediaItem, MediaKind
 from app.services.scanner import EPISODE_REGEX, resolve_show_name
@@ -113,6 +126,16 @@ async def _merge_show(db: AsyncSession, source: MediaItem, target: MediaItem):
 
 
 async def main(apply: bool):
+    # Say which file is being touched. Run from source this defaults to the copy
+    # in the project root, while the packaged server keeps its database in
+    # %LOCALAPPDATA%\ArcticMedia - so without --db this would happily repair the
+    # wrong one and report success.
+    target = settings.DATABASE_URL.split("///", 1)[-1]
+    print(f"Database: {target}")
+    if not os.path.isfile(target):
+        sys.exit(f"ERROR: that database does not exist. Pass --db <path> to the live one.")
+    print(f"          ({os.path.getsize(target):,} bytes)\n")
+
     async with AsyncSessionLocal() as db:
         shows = (await db.execute(
             select(MediaItem).where(MediaItem.kind == MediaKind.SHOW)
@@ -198,4 +221,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--apply", action="store_true",
                     help="actually write the changes (default is a dry run)")
+    ap.add_argument("--db", metavar="PATH",
+                    help="database to repair. Defaults to the one this checkout "
+                         "would use, which is NOT the packaged server's copy in "
+                         "%%LOCALAPPDATA%%\\ArcticMedia on Windows.")
     asyncio.run(main(ap.parse_args().apply))
