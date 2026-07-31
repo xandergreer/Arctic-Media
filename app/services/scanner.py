@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from contextlib import asynccontextmanager
 import re
 import subprocess
 import sys
@@ -70,6 +71,23 @@ class manual_scan:
         global _manual_scan_depth
         _manual_scan_depth = max(0, _manual_scan_depth - 1)
         return False
+
+
+@asynccontextmanager
+async def exclusive():
+    """Hold the scan lock, waiting for any in-flight scan to finish first.
+
+    Rebuild deletes every row, and a scan already running when the user presses
+    it holds ids that are about to disappear - a scheduled scan mid-Pluribus had
+    cached a season, the reset deleted it, and inserting the episode under it
+    raised FOREIGN KEY constraint failed. manual_scan() keeps new scheduled jobs
+    from starting; this waits out the one already going.
+
+    Wrap only the delete. The lock is not reentrant, so holding it across the
+    rescan that follows would deadlock against scan_library taking it.
+    """
+    async with _SCAN_LOCK:
+        yield
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v"}
 

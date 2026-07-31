@@ -186,20 +186,44 @@ async def reset_all_metadata(
             detail=f"Scan in progress ({', '.join(busy)}) - wait for it to finish.",
         )
 
-    cleared = (await db.execute(select(func.count(MediaItem.id)))).scalar_one()
-    history = (await db.execute(text("SELECT count(*) FROM watch_history"))).scalar_one()
+    # Held from here until the rescan takes over. _scan_state only knows about
+    # scans started through this API, so a scheduled scan could be running right
+    # now, holding ids this delete is about to remove - that is how a mid-flight
+    # auto-scan hit FOREIGN KEY constraint failed inserting an episode under a
+    # season the reset had just deleted. scanner.exclusive() waits it out and
+    # keeps new ones from starting.
+    guard = scanner.manual_scan()
+    guard.__enter__()
+    released = False
 
-    # Plain DELETE so SQLite applies the ON DELETE CASCADE itself - database.py
-    # turns foreign_keys on per connection, so media_files and watch_history go
-    # with the items.
-    await db.execute(delete(MediaItem))
-    for lib in libraries:
-        lib.last_scanned_at = None
-    await db.commit()
+    def _release():
+        nonlocal released
+        if not released:
+            released = True
+            guard.__exit__(None, None, None)
+
+    try:
+        # The lock covers the delete only - it is not reentrant, and the rescan
+        # below takes it per library.
+        async with scanner.exclusive():
+            cleared = (await db.execute(select(func.count(MediaItem.id)))).scalar_one()
+            history = (await db.execute(text("SELECT count(*) FROM watch_history"))).scalar_one()
+
+            # Plain DELETE so SQLite applies the ON DELETE CASCADE itself -
+            # database.py turns foreign_keys on per connection, so media_files
+            # and watch_history go with the items.
+            await db.execute(delete(MediaItem))
+            for lib in libraries:
+                lib.last_scanned_at = None
+            await db.commit()
+    except Exception:
+        _release()
+        raise
     print(f"[SCAN] Reset: deleted {cleared} item(s) and {history} history row(s) "
           f"across {len(libraries)} librar(ies)")
 
     if not rescan:
+        _release()
         return {"status": "cleared", "items_cleared": cleared,
                 "history_cleared": history, "rescan": False}
 
@@ -217,10 +241,16 @@ async def reset_all_metadata(
     # single writer, so parallel scans just collide - the first attempt at this
     # produced a wall of "database is locked" and lost writes partway through
     # several libraries.
+    # The guard opened before the delete is handed to this task and released
+    # only once every library has been rescanned, so there is no window where a
+    # scheduled scan can start against a half-empty database.
     async def _run_all():
-        with scanner.manual_scan():
-            for lib in libraries:
-                await _run_scan(lib.id, lib.name)
+        try:
+            with scanner.manual_scan():
+                for lib in libraries:
+                    await _run_scan(lib.id, lib.name)
+        finally:
+            _release()
 
     asyncio.create_task(_run_all())
 
