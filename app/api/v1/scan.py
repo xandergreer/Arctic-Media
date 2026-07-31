@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, update
+from sqlalchemy import delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated, Dict, Any
@@ -151,24 +151,23 @@ async def reset_all_metadata(
     rescan: bool = True,
 ):
     """
-    Throw away every piece of metadata TMDB has given us, across all libraries,
-    then fetch it all again.
+    Delete every scanned item and rebuild the library from the files.
 
-    Clears tmdb_id, posters, backdrops, overviews, release dates and extra_json
-    on every item of every kind - movies, shows, seasons and episodes alike.
-    Rows, files, watch history and the libraries themselves stay exactly as they
-    are; they simply lose the data that came from TMDB.
+    Clearing metadata in place was not enough. Titles survived the wipe and
+    stayed wrong, and since a title is the key enrichment searches on, a mangled
+    one just matched the wrong film again on the way back. Deleting the rows
+    instead means the scan re-derives every title from the filenames with the
+    current parser and matches from there, with nothing carried over.
 
-    Titles are kept, and the rescan runs with retitle=False so they stay that
-    way. Letting the stale-title pass loose here was a mistake: clearing every
-    poster sweeps the whole library into its scope, and it replaced good TMDB
-    titles with filename guesses - "Scream 7" became "7", "28 Years Later: The
-    Bone Temple" became "28 Years Later The Temple", "Mr. Deeds" became "Mr
-    Deeds". Those titles are also the keys enrichment searches on, so keeping
-    them is what makes the refetch land on the right entries.
+    Removes all media_items, and with them media_files and watch_history, which
+    both cascade. Watch history cannot survive this: its rows point at
+    media_item ids that will not exist afterwards.
 
-    Pass ?rescan=false to clear without rescanning, which leaves everything
-    without artwork until something scans.
+    Libraries, users, settings, invites and pairing codes are untouched, so the
+    server comes back configured and logged in with an empty library that then
+    refills.
+
+    Pass ?rescan=false to empty it without rescanning.
     """
     libraries = (await db.execute(select(Library))).scalars().all()
     if not libraries:
@@ -183,24 +182,21 @@ async def reset_all_metadata(
         )
 
     cleared = (await db.execute(select(func.count(MediaItem.id)))).scalar_one()
-    await db.execute(
-        update(MediaItem).values(
-            tmdb_id=None,
-            poster_url=None,
-            backdrop_url=None,
-            overview=None,
-            release_date=None,
-            extra_json=None,
-        )
-    )
-    # Make the following scan re-walk every folder instead of trusting mtimes.
+    history = (await db.execute(text("SELECT count(*) FROM watch_history"))).scalar_one()
+
+    # Plain DELETE so SQLite applies the ON DELETE CASCADE itself - database.py
+    # turns foreign_keys on per connection, so media_files and watch_history go
+    # with the items.
+    await db.execute(delete(MediaItem))
     for lib in libraries:
         lib.last_scanned_at = None
     await db.commit()
-    print(f"[SCAN] Reset metadata for {cleared} item(s) across {len(libraries)} librar(ies)")
+    print(f"[SCAN] Reset: deleted {cleared} item(s) and {history} history row(s) "
+          f"across {len(libraries)} librar(ies)")
 
     if not rescan:
-        return {"status": "cleared", "items_cleared": cleared, "rescan": False}
+        return {"status": "cleared", "items_cleared": cleared,
+                "history_cleared": history, "rescan": False}
 
     for lib in libraries:
         _scan_state[lib.id] = {
@@ -212,22 +208,20 @@ async def reset_all_metadata(
             "error": None,
         }
 
-    # One task walking the libraries in turn, not a task each. SQLite allows a
+    # One task walking the libraries in turn, not a task each. SQLite takes a
     # single writer, so parallel scans just collide - the first attempt at this
     # produced a wall of "database is locked" and lost writes partway through
-    # several libraries. /scan/run has always done it this way.
+    # several libraries.
     async def _run_all():
         for lib in libraries:
-            # retitle=False: every poster was just cleared, which would otherwise
-            # drag the whole library through the stale-title pass and overwrite
-            # good TMDB titles with filename guesses.
-            await _run_scan(lib.id, lib.name, retitle=False)
+            await _run_scan(lib.id, lib.name)
 
     asyncio.create_task(_run_all())
 
     return {
         "status": "started",
         "items_cleared": cleared,
+        "history_cleared": history,
         "rescan": True,
         "libraries": [{"id": lib.id, "name": lib.name} for lib in libraries],
     }

@@ -245,13 +245,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (resetMetaBtn) {
         resetMetaBtn.addEventListener('click', async () => {
             if (!confirm(
-                'Reset ALL metadata for EVERY library?\n\n' +
-                'Posters, backdrops, descriptions, release dates and TMDB matches ' +
-                'will be wiped for every movie, show, season and episode, then ' +
-                'fetched again from scratch.\n\n' +
-                'Your files, watch history and libraries are not touched.\n\n' +
-                'This re-scans everything and can take a while — until it finishes ' +
-                'your library will look bare.'
+                'Rebuild the entire library from scratch?\n\n' +
+                'Every scanned movie, show, season and episode is DELETED, then ' +
+                'rediscovered from your files and re-matched against TMDB.\n\n' +
+                'WATCH HISTORY IS DELETED TOO — it points at entries that will no ' +
+                'longer exist, so Continue Watching starts empty.\n\n' +
+                'Your media files are never touched, and your libraries, login and ' +
+                'settings are kept.\n\n' +
+                'This takes a while and the library is empty until it finishes.'
             )) return;
 
             resetMetaBtn.disabled = true;
