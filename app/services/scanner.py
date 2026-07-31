@@ -232,10 +232,17 @@ def clean_title(title: str, *, year_already_known: bool = False) -> str:
             guess = _guessit(title)
             extracted = str(guess.get("title") or "").strip()
             if extracted:
-                parts = [p for p in extracted.split() if p.lower() not in STOPWORDS]
-                # Strip trailing standalone language/region codes - but never the only word
-                while len(parts) > 1 and parts[-1].lower() in LANG_CODE_TAGS:
-                    parts.pop()
+                # Take guessit's title as-is. It has already separated out the
+                # release group, quality and codec, so every remaining word
+                # belongs to the name - and running STOPWORDS or LANG_CODE_TAGS
+                # over it only removes real ones. Those lists are full of
+                # ordinary words that happen to double as group or language
+                # codes, which is how "Furiosa A Mad Max Saga" lost "Max",
+                # "Real Steel" became "Steel", "The Void" became "The", and how
+                # anything ending in "It" or "No" would be truncated.
+                # They still guard the fallback path below, where nothing has
+                # been parsed out yet.
+                parts = extracted.split()
                 if parts:
                     result = _title_case(" ".join(parts)).strip()
                     if result.lower() != title.lower():
