@@ -103,9 +103,12 @@ LANG_CODE_TAGS = {
     'tr', 'vi', 'th', 'id', 'en', 'multi', 'dubbed', 'retail',
 }
 
-JUNK_REGEX = re.compile(
-    r"""(?ix)
-        \b(19|20)\d{2}\b|
+# The year alternative is kept separate: when the caller has already pulled the
+# year out of a "Title (2022)" folder, whatever remains is the title itself, and
+# stripping years again destroys films actually named after one.
+_JUNK_YEAR = r"\b(19|20)\d{2}\b|"
+
+_JUNK_BODY = r"""
         \bS\d{1,2}E\d{1,3}\b|
         \bS\d{1,2}\b|
         \bE\d{1,3}\b|
@@ -124,7 +127,9 @@ JUNK_REGEX = re.compile(
         \b(HDRip|DVDRip|DVDScr|DVDCam|HDCam|HDTS|BRRip|BDRip)\b|
         \b(10bit|8bit|Hi10P|Hi10)\b
     """
-)
+
+JUNK_REGEX           = re.compile("(?ix)" + _JUNK_YEAR + _JUNK_BODY)
+JUNK_REGEX_KEEP_YEAR = re.compile("(?ix)" + _JUNK_BODY)
 
 TOKEN_RE = re.compile(r"[.\-_\[\](){}/\\]+|\s+")
 
@@ -195,7 +200,7 @@ def _title_case(s: str) -> str:
     return "".join(result)
 
 
-def clean_title(title: str) -> str:
+def clean_title(title: str, *, year_already_known: bool = False) -> str:
     """
     Cleans a filename into a search-friendly title.
 
@@ -210,11 +215,19 @@ def clean_title(title: str) -> str:
       2. STOPWORDS filter
       3. Trailing language-code strip
       4. Smart title-case
+
+    Pass year_already_known when the year came from a "Title (2022)" folder and
+    has been captured separately. Any year still in the string is then part of
+    the name, and both paths would otherwise eat it: "1992" cleans to nothing,
+    and "Blade Runner 2049" quietly becomes "Blade Runner", which then matches
+    the wrong film on TMDB. guessit is skipped in that case because it makes the
+    same assumption internally; what is left is already title-only, so the
+    stopword pass is enough.
     """
     if not title:
         return ""
 
-    if _GUESSIT_AVAILABLE:
+    if _GUESSIT_AVAILABLE and not year_already_known:
         try:
             guess = _guessit(title)
             extracted = str(guess.get("title") or "").strip()
@@ -234,7 +247,8 @@ def clean_title(title: str) -> str:
             print(f"  [CLEAN] guessit error on '{title[:60]}': {e} - using fallback")
 
     # Fallback: original regex + STOPWORDS approach
-    s = JUNK_REGEX.sub(" ", title)
+    junk = JUNK_REGEX_KEEP_YEAR if year_already_known else JUNK_REGEX
+    s = junk.sub(" ", title)
     s = TOKEN_RE.sub(" ", s).lower()
 
     parts = [p for p in s.split() if p and p not in STOPWORDS]
@@ -243,7 +257,13 @@ def clean_title(title: str) -> str:
     while len(parts) > 1 and parts[-1].lower() in LANG_CODE_TAGS:
         parts.pop()
 
-    return _title_case(" ".join(parts)).strip()
+    result = _title_case(" ".join(parts)).strip()
+    if result:
+        return result
+
+    # Everything looked like junk. An untidy title still beats an empty one,
+    # which is unsearchable and renders as a blank tile.
+    return _title_case(TOKEN_RE.sub(" ", title).strip()).strip()
 
 
 def _walk_and_stat(root_path: str) -> list:
@@ -480,7 +500,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 title_raw = name  # keep dots - guessit needs them
                 year = None
 
-            title = clean_title(title_raw)
+            title = clean_title(title_raw, year_already_known=bool(match))
             print(f"    [MOVIE] {title} ({year or '?'})  <- {filename}")
 
             result = await db.execute(select(MediaItem).where(
