@@ -208,8 +208,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- RESCAN SINGLE LIBRARY ---
-    async function _triggerLibraryScan(libId, force = false) {
-        const url = `/api/v1/scan/library/${libId}${force ? '?force=true' : ''}`;
+    async function _triggerLibraryScan(libId) {
+        const url = `/api/v1/scan/library/${libId}`;
         const res = await fetch(url, { method: 'POST', credentials: 'include' });
         const data = await res.json();
         if (data.status === 'already_running') {
@@ -234,20 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const libId = e.currentTarget.getAttribute('data-id');
             e.currentTarget.disabled = true;
             try {
-                await _triggerLibraryScan(libId, false);
+                await _triggerLibraryScan(libId);
             } catch { alert('Failed to start rescan.'); }
-            e.currentTarget.disabled = false;
-        });
-    });
-
-    document.querySelectorAll('.force-rescan-lib-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const libId = e.currentTarget.getAttribute('data-id');
-            if (!confirm('Force rescan ignores the mtime cache and re-checks every folder — useful if files were copied with old timestamps. Continue?')) return;
-            e.currentTarget.disabled = true;
-            try {
-                await _triggerLibraryScan(libId, true);
-            } catch { alert('Failed to start force rescan.'); }
             e.currentTarget.disabled = false;
         });
     });

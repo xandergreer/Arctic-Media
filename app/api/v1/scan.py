@@ -56,8 +56,17 @@ async def scan_status(current_user = Depends(get_current_active_superuser)):
 async def trigger_scan(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user = Depends(get_current_active_superuser),
+    force: bool = True,
 ):
-    """Start a full scan of all libraries in the background. Returns immediately."""
+    """
+    Start a full scan of all libraries in the background. Returns immediately.
+
+    Forces by default: clearing last_scanned_at makes the scan re-walk every
+    folder rather than skipping any whose mtime looks unchanged, which is what
+    someone pressing Scan All by hand almost always wants - mtimes survive
+    copying between drives, so the cheap path can miss real changes. The
+    scheduled scans call the scanner directly and keep the mtime shortcut.
+    """
     if _is_busy():
         return {"status": "already_running"}
 
@@ -66,6 +75,12 @@ async def trigger_scan(
 
     if not libraries:
         return {"status": "no_libraries", "message": "No libraries configured."}
+
+    if force:
+        for lib in libraries:
+            lib.last_scanned_at = None
+        await db.commit()
+        print(f"[SCAN] Force scan-all: cleared last_scanned_at for {len(libraries)} librar(ies)")
 
     # Seed state so the UI can show all libraries as pending before tasks start
     for lib in libraries:
