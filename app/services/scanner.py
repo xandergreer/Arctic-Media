@@ -46,6 +46,31 @@ def _probe_duration(file_path: str) -> float | None:
 # Only one scan may touch the database at a time - see scan_library().
 _SCAN_LOCK = asyncio.Lock()
 
+# Set while a user-triggered scan or rebuild is running, so the 15-minute
+# scheduled scans stand down instead of queueing up behind it. The lock alone
+# stops them colliding, but a rebuild deletes every row and refills it, and a
+# scheduled scan slipping between two libraries of that sequence re-adds items
+# the rebuild has not reached yet.
+_manual_scan_depth = 0
+
+
+def manual_scan_active() -> bool:
+    return _manual_scan_depth > 0
+
+
+class manual_scan:
+    """Mark a user-triggered scan for its whole duration, nesting included."""
+
+    def __enter__(self):
+        global _manual_scan_depth
+        _manual_scan_depth += 1
+        return self
+
+    def __exit__(self, *exc):
+        global _manual_scan_depth
+        _manual_scan_depth = max(0, _manual_scan_depth - 1)
+        return False
+
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v"}
 
 # Regex for "Title (Year)"
@@ -808,8 +833,14 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 None, _probe_duration, full_path
             )
 
-            # A multi-episode file is attached to every episode it covers, so
-            # each episode exists in the library and plays the same file.
+            # One row per file, even when the file spans several episodes.
+            # Attaching it to each episode it covers needs the same path stored
+            # more than once, and media_files.path is UNIQUE - the second insert
+            # raised IntegrityError and took the whole library scan down with it
+            # (a single Phineas and Ferb S05E01-E02 file aborted the scan). So a
+            # span becomes one entry filed under its first episode, with every
+            # title it covers in the name.
+            titles = []
             for ep_no in ep_nums:
                 ep_title = f"Episode {ep_no}"
                 if tmdb_cache:
@@ -819,22 +850,31 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                             ep_title = tmdb_title
                     except Exception as e:
                         print(f"      [TMDB] Lookup failed for {show_name} S{season_num:02d}E{ep_no:02d}: {e}")
+                titles.append(ep_title)
 
-                ep_key = (season_item.id, ep_no)
-                if ep_key in episode_cache:
-                    episode_item = episode_cache[ep_key]
-                else:
-                    episode_item = await _get_or_create_episode(db, season_item, ep_no, ep_title, lib_id)
-                    episode_cache[ep_key] = episode_item
+            combined_title = " / ".join(titles)
 
-                db.add(MediaFile(
-                    media_item_id=episode_item.id,
-                    path=full_path,
-                    size_bytes=size,
-                    added_at=file_added,
-                    duration_seconds=ep_duration,
-                ))
-                print(f"    [EP] {show_name} S{season_num:02d}E{ep_no:02d}  <- {filename}")
+            ep_key = (season_item.id, episode_num)
+            if ep_key in episode_cache:
+                episode_item = episode_cache[ep_key]
+            else:
+                episode_item = await _get_or_create_episode(
+                    db, season_item, episode_num, combined_title, lib_id
+                )
+                episode_cache[ep_key] = episode_item
+
+            db.add(MediaFile(
+                media_item_id=episode_item.id,
+                path=full_path,
+                size_bytes=size,
+                added_at=file_added,
+                duration_seconds=ep_duration,
+            ))
+            if len(ep_nums) > 1:
+                span = "-".join(f"E{n:02d}" for n in ep_nums)
+                print(f"    [EP] {show_name} S{season_num:02d}{span}  <- {filename}")
+            else:
+                print(f"    [EP] {show_name} S{season_num:02d}E{episode_num:02d}  <- {filename}")
 
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, show_name, season_num, episode_num))

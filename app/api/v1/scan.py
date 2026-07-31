@@ -94,8 +94,9 @@ async def trigger_scan(
         }
 
     async def _run_all():
-        for lib in libraries:
-            await _run_scan(lib.id, lib.name)
+        with scanner.manual_scan():
+            for lib in libraries:
+                await _run_scan(lib.id, lib.name)
 
     asyncio.create_task(_run_all())
 
@@ -139,7 +140,11 @@ async def rescan_library(
         "error": None,
     }
 
-    asyncio.create_task(_run_scan(library_id, lib.name))
+    async def _run_one():
+        with scanner.manual_scan():
+            await _run_scan(library_id, lib.name)
+
+    asyncio.create_task(_run_one())
 
     return {"status": "started", "library": lib.name, "library_id": library_id, "force": force}
 
@@ -213,8 +218,9 @@ async def reset_all_metadata(
     # produced a wall of "database is locked" and lost writes partway through
     # several libraries.
     async def _run_all():
-        for lib in libraries:
-            await _run_scan(lib.id, lib.name)
+        with scanner.manual_scan():
+            for lib in libraries:
+                await _run_scan(lib.id, lib.name)
 
     asyncio.create_task(_run_all())
 

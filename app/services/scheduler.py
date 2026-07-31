@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.library import Library
 from app.models.scheduler import ScheduledTask, JobType
-from app.services.scanner import scan_library
+from app.services.scanner import manual_scan_active, scan_library
 from app.services.metadata import enrich_library
 
 log = logging.getLogger("scheduler")
@@ -24,8 +24,24 @@ async def _run_job(db: AsyncSession, task: ScheduledTask) -> None:
     Execute a single scheduled task, then update its next_run_at.
     We catch all exceptions so one bad job can't kill the whole loop.
     """
-    log.info("Running scheduled job: %s (id=%d, type=%s)", task.name, task.id, task.job_type)
     now = datetime.now(timezone.utc)
+
+    # Defer rather than queue behind a scan the user started. The next tick is
+    # only minutes away, and a rebuild is emptying and refilling the whole
+    # database in the meantime.
+    if manual_scan_active():
+        log.info("Skipping scheduled job: %s (id=%d) - a manual scan is running",
+                 task.name, task.id)
+        next_run = now + timedelta(minutes=max(task.interval_minutes or 60, 1))
+        await db.execute(
+            update(ScheduledTask)
+            .where(ScheduledTask.id == task.id)
+            .values(next_run_at=next_run)
+        )
+        await db.commit()
+        return
+
+    log.info("Running scheduled job: %s (id=%d, type=%s)", task.name, task.id, task.job_type)
 
     try:
         if task.job_type == JobType.SCAN_LIBRARY:
