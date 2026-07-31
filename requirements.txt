@@ -39,7 +39,11 @@ pyinstaller>=6.0.0
 subliminal>=2.1.0,<3
 babelfish>=0.6.0
 pysrt>=1.1.2
-chardet>=3.0.4
+# <6 deliberately: chardet 7.x ships mypyc-compiled submodules that PyInstaller
+# does not pick up, so the frozen build raises ModuleNotFoundError for
+# chardet.pipeline.orchestrator__mypyc - which takes out guessit and every
+# subliminal provider with it. The 5.x line is pure Python.
+chardet>=5.0.0,<6
 requests>=2.25.0
 dogpile.cache>=0.6.0
 stevedore>=1.19.0

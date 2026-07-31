@@ -259,6 +259,17 @@ def build():
         '--hidden-import=stevedore.extension',
         '--hidden-import=stevedore.named',
         # HTTP / parsing deps
+        # collect-all rather than hidden-import: chardet may ship compiled
+        # submodules that a plain hidden-import misses, and a partially bundled
+        # chardet fails at runtime inside subliminal, taking every subtitle
+        # provider offline.
+        '--collect-all=chardet',
+        # stevedore looks providers and refiners up through entry points, which
+        # live in the distribution metadata rather than the modules themselves.
+        '--copy-metadata=knowit',
+        '--copy-metadata=subliminal',
+        '--copy-metadata=babelfish',
+        '--copy-metadata=guessit',
         '--hidden-import=chardet',
         '--hidden-import=bs4',
         '--hidden-import=beautifulsoup4',
