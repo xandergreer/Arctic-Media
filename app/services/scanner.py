@@ -340,6 +340,36 @@ class _TMDBCache:
         return self._season_eps.get(key, {}).get(ep_num) or None
 
 
+def _is_better_title(old: str, new: str) -> bool:
+    """Should `new`, derived from a filename, replace the stored `old`?
+
+    Only when there is something to gain. A filename can never beat a title that
+    came from TMDB on punctuation or completeness, and two ways of losing were
+    doing real damage:
+
+      * the same name with the punctuation flattened - "Mr. Deeds" to
+        "Mr Deeds", "TRON: Ares" to "Tron Ares", "Bad Boys II" to "Bad Boys Ii"
+      * words dropped, usually because STOPWORDS holds release-group names that
+        are also ordinary words - "Scream 7" to "7" via the group "scream",
+        "28 Years Later: The Bone Temple" to "28 Years Later The Temple" via
+        "bone", "Chainsaw Man - The Movie: Reze Arc" to "Chainsaw Man"
+
+    An empty or whitespace-only stored title is always worth replacing.
+    """
+    if not (old or "").strip():
+        return True
+
+    norm = lambda s: re.sub(r"[^a-z0-9]", "", (s or "").lower())
+    if norm(old) == norm(new):
+        return False  # same name, just less punctuation
+
+    tokens = lambda s: {t for t in re.split(r"[^a-z0-9]+", (s or "").lower()) if t}
+    if tokens(new) < tokens(old):
+        return False  # strictly fewer words: something was stripped
+
+    return True
+
+
 async def _retitle_stale_items(db: AsyncSession, library_id: int):
     """
     For every MediaItem in this library that has no poster_url (enrichment previously failed),
@@ -382,6 +412,8 @@ async def _retitle_stale_items(db: AsyncSession, library_id: int):
         # clean straight back to "" and are skipped again on every scan.
         new_title = clean_title(raw, year_already_known=bool(m))
         if not new_title or new_title == item.title:
+            continue
+        if not _is_better_title(item.title, new_title):
             continue
 
         print(f"  [RETITLE] '{item.title}' -> '{new_title}'  ({os.path.basename(path)})")
