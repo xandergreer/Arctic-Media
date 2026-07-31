@@ -54,6 +54,24 @@ def build():
                 "Download a Windows ffmpeg build and place ffmpeg.exe and ffprobe.exe in bin\\.",
             )
 
+    # Windows keeps a lock on a running executable, so dist/ cannot be replaced
+    # while the server is up. Check now rather than after several minutes of
+    # dependency installation, which is where this used to surface.
+    exe_path = os.path.join("dist", f"{APP_NAME}.exe")
+    if os.path.exists(exe_path):
+        probe = exe_path + ".locktest"
+        try:
+            os.rename(exe_path, probe)
+            os.rename(probe, exe_path)
+        except OSError:
+            _fatal(
+                f"ERROR: {exe_path} is locked - {APP_NAME} is still running.",
+                "",
+                "Windows will not let the running executable be replaced, so the build",
+                "cannot refresh dist/. Quit the app (tray icon -> Exit, or end the",
+                f"{APP_NAME}.exe task) and run this again.",
+            )
+
     # Install all dependencies into the current venv before bundling
     print(f"Using interpreter: {sys.executable}")
     print("Installing dependencies from requirements.txt...")
