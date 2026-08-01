@@ -7,6 +7,7 @@ import asyncio
 import io
 import logging
 import os
+import re
 import zipfile
 from typing import Dict, Optional
 
@@ -47,6 +48,76 @@ def _do_download(file_path: str, title: str, year: Optional[int],
         logger.info(f'[Subs] SubDL {result} — trying OpenSubtitles for {os.path.basename(file_path)}')
         result = _do_download_opensubtitles(file_path, title, year, season, episode)
     return result
+
+
+_SUB_EXTS = ('.srt', '.ass', '.ssa')
+
+
+def _ep_in_entry(entry: dict, episode: int) -> bool:
+    """Does this SubDL result actually cover the episode we asked for?
+
+    SubDL's episode_number filter is loose: asking Dandadan season 1 episode 3
+    returned a pack marked episode 2, episode_from 2, episode_end 14, whose zip
+    held nothing but the E14 file. Taking results[0] blindly would have filed
+    episode 14's subtitles under episode 3, which is worse than no subtitles.
+    """
+    if entry.get("episode") == episode:
+        return True
+    start, end = entry.get("episode_from"), entry.get("episode_end")
+    if isinstance(start, int) and isinstance(end, int):
+        return start <= episode <= end
+    return False
+
+
+def _member_for_episode(names: list, season: Optional[int], episode: Optional[int]):
+    """Choose the file inside a subtitle zip.
+
+    A pack can carry one episode or many, and its name is no guide to which.
+    With an episode in hand the SxxExx tag has to match; a single unlabelled
+    file is only trusted when nothing was requested.
+    """
+    subs = [n for n in names if n.lower().endswith(_SUB_EXTS)]
+    if not subs:
+        return None
+    if season is None or episode is None:
+        return subs[0]
+    wanted = re.compile(rf"s0*{season}[ ._-]?e0*{episode}(?!\d)", re.I)
+    for name in subs:
+        if wanted.search(name):
+            return name
+    # Nothing matched. A lone file is only safe if it claims no episode at all -
+    # the Dandadan pack held exactly one file, plainly tagged S01E14, and
+    # accepting it for a request for episode 3 is the mistake this guards.
+    any_tag = re.compile(r"s\d{1,2}[ ._-]?e\d{1,3}", re.I)
+    if len(subs) == 1 and not any_tag.search(subs[0]):
+        return subs[0]
+    return None
+
+
+def _to_srt(data: bytes, suffix: str) -> Optional[bytes]:
+    """Convert ASS/SSA to SRT with the bundled ffmpeg.
+
+    Anime releases ship .ass almost exclusively, and only .srt was accepted, so
+    every Dandadan zip downloaded fine and was then discarded as "not_found".
+    Writing the ASS bytes into a .srt would just move the problem downstream.
+    """
+    if suffix == '.srt':
+        return data
+    import subprocess, tempfile
+    try:
+        from app.core.ffmpeg_manager import get_binary
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, 'in' + suffix)
+            dst = os.path.join(tmp, 'out.srt')
+            with open(src, 'wb') as fh:
+                fh.write(data)
+            subprocess.run([get_binary('ffmpeg'), '-y', '-i', src, dst],
+                           check=True, capture_output=True, timeout=60)
+            with open(dst, 'rb') as fh:
+                return fh.read() or None
+    except Exception as exc:
+        logger.error(f'[Subs] Could not convert {suffix} to srt: {exc}')
+        return None
 
 
 def _do_download_subdl(file_path: str, title: str, year: Optional[int],
@@ -91,6 +162,13 @@ def _do_download_subdl(file_path: str, title: str, year: Optional[int],
                 logger.info(f'[SubDL] No results for: {os.path.basename(file_path)}')
                 return 'not_found'
 
+            if episode is not None:
+                results = [e for e in results if _ep_in_entry(e, episode)]
+                if not results:
+                    logger.info(f'[SubDL] No entry covers episode {episode} for: '
+                                f'{os.path.basename(file_path)}')
+                    return 'not_found'
+
             url = results[0].get('url')
             if not url:
                 return 'not_found'
@@ -99,10 +177,16 @@ def _do_download_subdl(file_path: str, title: str, year: Optional[int],
             r2.raise_for_status()
 
             with zipfile.ZipFile(io.BytesIO(r2.content)) as zf:
-                srt_names = [n for n in zf.namelist() if n.lower().endswith('.srt')]
-                if not srt_names:
+                member = _member_for_episode(zf.namelist(), season, episode)
+                if not member:
+                    logger.info(f'[SubDL] Pack held no file for S{season}E{episode}: '
+                                f'{os.path.basename(file_path)}')
                     return 'not_found'
-                content = zf.read(srt_names[0])
+                raw = zf.read(member)
+
+            content = _to_srt(raw, os.path.splitext(member)[1].lower())
+            if not content:
+                return 'not_found'
 
         base = os.path.splitext(file_path)[0]
         out_path = base + '.en.srt'
