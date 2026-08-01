@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import datetime
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
@@ -45,23 +46,53 @@ def _probe_duration(file_path: str) -> float | None:
     except Exception:
         return None
 
+_PROBE_CHUNK = 200
+
+
 async def _probe_durations(paths: list) -> dict:
-    """Probe a folder's files at once instead of one after another.
+    """Probe many files at once instead of one after another.
 
     Each probe is a separate ffprobe process, and awaiting them one at a time
-    made process startup the scan's bottleneck - a folder of 52 Bluey episodes
-    paid that cost 52 times in series. The default executor bounds how many run
-    at once, so a large folder queues rather than forking wildly.
+    made process startup the scan's bottleneck. The default executor bounds how
+    many actually run at once, so a big list queues rather than forking wildly.
+    """
+    out: dict = {}
+    loop = asyncio.get_event_loop()
+    for i in range(0, len(paths), _PROBE_CHUNK):
+        batch = paths[i:i + _PROBE_CHUNK]
+        done = await asyncio.gather(
+            *[loop.run_in_executor(None, _probe_duration, p) for p in batch],
+            return_exceptions=True,
+        )
+        out.update({p: (None if isinstance(d, BaseException) else d)
+                    for p, d in zip(batch, done)})
+    return out
+
+
+async def _apply_durations(db: AsyncSession, paths: list) -> None:
+    """Probe everything this scan added, across the whole library.
+
+    Batching per folder only helped folders holding many files - a TV season.
+    A movie library is one folder per film, so each folder probed a single file
+    and the folders still ran in series: 175 films took about as long as before.
+    Collecting the paths for the entire library and probing them together is
+    what actually makes a movie scan concurrent.
+
+    Written back with UPDATE by path rather than by mutating the ORM objects,
+    which are expired once their folder has been committed and would trigger a
+    lazy reload - the greenlet error the rollback handler warns about.
     """
     if not paths:
-        return {}
-    loop = asyncio.get_event_loop()
-    done = await asyncio.gather(
-        *[loop.run_in_executor(None, _probe_duration, p) for p in paths],
-        return_exceptions=True,
-    )
-    return {p: (None if isinstance(d, BaseException) else d)
-            for p, d in zip(paths, done)}
+        return
+    durations = await _probe_durations(paths)
+    for path, dur in durations.items():
+        if dur is None:
+            continue
+        await db.execute(
+            update(MediaFile).where(MediaFile.path == path)
+            .values(duration_seconds=dur)
+        )
+    await db.commit()
 
 
 # Only one scan may touch the database at a time - see scan_library().
@@ -689,6 +720,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
     last_scan_ts = library.last_scanned_at.timestamp() if library.last_scanned_at else 0.0
 
     added = skipped = skipped_folders = 0
+    probe_paths: list = []   # every file added this scan; probed together at the end
 
     walk_results: list = await asyncio.to_thread(_walk_and_stat, lib_path)
 
@@ -705,7 +737,6 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
-        pending_probe: list = []
         largest_video = max((file_sizes.get(f) or 0 for f in video_files), default=0)
 
         for filename in video_files:
@@ -802,18 +833,10 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 added_at=file_added,
             )
             db.add(media_file)
-            pending_probe.append(media_file)
+            probe_paths.append(full_path)
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, title, year))
             added += 1
-
-        # Durations for the whole folder in one concurrent batch - see
-        # _probe_durations. Still before the commit, so they land in the same
-        # transaction as the rows themselves.
-        if pending_probe:
-            durations = await _probe_durations([mf.path for mf in pending_probe])
-            for mf in pending_probe:
-                mf.duration_seconds = durations.get(mf.path)
 
         # Commit once per folder instead of once per file
         if new_paths:
@@ -825,6 +848,9 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                 continue
             for path, title_, year_ in new_paths:
                 await subs_svc.queue_download(path, title_, year_)
+
+    # One concurrent probe pass for the whole library - see _apply_durations.
+    await _apply_durations(db, probe_paths)
 
     if skipped_folders:
         print(f"  [MOVIES] Skipped {skipped_folders} unchanged folder(s) via mtime.")
@@ -843,6 +869,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
     await _deduplicate_shows(db)
 
     added = skipped = no_match = skipped_folders = 0
+    probe_paths: list = []   # every file added this scan; probed together at the end
 
     # Extract library attributes up-front — the ORM object expires after any
     # db.rollback() and accessing its attributes inside the loop triggers a
@@ -871,7 +898,6 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[tuple[str, str]] = []  # (path, show_name)
-        pending_probe: list = []
 
         for filename in video_files:
             name, _ext = os.path.splitext(filename)
@@ -986,7 +1012,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 added_at=file_added,
             )
             db.add(media_file)
-            pending_probe.append(media_file)
+            probe_paths.append(full_path)
             if len(ep_nums) > 1:
                 span = "-".join(f"E{n:02d}" for n in ep_nums)
                 print(f"    [EP] {show_name} S{season_num:02d}{span}  <- {filename}")
@@ -996,13 +1022,6 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, show_name, season_num, episode_num))
             added += 1
-
-        # Durations for the whole folder in one concurrent batch - see
-        # _probe_durations.
-        if pending_probe:
-            durations = await _probe_durations([mf.path for mf in pending_probe])
-            for mf in pending_probe:
-                mf.duration_seconds = durations.get(mf.path)
 
         if new_paths:
             try:
@@ -1018,6 +1037,9 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 continue
             for path, sname, s_num, e_num in new_paths:
                 await subs_svc.queue_download(path, sname, season=s_num, episode=e_num)
+
+    # One concurrent probe pass for the whole library - see _apply_durations.
+    await _apply_durations(db, probe_paths)
 
     if skipped_folders:
         print(f"  [SHOWS] Skipped {skipped_folders} unchanged folder(s) via mtime.")
