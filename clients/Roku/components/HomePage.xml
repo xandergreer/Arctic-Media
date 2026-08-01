@@ -28,12 +28,14 @@
         <Poster id="tabPill" uri="pkg:/images/tab_pill.9.png"
                 width="70" height="48" translation="[356, 26]" opacity="0" />
 
-        <!-- Tabs -->
-        <Label id="tabHome"     translation="[370, 34]" text="Home"     color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="160" />
-        <Label id="tabMovies"   translation="[530, 34]" text="Movies"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" width="160" />
-        <Label id="tabShows"    translation="[690, 34]" text="TV Shows" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" width="200" />
-        <Label id="tabSettings" translation="[890, 34]" text="Settings" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" width="200" />
-        <Label id="tabSearch"   translation="[1070, 34]" text="Search"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" width="160" />
+        <!-- Tabs. width is left at the default 0 so each label auto-sizes to its
+             own text — moveTabPill() measures them with boundingRect() to size
+             the pill, which a fixed width box would defeat. -->
+        <Label id="tabHome"     translation="[370, 34]" text="Home"     color="0xFFFFFFFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabMovies"   translation="[530, 34]" text="Movies"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabShows"    translation="[690, 34]" text="TV Shows" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabSettings" translation="[890, 34]" text="Settings" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabSearch"   translation="[1070, 34]" text="Search"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
 
         <!-- Slides the pill between tabs instead of snapping it. Position and
              width interpolate together so the caps stay put relative to the
@@ -129,7 +131,15 @@
         <Label id="loadingLabel" translation="[800, 560]" text="Loading…" color="0x555555FF" font="font:MediumSystemFont" width="320" />
 
         <!-- Hints -->
-        <Label id="headerHint" translation="[40, 1052]" text="Left / Right = tabs     OK or Down = browse     * = sign out" color="0x333333FF" font="font:SmallSystemFont" width="900" />
-        <Label id="gridHint"   translation="[40, 1052]" text="Up = back to tabs     Left / Right = browse     OK = select     * = sign out" color="0x333333FF" font="font:SmallSystemFont" width="1000" visible="false" />
+        <!-- Footer bar. The shelves scroll the full height of the screen, so the
+             hint needs to sit on opaque background rather than on top of whatever
+             poster happens to be underneath it. Mirrors the header's divider. -->
+        <Rectangle color="0x080818FF" width="1920" height="88" translation="[0, 992]" />
+        <Rectangle color="0x4A9FFF22" width="1920" height="2"  translation="[0, 992]" />
+
+        <!-- y=1012 keeps the baseline inside the 5% title-safe area (bottom edge
+             1026 at 1080p); at 1052 the descenders were clipped off-screen. -->
+        <Label id="headerHint" translation="[40, 1012]" text="Left / Right = tabs     OK or Down = browse     * = sign out" color="0x5A6472FF" font="font:SmallSystemFont" width="900" />
+        <Label id="gridHint"   translation="[40, 1012]" text="Up = back to tabs     Left / Right = browse     OK = select     * = sign out" color="0x5A6472FF" font="font:SmallSystemFont" width="1000" visible="false" />
     </children>
 </component>

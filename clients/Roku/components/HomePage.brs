@@ -32,13 +32,15 @@ sub init()
     m.moviesRowGroup   = m.top.findNode("moviesRowGroup")
     m.showsRowGroup    = m.top.findNode("showsRowGroup")
 
-    ' Tab pill geometry: [Home, Movies, Shows, Settings, Search]. The label
-    ' origins are 370/530/690/890/1070 with text widths 70/90/120/110/90; the
-    ' pill sits 14px outside the text on each side so the round caps clear the
-    ' glyphs instead of clipping them.
+    ' Tab pill geometry: [Home, Movies, Shows, Settings, Search]. These are
+    ' estimates from the label origins; measurePillGeometry() replaces them with
+    ' the real rendered text extents on the first tab highlight. Guessing the
+    ' widths is what let "Home" spill out past the right cap.
     m.pillX = [356, 516, 676, 876, 1056]
     m.pillW = [98,  118, 148, 138, 118]
     m.pillY = 26
+    m.pillMeasured = false
+    m.pillPadX     = 18   ' breathing room between the glyphs and each round cap
 
     ' Custom grid config: 8 cols × 230px stride = 1840px (x40→1880)
     ' 3 visible rows × 300px stride = 900px (y126→1026)
@@ -163,7 +165,35 @@ end sub
 ' what read as janky. Interpolating position and width together keeps the round
 ' caps hugging the text for the whole travel rather than the bar stretching and
 ' then snapping.
+' Size the pill from what the labels actually render as, rather than from
+' hand-counted glyph widths. boundingRect() is only meaningful once the labels
+' have been laid out, so this runs on first use and latches.
+sub measurePillGeometry()
+    if m.pillMeasured then return
+
+    tabs = [m.tabHome, m.tabMovies, m.tabShows, m.tabSettings, m.tabSearch]
+    xs = []
+    ws = []
+    for each t in tabs
+        r = t.boundingRect()
+        ' Not laid out yet — keep the XML estimates and retry on the next move.
+        if r = invalid then return
+        if r.width <= 0 then return
+        xs.push(Int(r.x) - m.pillPadX)
+        ws.push(Int(r.width) + (m.pillPadX * 2))
+    end for
+
+    m.pillX = xs
+    m.pillW = ws
+    ' Centre the pill on the text box instead of trusting a fixed y.
+    hr = m.tabHome.boundingRect()
+    m.pillY = Int(hr.y + (hr.height / 2) - (m.tabPill.height / 2))
+    m.pillMeasured = true
+end sub
+
 sub moveTabPill()
+    measurePillGeometry()
+
     idx   = m.activeIdx
     destXY = [m.pillX[idx], m.pillY]
     destW  = m.pillW[idx]
@@ -359,14 +389,14 @@ sub buildHomeRows()
     m.homeRowGroups.push(m.categoryRowGroup)
     m.homeRowTypes.push("category")
     m.homeRowLabels.push(m.labelCategories)
-    m.homeRowStride.push(360)
-    m.homeRowWidth.push(320)
+    m.homeRowStride.push(450)
+    m.homeRowWidth.push(400)
     buildCategoryRow()
 
     ' PosterItem is 270px tall. Each row section = 38 (label) + 270 (poster) + 60 (gap) = 368px.
-    ' Y cursor starts after category row (174 + 180 + 50 gap)
+    ' Y cursor starts after category row (174 + 225 tile + 50 gap)
     ROW_STRIDE = 368   ' label + poster height + breathing room
-    nextY = 404
+    nextY = 449
 
     ' Reset homeView scroll
     m.homeScrollY = 0
@@ -461,7 +491,7 @@ sub buildCategoryRow()
     i = 0
     for each cat in categories
         tile = CreateObject("roSGNode", "CategoryTile")
-        tile.translation = [i * 360, 0]
+        tile.translation = [i * 450, 0]
 
         cn = CreateObject("roSGNode", "ContentNode")
         cn.title = cat.title

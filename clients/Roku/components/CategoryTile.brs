@@ -3,7 +3,7 @@ sub init()
     m.poster      = m.top.findNode("poster")
     m.focusBorder = m.top.findNode("focusBorder")
     m.titleLabel  = m.top.findNode("titleLabel")
-    m.top.scaleRotateCenter = [160, 90]
+    m.top.scaleRotateCenter = [200, 112]
     m.top.observeField("itemContent",  "onContent")
     m.top.observeField("focusPercent", "onFocus")
 end sub
