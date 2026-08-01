@@ -59,9 +59,16 @@ def _do_download_subdl(file_path: str, title: str, year: Optional[int],
     if not api_key:
         return 'error'
 
+    # SubDL rejects an apostrophe in film_name outright - "Film name contains
+    # potentially unsafe characters", HTTP 400 - so every Blue's Clues episode
+    # failed here and fell through to OpenSubtitles, one wasted request and one
+    # logged error apiece. Only the straight quote trips it; &, !, : and - are
+    # all accepted, and SubDL's own slug for the show is "blues-clues-you", so
+    # dropping the quote is also how it indexes the title. The curly form goes
+    # too, for consistency between titles that use either.
     params: dict = {
         'api_key': api_key,
-        'film_name': title,
+        'film_name': title.replace("'", "").replace("’", ""),
         'languages': 'EN',
         'subs_per_page': 5,
     }
