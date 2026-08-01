@@ -344,9 +344,27 @@ async def enrich_library(session: AsyncSession, library_id: int):
     # so previously half-enriched items get filled in on subsequent scans.
     async def _enrich_one(item: MediaItem):
         meta = dict(item.extra_json) if item.extra_json else {}
-        if meta.get("tmdb_id") and item.poster_url and item.overview and item.backdrop_url and meta.get("cast"):
-            return  # fully enriched
-        await refresh_item_metadata(session, item)
+
+        # A search that found nothing will find nothing next time either, so
+        # record the miss instead of repeating it every 15 minutes. "101
+        # Dalmations" is misspelled in the filename and cost four TMDB calls per
+        # scan forever. Rebuild Library clears this along with everything else.
+        if meta.get("tmdb_miss"):
+            return
+
+        # Backdrop and cast are no longer part of the test. TMDB genuinely has
+        # neither for some entries, and requiring them meant those items were
+        # re-fetched on every single scan and never came out satisfied -
+        # Rockstar re-enriched itself indefinitely.
+        if meta.get("tmdb_id") and item.poster_url and item.overview:
+            return
+
+        updated = await refresh_item_metadata(session, item)
+        if not updated and not (item.extra_json or {}).get("tmdb_id"):
+            meta = dict(item.extra_json) if item.extra_json else {}
+            meta["tmdb_miss"] = True
+            item.extra_json = meta
+            flag_modified(item, "extra_json")
 
     targets = [item for item in items if item.kind in (MediaKind.MOVIE, MediaKind.SHOW)]
     await asyncio.gather(*[_enrich_one(item) for item in targets])
@@ -370,6 +388,13 @@ async def enrich_library(session: AsyncSession, library_id: int):
             continue
         tmdb_id = tv_cache.get(season.parent_id)
         if tmdb_id and item.episode_number is not None and season.season_number is not None:
+            # Only episodes still missing metadata. Every episode used to be
+            # batched unconditionally, so a scan that added nothing still
+            # re-fetched every season of every show - the 15-minute auto-scan
+            # was replaying a hundred-odd season fetches an hour to write back
+            # values that had not changed.
+            if item.extra_json and item.extra_json.get("tmdb_id") and item.overview:
+                continue
             season_batches.setdefault((tmdb_id, season.season_number), []).append(item)
 
     # Phase 4: Concurrently fetch episode metadata per season
