@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
+from functools import lru_cache
 import re
 import subprocess
 import sys
@@ -43,6 +44,25 @@ def _probe_duration(file_path: str) -> float | None:
         return float(dur) if dur else None
     except Exception:
         return None
+
+async def _probe_durations(paths: list) -> dict:
+    """Probe a folder's files at once instead of one after another.
+
+    Each probe is a separate ffprobe process, and awaiting them one at a time
+    made process startup the scan's bottleneck - a folder of 52 Bluey episodes
+    paid that cost 52 times in series. The default executor bounds how many run
+    at once, so a large folder queues rather than forking wildly.
+    """
+    if not paths:
+        return {}
+    loop = asyncio.get_event_loop()
+    done = await asyncio.gather(
+        *[loop.run_in_executor(None, _probe_duration, p) for p in paths],
+        return_exceptions=True,
+    )
+    return {p: (None if isinstance(d, BaseException) else d)
+            for p, d in zip(paths, done)}
+
 
 # Only one scan may touch the database at a time - see scan_library().
 _SCAN_LOCK = asyncio.Lock()
@@ -327,6 +347,7 @@ def extract_year(text: str) -> Optional[int]:
     return int(found[-1]) if found else None
 
 
+@lru_cache(maxsize=8192)
 def clean_title(title: str, *, year_already_known: bool = False) -> str:
     """
     Cleans a filename into a search-friendly title.
@@ -684,6 +705,7 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
+        pending_probe: list = []
         largest_video = max((file_sizes.get(f) or 0 for f in video_files), default=0)
 
         for filename in video_files:
@@ -773,19 +795,25 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
                     file_added = datetime.datetime.fromtimestamp(st.st_mtime)
             except OSError:
                 file_added = datetime.datetime.now()
-            duration = await asyncio.get_event_loop().run_in_executor(
-                None, _probe_duration, full_path
-            )
-            db.add(MediaFile(
+            media_file = MediaFile(
                 media_item_id=media_item.id,
                 path=full_path,
                 size_bytes=size,
                 added_at=file_added,
-                duration_seconds=duration,
-            ))
+            )
+            db.add(media_file)
+            pending_probe.append(media_file)
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, title, year))
             added += 1
+
+        # Durations for the whole folder in one concurrent batch - see
+        # _probe_durations. Still before the commit, so they land in the same
+        # transaction as the rows themselves.
+        if pending_probe:
+            durations = await _probe_durations([mf.path for mf in pending_probe])
+            for mf in pending_probe:
+                mf.duration_seconds = durations.get(mf.path)
 
         # Commit once per folder instead of once per file
         if new_paths:
@@ -843,6 +871,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[tuple[str, str]] = []  # (path, show_name)
+        pending_probe: list = []
 
         for filename in video_files:
             name, _ext = os.path.splitext(filename)
@@ -920,10 +949,6 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                     file_added = datetime.datetime.fromtimestamp(st.st_mtime)
             except OSError:
                 file_added = datetime.datetime.now()
-            ep_duration = await asyncio.get_event_loop().run_in_executor(
-                None, _probe_duration, full_path
-            )
-
             # One row per file, even when the file spans several episodes.
             # Attaching it to each episode it covers needs the same path stored
             # more than once, and media_files.path is UNIQUE - the second insert
@@ -954,13 +979,14 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 )
                 episode_cache[ep_key] = episode_item
 
-            db.add(MediaFile(
+            media_file = MediaFile(
                 media_item_id=episode_item.id,
                 path=full_path,
                 size_bytes=size,
                 added_at=file_added,
-                duration_seconds=ep_duration,
-            ))
+            )
+            db.add(media_file)
+            pending_probe.append(media_file)
             if len(ep_nums) > 1:
                 span = "-".join(f"E{n:02d}" for n in ep_nums)
                 print(f"    [EP] {show_name} S{season_num:02d}{span}  <- {filename}")
@@ -970,6 +996,13 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
             known_paths.add(full_path)  # prevent intra-scan duplicates
             new_paths.append((full_path, show_name, season_num, episode_num))
             added += 1
+
+        # Durations for the whole folder in one concurrent batch - see
+        # _probe_durations.
+        if pending_probe:
+            durations = await _probe_durations([mf.path for mf in pending_probe])
+            for mf in pending_probe:
+                mf.duration_seconds = durations.get(mf.path)
 
         if new_paths:
             try:
