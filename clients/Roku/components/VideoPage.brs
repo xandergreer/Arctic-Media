@@ -384,7 +384,10 @@ sub onStateChange(event as object)
         end if
         return
     end if
-    if s = "error" then exitPlayer()
+    if s = "error"
+        showPlaybackError()
+        return
+    end if
     updateOsd()
     if s = "paused" and m.osdVisible
         m.hideTimer.control = "stop"
@@ -517,6 +520,46 @@ end sub
 
 sub onSaveTimer(event as object)
     doSaveProgress()
+end sub
+
+' Surface a playback failure instead of dropping straight back to the previous
+' screen.
+'
+' A silent exit is indistinguishable from the channel crashing, and Roku's
+' certification pass deliberately kills the network mid-stream to check for
+' exactly this. Progress is saved before the dialog goes up, so whatever the
+' user reaches by dismissing it still has the right resume point.
+sub showPlaybackError()
+    m.video.control = "stop"
+    if m.saveTimer     <> invalid then m.saveTimer.control     = "stop"
+    if m.osdTimer      <> invalid then m.osdTimer.control      = "stop"
+    if m.hideTimer     <> invalid then m.hideTimer.control     = "stop"
+    if m.autoplayTimer <> invalid then m.autoplayTimer.control = "stop"
+    if m.seekHideTimer <> invalid then m.seekHideTimer.control = "stop"
+    doSaveProgress()
+
+    detail = ""
+    if m.video.errorMsg <> invalid and m.video.errorMsg <> ""
+        detail = Chr(10) + Chr(10) + m.video.errorMsg
+    end if
+
+    dlg = CreateObject("roSGNode", "Dialog")
+    dlg.title   = "Playback Error"
+    dlg.message = "This video could not be played. Check your network connection and try again." + detail
+    dlg.buttons = ["OK"]
+    dlg.observeField("buttonSelected",     "onPlaybackErrorDismissed")
+    dlg.observeField("wasClosed",          "onPlaybackErrorDismissed")
+    m.errorDialog = dlg
+    m.top.getScene().dialog = dlg
+end sub
+
+sub onPlaybackErrorDismissed(event as object)
+    ' Both observers can fire for one dismissal (button press then close), so
+    ' guard or exitPlayer runs twice and pushes two "back" navRequests.
+    if m.errorDialog = invalid then return
+    m.errorDialog = invalid
+    m.top.getScene().dialog = invalid
+    exitPlayer()
 end sub
 
 sub exitPlayer()

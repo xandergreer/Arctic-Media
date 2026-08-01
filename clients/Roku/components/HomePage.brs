@@ -5,7 +5,12 @@ sub init()
     m.tabShows    = m.top.findNode("tabShows")
     m.tabSettings = m.top.findNode("tabSettings")
     m.tabSearch   = m.top.findNode("tabSearch")
-    m.tabLine     = m.top.findNode("tabLine")
+    m.tabPill      = m.top.findNode("tabPill")
+    m.tabPillAnim  = m.top.findNode("tabPillAnim")
+    m.tabPillMove  = m.top.findNode("tabPillMove")
+    m.tabPillWidth = m.top.findNode("tabPillWidth")
+    m.tabPillFade  = m.top.findNode("tabPillFade")
+    m.pillShown    = false
 
     ' Views
     m.homeView     = m.top.findNode("homeView")
@@ -27,9 +32,13 @@ sub init()
     m.moviesRowGroup   = m.top.findNode("moviesRowGroup")
     m.showsRowGroup    = m.top.findNode("showsRowGroup")
 
-    ' Tab positions: [Home, Movies, Shows, Settings, Search]
-    m.tabLineX = [370, 530, 690, 890, 1070]
-    m.tabLineW = [70,  90,  120, 110,  90]
+    ' Tab pill geometry: [Home, Movies, Shows, Settings, Search]. The label
+    ' origins are 370/530/690/890/1070 with text widths 70/90/120/110/90; the
+    ' pill sits 14px outside the text on each side so the round caps clear the
+    ' glyphs instead of clipping them.
+    m.pillX = [356, 516, 676, 876, 1056]
+    m.pillW = [98,  118, 148, 138, 118]
+    m.pillY = 26
 
     ' Custom grid config: 8 cols × 230px stride = 1840px (x40→1880)
     ' 3 visible rows × 300px stride = 900px (y126→1026)
@@ -121,11 +130,11 @@ end sub
 ' -------------------------------------------------------
 
 sub updateTabs()
-    m.tabHome.color     = "0x555555FF"
-    m.tabMovies.color   = "0x555555FF"
-    m.tabShows.color    = "0x555555FF"
-    m.tabSettings.color = "0x555555FF"
-    m.tabSearch.color   = "0x555555FF"
+    m.tabHome.color     = "0x7F8A9AFF"
+    m.tabMovies.color   = "0x7F8A9AFF"
+    m.tabShows.color    = "0x7F8A9AFF"
+    m.tabSettings.color = "0x7F8A9AFF"
+    m.tabSearch.color   = "0x7F8A9AFF"
 
     if m.activeIdx = 0
         m.tabHome.color = "0xFFFFFFFF"
@@ -139,14 +148,43 @@ sub updateTabs()
         m.tabSearch.color = "0xFFFFFFFF"
     end if
 
-    m.tabLine.translation = [m.tabLineX[m.activeIdx], 104]
-    m.tabLine.width       = m.tabLineW[m.activeIdx]
+    moveTabPill()
 
     m.homeView.visible     = (m.activeIdx = 0)
     m.movieGrid.visible    = (m.activeIdx = 1)
     m.showGrid.visible     = (m.activeIdx = 2)
     m.settingsView.visible = (m.activeIdx = 3)
     if m.activeIdx = 3 then loadSettingsInfo()
+end sub
+
+' Slide the active-tab pill to the current tab.
+'
+' The old underline jumped straight to its new x on every tab change, which is
+' what read as janky. Interpolating position and width together keeps the round
+' caps hugging the text for the whole travel rather than the bar stretching and
+' then snapping.
+sub moveTabPill()
+    idx   = m.activeIdx
+    destXY = [m.pillX[idx], m.pillY]
+    destW  = m.pillW[idx]
+
+    if not m.pillShown
+        ' First highlight: place it outright and fade in. Sliding here would
+        ' look like the pill flew in from whatever position the XML declared.
+        m.tabPillAnim.control = "stop"
+        m.tabPill.translation = destXY
+        m.tabPill.width       = destW
+        m.pillShown           = true
+        m.tabPillFade.control = "start"
+        return
+    end if
+
+    ' Restart from wherever it currently sits, so rapid tab presses chain
+    ' smoothly instead of each one snapping back to the previous origin.
+    m.tabPillAnim.control   = "stop"
+    m.tabPillMove.keyValue  = [m.tabPill.translation, destXY]
+    m.tabPillWidth.keyValue = [m.tabPill.width, destW]
+    m.tabPillAnim.control   = "start"
 end sub
 
 ' -------------------------------------------------------
