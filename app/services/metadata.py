@@ -153,14 +153,45 @@ async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Option
     return None
 
 
+def _norm_name(s: Optional[str]) -> str:
+    """Lowercase, strip everything that is not a letter or digit."""
+    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
+
 async def _search_tv(api_key: str, title: str) -> Optional[int]:
+    """Find a show, preferring an exact name over TMDB's popularity order.
+
+    Taking results[0] meant a short show name matched whatever was most
+    popular: "Ted" became Ted Lasso and "Happy" became Happy Days, both
+    outranking the real series. The exact title is what the folder actually
+    says, so it wins when TMDB offers one.
+
+    Two passes, because punctuation differs constantly between filenames and
+    TMDB - "Happy" is listed as "HAPPY!", so only the normalised pass finds it.
+    Within a pass TMDB's own ordering breaks ties, which is what picks the 2024
+    Fallout out of the three shows by that name.
+    """
     if not title:
         return None
     res = await _get(api_key, "search/tv", {"query": title})
     results = (res or {}).get("results", [])
-    if results:
-        return results[0]["id"]
-    return None
+    if not results:
+        return None
+
+    want = title.strip().lower()
+    for r in results:
+        if (r.get("name") or "").strip().lower() == want:
+            return r["id"]
+
+    want_norm = _norm_name(title)
+    if want_norm:
+        for r in results:
+            if want_norm in (_norm_name(r.get("name")),
+                             _norm_name(r.get("original_name"))):
+                log.info("TV exact-ish match: %r -> %r", title, r.get("name"))
+                return r["id"]
+
+    return results[0]["id"]
 
 
 # ── Details ───────────────────────────────────────────────────────────────────
