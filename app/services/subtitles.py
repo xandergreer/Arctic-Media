@@ -256,6 +256,15 @@ def _do_download_opensubtitles(file_path: str, title: str, year: Optional[int],
     if not api_key:
         return 'error'
 
+    # OpenSubtitles rejects a query under three characters outright - HTTP 400,
+    # "Query is too short" - so Pixar's "Up" logged an error on every pass and
+    # could never have matched. Verified against the API: two characters fail,
+    # three succeed. Nothing to do but skip the call.
+    if len((title or '').strip()) < 3:
+        logger.info(f'[OpenSubs] Title too short to search: '
+                    f'{os.path.basename(file_path)}')
+        return 'not_found'
+
     headers = {
         'Api-Key': api_key,
         'Content-Type': 'application/json',
