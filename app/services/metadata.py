@@ -94,13 +94,33 @@ async def _search_movie(api_key: str, title: str, year: Optional[int]) -> Option
     if not title:
         return None
 
+    def _year_of(result: dict) -> Optional[int]:
+        date = (result or {}).get("release_date") or ""
+        try:
+            return int(date[:4])
+        except (TypeError, ValueError):
+            return None
+
     async def _try(q: str, y: Optional[int]) -> Optional[int]:
         res = await _get(api_key, "search/movie", {"query": q, **({"year": y} if y else {})})
         results = (res or {}).get("results", [])
-        if not results and y:
-            res = await _get(api_key, "search/movie", {"query": q})
-            results = (res or {}).get("results", [])
-        return results[0]["id"] if results else None
+        if results:
+            return results[0]["id"]
+        if not y:
+            return None
+
+        # Retry without the year, since TMDB's year filter is strict and a
+        # misspelled title can miss on the first pass. Taking the top hit blind
+        # is what turned a 1961 "101 Dalmations" (sic) into "102 Dalmatians"
+        # (2000) - the typo lost the year-filtered search, and the fallback
+        # handed back the most popular near-match regardless of era. Require the
+        # year to line up, allowing one year for festival-vs-wide release dates.
+        res = await _get(api_key, "search/movie", {"query": q})
+        for candidate in (res or {}).get("results", []):
+            cand_year = _year_of(candidate)
+            if cand_year is not None and abs(cand_year - y) <= 1:
+                return candidate["id"]
+        return None
 
     result = await _try(title, year)
     if result:
