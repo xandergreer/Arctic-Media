@@ -378,6 +378,35 @@ def extract_year(text: str) -> Optional[int]:
     return int(found[-1]) if found else None
 
 
+def _restore_country_word(text: str, extracted: str, country) -> str:
+    """Put back a final word guessit read as a country code.
+
+    guessit 3.x parses the "Us" in "It Ends With Us 2024 1080p WEB-DL..." as
+    country US and drops it, leaving "It Ends With" - which then searched TMDB
+    for a film that does not exist. guessit 4 fixed this, but requirements.txt
+    asks only for >=3.0.0 and subliminal pins the stack, so which version a
+    build host resolves is not something the scanner can count on.
+
+    Only restores when the dropped token sits immediately after the title in
+    the original text, so a genuine trailing tag elsewhere in the name is left
+    alone.
+    """
+    if not extracted or country is None:
+        return extracted
+    code = str(getattr(country, "alpha2", country) or "").strip()
+    if not code:
+        return extracted
+    m = re.search(
+        re.escape(extracted) + r"[\s._-]+(" + re.escape(code) + r")\b",
+        text, re.IGNORECASE,
+    )
+    if not m:
+        return extracted
+    restored = f"{extracted} {m.group(1)}"
+    print(f"  [CLEAN] restored country word: '{extracted}' -> '{restored}'")
+    return restored
+
+
 @lru_cache(maxsize=8192)
 def clean_title(title: str, *, year_already_known: bool = False) -> str:
     """
@@ -410,6 +439,7 @@ def clean_title(title: str, *, year_already_known: bool = False) -> str:
         try:
             guess = _guessit(title)
             extracted = str(guess.get("title") or "").strip()
+            extracted = _restore_country_word(title, extracted, guess.get("country"))
             if extracted:
                 # Take guessit's title as-is. It has already separated out the
                 # release group, quality and codec, so every remaining word

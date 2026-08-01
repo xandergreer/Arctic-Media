@@ -266,6 +266,10 @@ def build():
         '--collect-all=chardet',
         # stevedore looks providers and refiners up through entry points, which
         # live in the distribution metadata rather than the modules themselves.
+        # trakit ships no metadata of its own here, and knowit reads its
+        # version at import; without this the 'metadata' refiner fails to load
+        # on every scan - the stevedore error in the server log.
+        '--copy-metadata=trakit',
         '--copy-metadata=knowit',
         '--copy-metadata=subliminal',
         '--copy-metadata=babelfish',
