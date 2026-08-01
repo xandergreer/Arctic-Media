@@ -427,7 +427,8 @@ def _walk_and_stat(root_path: str) -> list:
 def is_extra(filepath: str) -> bool:
     lower_path = filepath.lower()
     parts = lower_path.split(os.sep)
-    extra_folders = {"trailers", "featurettes", "behind the scenes", "deleted scenes", "interviews", "scenes", "shorts", "extras"}
+    extra_folders = {"trailers", "featurettes", "behind the scenes", "deleted scenes",
+                     "interviews", "scenes", "shorts", "extras", "sample", "samples"}
     if any(p in extra_folders for p in parts[:-1]):
         return True
     name, _ = os.path.splitext(parts[-1])
@@ -437,6 +438,25 @@ def is_extra(filepath: str) -> bool:
     if "sample" in name:
         return True
     return False
+
+
+# A sample sits next to the feature and is a fraction of its size. Both bounds
+# have to hold: under the cap on its own would catch a genuinely short film, and
+# the ratio on its own would catch the shorter half of a double feature.
+_SAMPLE_MAX_BYTES = 200 * 1024 * 1024
+_SAMPLE_MAX_RATIO = 0.10
+
+
+def is_sample_by_size(size: Optional[int], largest_in_folder: Optional[int]) -> bool:
+    """Spot a sample clip by how small it is next to the main file.
+
+    Name matching missed "Sampole.mkv" - a typo'd sample that shipped with
+    Terrifier 3 and was scanned in as its own movie, then sent to the subtitle
+    providers as "Sampole". Size catches it whatever it is called.
+    """
+    if not size or not largest_in_folder or size >= largest_in_folder:
+        return False
+    return size <= _SAMPLE_MAX_BYTES and size <= largest_in_folder * _SAMPLE_MAX_RATIO
 
 
 class _TMDBCache:
@@ -664,12 +684,18 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
 
         print(f"  [SCAN] Folder: {root}  ({len(video_files)} video file(s))")
         new_paths: list[str] = []
+        largest_video = max((file_sizes.get(f) or 0 for f in video_files), default=0)
 
         for filename in video_files:
             name, _ext = os.path.splitext(filename)
             full_path = os.path.join(root, filename)
 
             if is_extra(full_path):
+                skipped += 1
+                continue
+
+            if is_sample_by_size(file_sizes.get(filename), largest_video):
+                print(f"    [SKIP] Sample-sized file: {filename}")
                 skipped += 1
                 continue
 
@@ -828,6 +854,20 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 continue
 
             match = EPISODE_REGEX.search(filename)
+            name_for_show = name
+            if not match:
+                # Fall back to the containing folder. Fansub releases carry the
+                # episode nowhere the pattern can see it - "[SubsPlease] Dandadan
+                # - 03 (1080p) [569BAA9C].mkv" was skipped outright - while the
+                # folder around it is plainly "Dandadan S1E03". Reading the
+                # bare number out of the filename would be far riskier: release
+                # names are full of hyphenated digits.
+                folder_name = os.path.basename(root)
+                match = EPISODE_REGEX.search(folder_name)
+                if match:
+                    name_for_show = folder_name
+                    print(f"    [EP-FOLDER] Episode taken from folder: {folder_name}")
+
             if not match:
                 print(f"    [SKIP] No episode pattern: {filename}")
                 no_match += 1
@@ -845,7 +885,7 @@ async def _scan_shows(db: AsyncSession, library: Library, known_paths: set[str],
                 extra_eps = []
             ep_nums = [episode_num] + [n for n in extra_eps if n > episode_num]
 
-            show_name = resolve_show_name(full_path, name, match.start())
+            show_name = resolve_show_name(full_path, name_for_show, match.start())
 
             # --- cached lookups ---
             if show_name in show_cache:
