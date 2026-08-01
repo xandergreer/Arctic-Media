@@ -65,7 +65,7 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 # ... existing imports ...
-from typing import Annotated
+from typing import Annotated, Any, Dict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -278,6 +278,55 @@ app.include_router(arr_router, prefix="/api/v1")
 # Mount Static Files
 # This means: http://.../static/css/style.css -> serves app/static/css/style.css
 app.mount("/static", StaticFiles(directory=resource_path("app/static")), name="static")
+
+@app.get("/health")
+async def health(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    warm: str = "",
+):
+    """
+    Cheap liveness check, and a way to keep the machine out of a cold start.
+
+    The server itself is fast once warm (~150ms) but takes 3-20s on the first
+    request after an idle period. That is not application startup - uvicorn is
+    already running - it is the disks spinning back up and Windows power
+    management waking things. A client hitting this every few minutes keeps
+    them awake, which matters because the first thing a Roku certification
+    reviewer does is launch the channel cold.
+
+    Plain `/health` touches only the database. `/health?warm=disks` also stats
+    one path per library, which forces the media drives to spin up too - the
+    other half of the delay, since playback reads off them. That is opt-in
+    because keeping four drives spinning permanently is real wear and noise;
+    use it ahead of a review window rather than around the clock.
+
+    Deliberately unauthenticated and free of library detail, so it is safe to
+    point a public uptime monitor at.
+    """
+    out: Dict[str, Any] = {"status": "ok"}
+
+    try:
+        await db.execute(text("SELECT 1"))
+        out["db"] = "ok"
+    except Exception as e:
+        out["status"] = "degraded"
+        out["db"] = f"error: {type(e).__name__}"
+
+    if warm == "disks":
+        libs = (await db.execute(select(Library))).scalars().all()
+        spun = 0
+        for lib in libs:
+            try:
+                # os.path.exists is enough to force a spin-up and costs nothing
+                # on a drive that is already awake.
+                if lib.path and os.path.exists(lib.path):
+                    spun += 1
+            except Exception:
+                pass
+        out["disks_warmed"] = spun
+
+    return out
+
 
 @app.get("/")
 async def dashboard(request: Request):
