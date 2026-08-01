@@ -50,7 +50,33 @@ def _do_download(file_path: str, title: str, year: Optional[int],
     return result
 
 
-_SUB_EXTS = ('.srt', '.ass', '.ssa')
+# Everything ffmpeg can turn into SRT. Only .srt was accepted, which threw away
+# the .ass anime ships with and the .vtt SubDL served for Dandadan episode 5.
+_SUB_EXTS = ('.srt', '.ass', '.ssa', '.vtt')
+
+
+_MAX_SUBDL_TRIES = 4
+
+
+def _rank_candidates(entries: list, episode: int) -> list:
+    """Keep the entries that cover this episode, exact matches first.
+
+    SubDL orders by its own relevance and packs crowd out precise matches: the
+    single-episode file for Dandadan episode 5 was the fifth result, behind four
+    multi-episode packs. An entry naming exactly this episode is the safest
+    source, so it goes first, then the narrowest range - a twelve-episode season
+    pack is likelier to hold the episode than a stray two-file bundle, but an
+    exact hit beats both.
+    """
+    covering = [e for e in entries if _ep_in_entry(e, episode)]
+
+    def rank(entry: dict):
+        exact = entry.get("episode") != episode
+        start, end = entry.get("episode_from"), entry.get("episode_end")
+        span = (end - start) if isinstance(start, int) and isinstance(end, int) else 999
+        return (exact, span)
+
+    return sorted(covering, key=rank)
 
 
 def _ep_in_entry(entry: dict, episode: int) -> bool:
@@ -163,29 +189,42 @@ def _do_download_subdl(file_path: str, title: str, year: Optional[int],
                 return 'not_found'
 
             if episode is not None:
-                results = [e for e in results if _ep_in_entry(e, episode)]
+                results = _rank_candidates(results, episode)
                 if not results:
                     logger.info(f'[SubDL] No entry covers episode {episode} for: '
                                 f'{os.path.basename(file_path)}')
                     return 'not_found'
 
-            url = results[0].get('url')
-            if not url:
-                return 'not_found'
-
-            r2 = client.get(f'https://dl.subdl.com{url}')
-            r2.raise_for_status()
-
-            with zipfile.ZipFile(io.BytesIO(r2.content)) as zf:
-                member = _member_for_episode(zf.namelist(), season, episode)
-                if not member:
-                    logger.info(f'[SubDL] Pack held no file for S{season}E{episode}: '
+            # Work down the candidates rather than betting everything on the
+            # first. SubDL orders by its own relevance, not by how well the
+            # entry fits: for Dandadan episode 5 the exact single-episode match
+            # was fifth, behind four packs, and for episode 6 the season pack
+            # holding it sat behind three that did not. Stopping at the first
+            # candidate threw those away.
+            content = None
+            for candidate in results[:_MAX_SUBDL_TRIES]:
+                url = candidate.get('url')
+                if not url:
+                    continue
+                try:
+                    r2 = client.get(f'https://dl.subdl.com{url}')
+                    r2.raise_for_status()
+                    with zipfile.ZipFile(io.BytesIO(r2.content)) as zf:
+                        member = _member_for_episode(zf.namelist(), season, episode)
+                        if not member:
+                            continue
+                        raw = zf.read(member)
+                except Exception as exc:
+                    logger.info(f'[SubDL] Candidate failed ({exc}) for '
                                 f'{os.path.basename(file_path)}')
-                    return 'not_found'
-                raw = zf.read(member)
+                    continue
+                content = _to_srt(raw, os.path.splitext(member)[1].lower())
+                if content:
+                    break
 
-            content = _to_srt(raw, os.path.splitext(member)[1].lower())
             if not content:
+                logger.info(f'[SubDL] No candidate held S{season}E{episode} for: '
+                            f'{os.path.basename(file_path)}')
                 return 'not_found'
 
         base = os.path.splitext(file_path)[0]
