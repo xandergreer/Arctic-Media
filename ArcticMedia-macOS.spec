@@ -1,6 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import copy_metadata
 
 block_cipher = None
+
+# guessit finds its parsers through entry points, read from the installed
+# packages' .dist-info, which PyInstaller drops by default. Without it the
+# packaged server logged "Could not load 'metadata': No package metadata was
+# found for trakit" and guessit ran degraded - "It Ends With Us" parsed as
+# "It Ends With". See the same block in ArcticMedia.spec.
+_parser_metadata = []
+for _pkg in ('guessit', 'rebulk', 'babelfish', 'trakit', 'stevedore'):
+    try:
+        _parser_metadata += copy_metadata(_pkg)
+    except Exception:
+        pass  # not installed on this build host - skip rather than fail
 
 a = Analysis(
     ['gui_main.py'],
@@ -11,7 +24,7 @@ a = Analysis(
         ('icons', 'icons'),  # Include icons
         ('clients/Roku', 'roku'),  # Roku channel source (moved from ./roku)
         ('.env', '.'),  # Bundle API keys
-    ],
+    ] + _parser_metadata,
     hiddenimports=[
         'tkinter',
         'PIL',
@@ -65,7 +78,10 @@ a = Analysis(
         # Media filename parsing
         'guessit',
         'rebulk',
+        'babelfish',
         'babelstone',
+        'trakit',
+        'stevedore',
     ],
     hookspath=[],
     hooksconfig={},
