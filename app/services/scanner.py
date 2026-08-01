@@ -719,9 +719,13 @@ async def _scan_movies(db: AsyncSession, library: Library, known_paths: set[str]
 
             title = clean_title(title_raw, year_already_known=bool(match))
             if year is None:
-                # Try the folder first - it usually carries the release name in
-                # full - then the filename.
-                year = extract_year(folder_name) or extract_year(name)
+                # Filename first. A folder can hold several films and name a
+                # span - "Silent Hill duology 2006-2012", "28.Days.Weeks.Later.
+                # 2002-2007" - and reading it gave every film in there the end
+                # of the range: the 2006 Silent Hill came out as 2012. The
+                # filename describes one film, so it is the better source; the
+                # folder is only the fallback for when it carries no year.
+                year = extract_year(name) or extract_year(folder_name)
             print(f"    [MOVIE] {title} ({year or '?'})  <- {filename}")
 
             result = await db.execute(select(MediaItem).where(
