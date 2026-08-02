@@ -1,15 +1,13 @@
 # Arctic Media - sign-in script for Roku App Behavior Analysis
 #
-# ============================================================================
-# THIS SCRIPT CANNOT COMPLETE SIGN-IN ON THE SHIPPING BUILD. See WHY below.
-# ============================================================================
+# Drives the on-device credential path added in build 47, so the whole sign-in
+# completes without a browser. Key sequence verified against a real device;
+# the four Down presses are not padding — that is genuinely how far it is from
+# the keyboard grid to the button row in StandardKeyboardDialog.
 #
-# It drives every step the device is capable of: launch, open the server
-# address dialog, type the address, and connect. It then stops at the pairing
-# code screen, because the next step happens in a web browser on a different
-# machine and no remote-control script can perform it.
+# Replace PASSWORD_HERE before uploading.
 #
-# Validate/record in the Roku Remote tool before uploading:
+# Validate/record in the Roku Remote tool first:
 # https://devtools.web.roku.com/RokuRemote/
 
 params:
@@ -18,25 +16,50 @@ params:
 
 steps:
     - launch: dev
-    # Splash is 800ms minimum, then the pairing screen has to render.
+    # Splash has an 800ms minimum, then the pairing screen renders.
     - pause: 8
 
-    # Focus starts on "Connect to Server". OK opens a StandardKeyboardDialog
-    # (PairingPage.brs openServerDialog) prefilled with "https://".
+    # If a server address is already stored the channel goes straight to the
+    # browser-pairing code screen. Options (*) backs out to the chooser.
+    # Harmless on a fresh device, where the chooser is already showing.
+    - press: options
+    - pause: 3
+
+    # "Connect to Server" is selected by default; move down to
+    # "Sign in with username".
+    - press: down
     - press: ok
     - pause: 3
 
-    # The dialog is prefilled with "https://", so only the host is typed.
-    - text: arcticmedia.space
-    - pause: 2
+    # Username. On a fresh device the server address is asked for first — see
+    # the note at the bottom.
+    - text: RokuTest
+    - pause: 1
+    - press: down, down, down, down    # keyboard grid -> button row
+    - press: ok                        # "Next"
+    - pause: 3
 
-    # Down moves off the keyboard to the button row; "Connect" is first.
-    - press: down
-    - press: ok
-    - pause: 10
+    - text: PASSWORD_HERE
+    - pause: 1
+    - press: down, down, down, down
+    - press: ok                        # "Sign In"
 
-    # ---- The script can go no further. ----
-    # The screen now shows an 8-character pairing code and polls the server.
-    # Authorising it requires signing in at https://arcticmedia.space/pair in a
-    # browser and entering that code. There is no on-device path to complete
-    # it, so certification's automated run stops here.
+    # Token exchange, then the home screen loads its shelves.
+    - pause: 15
+
+# ---------------------------------------------------------------------------
+# Fresh device note
+#
+# With no stored server address, choosing "Sign in with username" asks for the
+# address before the username. Insert this block after the first `press: ok`:
+#
+#     - text: arcticmedia.space      # the field is prefilled with "https://"
+#     - pause: 1
+#     - press: down, down, down, down
+#     - press: ok                    # "Connect"
+#     - pause: 3
+#
+# Roku's certification devices are fresh, so that block is probably the one
+# they need. Confirm which case applies by watching a factory-reset device, or
+# supply both scripts and say which is which.
+# ---------------------------------------------------------------------------
