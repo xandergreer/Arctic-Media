@@ -211,14 +211,44 @@ sub openPasswordDialog()
     dlg.title = "Password"
     dlg.message = ["Signing in as " + m.credUser]
     dlg.text = ""
-    ' Mask the entry where the firmware supports it. hasField guards against
-    ' the "Tried to set nonexistent field" warning on older builds.
-    if dlg.hasField("secureMode") then dlg.secureMode = true
     dlg.buttons = ["Sign In", "Cancel"]
     dlg.observeField("buttonSelected", "onPasswordDialogButton")
     m.serverDialog = dlg
     m.top.getScene().dialog = dlg
+
+    ' StandardKeyboardDialog does not expose secureMode itself — the Keyboard
+    ' buried inside it does. Its children are not built until the dialog has
+    ' been shown, so search on the next tick rather than immediately.
+    m.maskTimer = CreateObject("roSGNode", "Timer")
+    m.maskTimer.duration = 0.2
+    m.maskTimer.repeat   = false
+    m.maskTimer.observeField("fire", "onMaskTimer")
+    m.maskTimer.control  = "start"
 end sub
+
+sub onMaskTimer(event as object)
+    m.maskTimer.control = "stop"
+    if m.serverDialog = invalid then return
+    if not applySecureMode(m.serverDialog)
+        ' Not fatal: the password simply stays visible. Worth knowing about
+        ' rather than silently shipping an unmasked password field.
+        print "[pairing] no secureMode field found in the keyboard dialog"
+    end if
+end sub
+
+' Depth-first hunt for whichever descendant owns secureMode, so this does not
+' depend on Roku's internal node names staying put.
+function applySecureMode(node as object) as Boolean
+    if node = invalid then return false
+    if node.hasField("secureMode")
+        node.secureMode = true
+        return true
+    end if
+    for i = 0 to node.getChildCount() - 1
+        if applySecureMode(node.getChild(i)) then return true
+    end for
+    return false
+end function
 
 sub onPasswordDialogButton(event as object)
     idx = event.getData()

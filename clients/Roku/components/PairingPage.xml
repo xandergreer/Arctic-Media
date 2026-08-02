@@ -14,7 +14,7 @@
         <!-- Wordmark (shown on every view) -->
         <Label id="wordmark"
                translation="[0, 300]" width="1920" horizAlign="center"
-               text="❄  ARCTIC MEDIA"
+               text="ARCTIC MEDIA"
                font="font:LargeBoldSystemFont" color="0xEAF3FFFF" />
 
         <!-- ═══ SETUP VIEW — connect to server ═══ -->
@@ -33,7 +33,7 @@
                     translation="[700, 496]" width="520" height="96" />
             <Label id="connectLabel"
                    translation="[700, 522]" width="520" horizAlign="center"
-                   text="▶   Connect to Server"
+                   text="Connect to Server"
                    font="font:MediumBoldSystemFont" color="0xEAF3FFFF" />
 
             <Poster id="credsCard" uri="pkg:/images/surface_r14.9.png"
