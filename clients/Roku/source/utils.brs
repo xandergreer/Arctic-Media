@@ -99,17 +99,11 @@ function BuildHlsUrl(serverUrl as string, token as string, mediaId as integer) a
     ' Gated on the device rather than applied blanket: a 4K stick decodes HEVC
     ' natively and should keep the stream copy, which costs the server no
     ' transcode and preserves the source quality.
-    if not DeviceCanDecodeHevc()
-        ' hevc=0 is the real signal — the server knows the source codec and
-        ' transcodes only when it is actually HEVC, at full resolution.
-        '
-        ' quality=720 is belt-and-braces and can be dropped once the server
-        ' carrying that parameter is deployed: older builds ignore hevc=0
-        ' entirely, and only a height below the source forces the transcode.
-        ' It is also a fair cap for the hardware that lacks HEVC in the first
-        ' place, which is the older 2.4GHz-only models.
-        url = url + "&hevc=0&quality=720"
-    end if
+    ' The server knows the source codec, so it transcodes only when the source
+    ' is actually HEVC and leaves the resolution alone. No height cap: that was
+    ' a workaround for servers predating the hevc parameter, and it downscaled
+    ' H.264 that would otherwise have been copied untouched.
+    if not DeviceCanDecodeHevc() then url = url + "&hevc=0"
     return url
 end function
 
