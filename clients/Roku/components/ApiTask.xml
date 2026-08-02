@@ -5,6 +5,10 @@
         <field id="method"    type="string" value="GET" />
         <field id="token"     type="string" />
         <field id="reqBody"   type="string" />
+        <!-- Defaults to JSON. /api/v1/auth/token takes an
+             OAuth2PasswordRequestForm, which FastAPI only reads from
+             application/x-www-form-urlencoded. -->
+        <field id="contentType" type="string" value="application/json" />
         <field id="result"    type="assocarray" alwaysNotify="true" />
         <field id="resultArr" type="array"      alwaysNotify="true" />
         <field id="apiError"  type="string"     alwaysNotify="true" />

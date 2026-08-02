@@ -23,25 +23,38 @@
                    text="Your library. Every screen."
                    font="font:MediumSystemFont" color="0x7FA6D8FF" />
 
-            <!-- Focal connect button -->
-            <Poster id="connectCard" uri="pkg:/images/surface_r14.9.png" translation="[700, 520]" width="520" height="104" />
+            <!-- Two ways in. Browser pairing stays first and is the
+                 recommended path: it is far less painful than typing a
+                 password on a D-pad, and the password never touches the TV.
+                 Credential sign-in is the alternative for people who would
+                 rather just type it, and it is the only path an automated
+                 certification script can drive. -->
+            <Poster id="connectCard" uri="pkg:/images/surface_focus_r14.9.png"
+                    translation="[700, 496]" width="520" height="96" />
             <Label id="connectLabel"
-                   translation="[700, 553]" width="520" horizAlign="center"
+                   translation="[700, 522]" width="520" horizAlign="center"
                    text="▶   Connect to Server"
                    font="font:MediumBoldSystemFont" color="0xEAF3FFFF" />
 
+            <Poster id="credsCard" uri="pkg:/images/surface_r14.9.png"
+                    translation="[700, 608]" width="520" height="96" />
+            <Label id="credsLabel"
+                   translation="[700, 634]" width="520" horizAlign="center"
+                   text="Sign in with username"
+                   font="font:MediumBoldSystemFont" color="0x93A0B8FF" />
+
             <!-- Remembered / failed server (only shown when relevant) -->
             <Label id="savedUrl"
-                   translation="[0, 648]" width="1920" horizAlign="center"
+                   translation="[0, 726]" width="1920" horizAlign="center"
                    text="" font="font:SmallSystemFont" color="0x5B7BA8FF" />
 
             <Label id="setupHint"
-                   translation="[0, 704]" width="1920" horizAlign="center"
+                   translation="[0, 772]" width="1920" horizAlign="center"
                    text="Press OK to enter your server address"
                    font="font:SmallSystemFont" color="0x5B7BA8FF" />
 
             <Label id="setupError"
-                   translation="[0, 752]" width="1920" horizAlign="center"
+                   translation="[0, 818]" width="1920" horizAlign="center"
                    text="" font="font:SmallSystemFont" color="0xFF6B6BFF" />
         </Group>
 

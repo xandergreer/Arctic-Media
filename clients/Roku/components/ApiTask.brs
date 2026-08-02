@@ -25,7 +25,9 @@ sub execute()
         body = ""
         if reqBody <> invalid and reqBody <> "" then body = reqBody
         if body <> ""
-            req.AddHeader("Content-Type", "application/json")
+            ct = m.top.contentType
+            if ct = invalid or ct = "" then ct = "application/json"
+            req.AddHeader("Content-Type", ct)
         end if
         req.AsyncPostFromString(body)
     else

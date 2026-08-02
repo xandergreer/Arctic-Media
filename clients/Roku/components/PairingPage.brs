@@ -8,10 +8,20 @@ sub init()
     m.loadingView  = m.top.findNode("loadingView")
     m.pairingView  = m.top.findNode("pairingView")
 
+    m.connectCard  = m.top.findNode("connectCard")
     m.connectLabel = m.top.findNode("connectLabel")
+    m.credsCard    = m.top.findNode("credsCard")
+    m.credsLabel   = m.top.findNode("credsLabel")
     m.savedUrl     = m.top.findNode("savedUrl")
     m.setupHint    = m.top.findNode("setupHint")
     m.setupError   = m.top.findNode("setupError")
+
+    ' Setup screen selection: 0 = browser pairing, 1 = username/password.
+    m.setupIdx = 0
+    ' Where the server-address dialog should hand off once a URL is entered:
+    ' "pair" resumes the device-code flow, "creds" continues to the login form.
+    m.urlNextAction = "pair"
+    m.credUser      = ""
 
     m.loadingLabel = m.top.findNode("loadingLabel")
     m.codeLabel    = m.top.findNode("codeLabel")
@@ -60,7 +70,8 @@ sub showSetup()
     else
         m.savedUrl.text = ""
     end if
-    m.setupHint.text  = "Press OK to enter your server address"
+    ' Sets the hint to match whichever option is selected.
+    updateSetupFocus()
     m.top.setFocus(true)
 end sub
 
@@ -115,8 +126,12 @@ sub onServerDialogButton(event as object)
             m.serverUrl = url
             SetReg("server_url", url)
             m.setupError.text = ""
-            showLoading()
-            startPairRequest()
+            if m.urlNextAction = "creds"
+                openUsernameDialog()
+            else
+                showLoading()
+                startPairRequest()
+            end if
         else
             showSetup()
             m.setupError.text = "That doesn't look like a valid address. Try again."
@@ -133,6 +148,135 @@ sub dismissServerDialog()
         m.serverDialog = invalid
     end if
     m.top.setFocus(true)
+end sub
+
+' -------------------------------------------------------
+' Credential sign-in (alternative to browser pairing)
+'
+' Posts to the same /api/v1/auth/token the web player uses and stores the
+' token pairing would have produced, so everything downstream is identical.
+' This path exists because a D-pad script can drive it end to end: browser
+' pairing cannot be automated, which blocks Roku's App Behavior Analysis.
+' -------------------------------------------------------
+
+sub updateSetupFocus()
+    if m.setupIdx = 0
+        m.connectCard.uri   = "pkg:/images/surface_focus_r14.9.png"
+        m.connectLabel.color = "0xEAF3FFFF"
+        m.credsCard.uri     = "pkg:/images/surface_r14.9.png"
+        m.credsLabel.color  = "0x93A0B8FF"
+        m.setupHint.text    = "Press OK to enter your server address"
+    else
+        m.connectCard.uri   = "pkg:/images/surface_r14.9.png"
+        m.connectLabel.color = "0x93A0B8FF"
+        m.credsCard.uri     = "pkg:/images/surface_focus_r14.9.png"
+        m.credsLabel.color  = "0xEAF3FFFF"
+        m.setupHint.text    = "Press OK to sign in with your server username"
+    end if
+end sub
+
+sub openUsernameDialog()
+    dlg = CreateObject("roSGNode", "StandardKeyboardDialog")
+    dlg.title = "Username"
+    dlg.message = ["Your username on " + m.serverUrl]
+    dlg.text = m.credUser
+    dlg.buttons = ["Next", "Cancel"]
+    dlg.observeField("buttonSelected", "onUsernameDialogButton")
+    m.serverDialog = dlg
+    m.top.getScene().dialog = dlg
+end sub
+
+sub onUsernameDialogButton(event as object)
+    idx = event.getData()
+    dlg = m.serverDialog
+    if dlg = invalid then return
+
+    if idx = 0
+        m.credUser = dlg.text.Trim()
+        dismissServerDialog()
+        if m.credUser = ""
+            showSetup()
+            m.setupError.text = "Enter a username."
+            return
+        end if
+        openPasswordDialog()
+    else
+        dismissServerDialog()
+        showSetup()
+    end if
+end sub
+
+sub openPasswordDialog()
+    dlg = CreateObject("roSGNode", "StandardKeyboardDialog")
+    dlg.title = "Password"
+    dlg.message = ["Signing in as " + m.credUser]
+    dlg.text = ""
+    ' Mask the entry where the firmware supports it. hasField guards against
+    ' the "Tried to set nonexistent field" warning on older builds.
+    if dlg.hasField("secureMode") then dlg.secureMode = true
+    dlg.buttons = ["Sign In", "Cancel"]
+    dlg.observeField("buttonSelected", "onPasswordDialogButton")
+    m.serverDialog = dlg
+    m.top.getScene().dialog = dlg
+end sub
+
+sub onPasswordDialogButton(event as object)
+    idx = event.getData()
+    dlg = m.serverDialog
+    if dlg = invalid then return
+
+    if idx = 0
+        pw = dlg.text
+        dismissServerDialog()
+        startCredentialLogin(m.credUser, pw)
+    else
+        dismissServerDialog()
+        showSetup()
+    end if
+end sub
+
+sub startCredentialLogin(user as string, pw as string)
+    showLoading()
+    m.loadingLabel.text = "Signing in…"
+
+    ' FastAPI's OAuth2PasswordRequestForm only reads form-encoded bodies, so
+    ' this cannot go as JSON like the rest of the API.
+    esc  = CreateObject("roUrlTransfer")
+    body = "username=" + esc.Escape(user) + "&password=" + esc.Escape(pw)
+
+    task = CreateObject("roSGNode", "ApiTask")
+    task.url         = m.serverUrl + "/api/v1/auth/token"
+    task.method      = "POST"
+    task.contentType = "application/x-www-form-urlencoded"
+    task.reqBody     = body
+    task.observeField("result",   "onCredLoginResult")
+    task.observeField("apiError", "onCredLoginError")
+    task.control = "run"
+    m.credTask = task
+end sub
+
+sub onCredLoginResult(event as object)
+    data = event.getData()
+    ' alwaysNotify fires once with an empty AA when the observer attaches
+    if data = invalid then return
+    if data.access_token = invalid then return
+
+    SetReg("access_token", data.access_token)
+    if data.refresh_token <> invalid then SetReg("refresh_token", data.refresh_token)
+    m.top.signalBeacon("AppDialogComplete")
+    m.top.navRequest = {action: "home"}
+end sub
+
+sub onCredLoginError(event as object)
+    err = event.getData()
+    showSetup()
+    m.setupIdx = 1
+    updateSetupFocus()
+    if err = "Unauthorized"
+        m.setupError.text = "That username or password was not accepted."
+    else
+        m.setupError.text = "Could not reach the server. Check the address and try again."
+    end if
 end sub
 
 ' -------------------------------------------------------
@@ -249,9 +393,32 @@ end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    if key = "OK" and m.setupView.visible
-        openServerDialog()
-        return true
+    if m.setupView.visible
+        if key = "up" or key = "down"
+            if m.setupIdx = 0 then
+                m.setupIdx = 1
+            else
+                m.setupIdx = 0
+            end if
+            updateSetupFocus()
+            return true
+        end if
+        if key = "OK"
+            if m.setupIdx = 0
+                m.urlNextAction = "pair"
+                openServerDialog()
+            else
+                ' Credential sign-in still needs to know which server to talk
+                ' to, so ask for the address first when we do not have one.
+                if m.serverUrl = ""
+                    m.urlNextAction = "creds"
+                    openServerDialog()
+                else
+                    openUsernameDialog()
+                end if
+            end if
+            return true
+        end if
     end if
 
     if key = "options"

@@ -1,0 +1,26 @@
+# Arctic Media - sign-out script for Roku App Behavior Analysis
+#
+# Works against the shipping build with no changes. From the home screen the
+# Options (*) key raises a signout navRequest (HomePage.brs onKeyEvent), which
+# clears the stored token and returns the device to the pairing screen.
+#
+# Validate/record in the Roku Remote tool before uploading:
+# https://devtools.web.roku.com/RokuRemote/
+
+params:
+    rasp_version: 1
+    default_keypress_wait: 2
+
+steps:
+    # Make sure we are on the channel's home screen, not a sub-page.
+    - press: back
+    - press: back
+    - pause: 2
+
+    # Options (*) is bound to sign out on every home tab.
+    - press: options
+    - pause: 3
+
+    # Confirm, if a confirmation dialog is shown.
+    - press: ok
+    - pause: 5

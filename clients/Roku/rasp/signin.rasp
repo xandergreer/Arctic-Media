@@ -1,0 +1,42 @@
+# Arctic Media - sign-in script for Roku App Behavior Analysis
+#
+# ============================================================================
+# THIS SCRIPT CANNOT COMPLETE SIGN-IN ON THE SHIPPING BUILD. See WHY below.
+# ============================================================================
+#
+# It drives every step the device is capable of: launch, open the server
+# address dialog, type the address, and connect. It then stops at the pairing
+# code screen, because the next step happens in a web browser on a different
+# machine and no remote-control script can perform it.
+#
+# Validate/record in the Roku Remote tool before uploading:
+# https://devtools.web.roku.com/RokuRemote/
+
+params:
+    rasp_version: 1
+    default_keypress_wait: 2
+
+steps:
+    - launch: dev
+    # Splash is 800ms minimum, then the pairing screen has to render.
+    - pause: 8
+
+    # Focus starts on "Connect to Server". OK opens a StandardKeyboardDialog
+    # (PairingPage.brs openServerDialog) prefilled with "https://".
+    - press: ok
+    - pause: 3
+
+    # The dialog is prefilled with "https://", so only the host is typed.
+    - text: arcticmedia.space
+    - pause: 2
+
+    # Down moves off the keyboard to the button row; "Connect" is first.
+    - press: down
+    - press: ok
+    - pause: 10
+
+    # ---- The script can go no further. ----
+    # The screen now shows an 8-character pairing code and polls the server.
+    # Authorising it requires signing in at https://arcticmedia.space/pair in a
+    # browser and entering that code. There is no on-device path to complete
+    # it, so certification's automated run stops here.
