@@ -9,6 +9,10 @@
              OAuth2PasswordRequestForm, which FastAPI only reads from
              application/x-www-form-urlencoded. -->
         <field id="contentType" type="string" value="application/json" />
+        <!-- Set this instead of reqBody to POST a form. The task percent-encodes
+             and joins the pairs itself, because roUrlTransfer (and so Escape())
+             cannot be created on the render thread — only here. -->
+        <field id="formFields" type="assocarray" />
         <field id="result"    type="assocarray" alwaysNotify="true" />
         <field id="resultArr" type="array"      alwaysNotify="true" />
         <field id="apiError"  type="string"     alwaysNotify="true" />

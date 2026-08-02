@@ -23,10 +23,42 @@ sub execute()
 
     if method = "POST" or method = "PATCH" or method = "DELETE"
         body = ""
-        if reqBody <> invalid and reqBody <> "" then body = reqBody
+        ct   = m.top.contentType
+        if ct = invalid or ct = "" then ct = "application/json"
+
+        ' Form POST: build the body here so Escape() is available. Creating an
+        ' roUrlTransfer on the render thread returns Invalid, so the caller
+        ' cannot encode this itself.
+        fields = m.top.formFields
+        if fields <> invalid and fields.Count() > 0
+            first = true
+            for each k in fields
+                v = fields[k]
+                if v = invalid then v = ""
+                ' Stringify without calling ToStr() on a string: roString has no
+                ' such member, and the resulting error kills this task thread
+                ' silently — no fields get set, so the caller's observers never
+                ' fire and the UI hangs on its loading state.
+                t = type(v)
+                if t = "String" or t = "roString"
+                    sv = v
+                else
+                    sv = Str(v).Trim()
+                end if
+                pair = req.Escape(k) + "=" + req.Escape(sv)
+                if first
+                    body  = pair
+                    first = false
+                else
+                    body = body + "&" + pair
+                end if
+            end for
+            ct = "application/x-www-form-urlencoded"
+        else if reqBody <> invalid and reqBody <> ""
+            body = reqBody
+        end if
+
         if body <> ""
-            ct = m.top.contentType
-            if ct = invalid or ct = "" then ct = "application/json"
             req.AddHeader("Content-Type", ct)
         end if
         req.AsyncPostFromString(body)
@@ -48,6 +80,15 @@ sub execute()
     code = msg.GetResponseCode()
     rsp  = msg.GetString()
 
+    ' A transport failure (DNS, refused, TLS) reports a NEGATIVE code, which is
+    ' not >= 400, so it used to fall through to the empty-body branch below and
+    ' return result = {} — indistinguishable from a successful 204. Callers
+    ' waiting on apiError then never heard anything and sat on their loading
+    ' state forever.
+    if code <= 0
+        m.top.apiError = "Network error"
+        return
+    end if
     if code = 401
         m.top.apiError = "Unauthorized"
         return

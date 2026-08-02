@@ -240,15 +240,13 @@ sub startCredentialLogin(user as string, pw as string)
     m.loadingLabel.text = "Signing in…"
 
     ' FastAPI's OAuth2PasswordRequestForm only reads form-encoded bodies, so
-    ' this cannot go as JSON like the rest of the API.
-    esc  = CreateObject("roUrlTransfer")
-    body = "username=" + esc.Escape(user) + "&password=" + esc.Escape(pw)
-
+    ' this cannot go as JSON like the rest of the API. ApiTask does the
+    ' encoding: roUrlTransfer cannot be created on the render thread, so
+    ' Escape() is unavailable here.
     task = CreateObject("roSGNode", "ApiTask")
-    task.url         = m.serverUrl + "/api/v1/auth/token"
-    task.method      = "POST"
-    task.contentType = "application/x-www-form-urlencoded"
-    task.reqBody     = body
+    task.url        = m.serverUrl + "/api/v1/auth/token"
+    task.method     = "POST"
+    task.formFields = { username: user, password: pw }
     task.observeField("result",   "onCredLoginResult")
     task.observeField("apiError", "onCredLoginError")
     task.control = "run"
@@ -257,9 +255,18 @@ end sub
 
 sub onCredLoginResult(event as object)
     data = event.getData()
-    ' alwaysNotify fires once with an empty AA when the observer attaches
+    ' alwaysNotify fires once with an empty AA when the observer attaches, so
+    ' an empty result is not necessarily a failure — only treat a populated
+    ' response with no token as one, and never leave the spinner up silently.
     if data = invalid then return
-    if data.access_token = invalid then return
+    if data.Count() = 0 then return
+    if data.access_token = invalid
+        showSetup()
+        m.setupIdx = 1
+        updateSetupFocus()
+        m.setupError.text = "The server did not return a sign-in token."
+        return
+    end if
 
     SetReg("access_token", data.access_token)
     if data.refresh_token <> invalid then SetReg("refresh_token", data.refresh_token)
