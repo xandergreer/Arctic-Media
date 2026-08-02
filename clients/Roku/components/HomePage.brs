@@ -873,7 +873,13 @@ end sub
 
 sub onPingError(event as object)
     err = event.getData()
-    if err = "Unauthorized" or Left(err, 5) = "HTTP "
+    if err = "Unauthorized"
+        ' Was reported as "Connected" (green), which hid an expired token
+        ' behind a healthy-looking status while every request failed.
+        m.sStatus0.text  = "● Sign in again"
+        m.sStatus0.color = "0xFFAA00FF"
+    else if Left(err, 5) = "HTTP "
+        ' Any other HTTP status still proves the server answered.
         m.sStatus0.text  = "● Connected"
         m.sStatus0.color = "0x4FD070FF"
     else

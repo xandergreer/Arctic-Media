@@ -87,7 +87,30 @@ function ResolveUrl(serverUrl as string, rawUrl as string) as string
 end function
 
 function BuildHlsUrl(serverUrl as string, token as string, mediaId as integer) as string
-    return serverUrl + "/api/v1/stream/" + mediaId.ToStr() + "/master.m3u8?token=" + token
+    url = serverUrl + "/api/v1/stream/" + mediaId.ToStr() + "/master.m3u8?token=" + token
+
+    ' With no quality requested the server stream-copies an HEVC source and
+    ' advertises hvc1 (app/api/v1/stream_hls.py, get_master_playlist). Players
+    ' that cannot decode HEVC — the Roku Express 3930 among them — then fail
+    ' with a bare "Playback Error" and no HTTP error, because the fetch
+    ' succeeded and only the decode failed. Asking for a capped height makes
+    ' the server transcode to H.264 instead.
+    '
+    ' Gated on the device rather than applied blanket: a 4K stick decodes HEVC
+    ' natively and should keep the stream copy, which costs the server no
+    ' transcode and preserves the source quality.
+    if not DeviceCanDecodeHevc() then url = url + "&quality=720"
+    return url
+end function
+
+' Cheap enough to call per playback; no caching, because utils.brs is included
+' into several component scopes that do not share `m`.
+function DeviceCanDecodeHevc() as Boolean
+    di = CreateObject("roDeviceInfo")
+    r  = di.CanDecodeVideo({ Codec: "hevc", Container: "hls" })
+    if r = invalid then return false
+    if r.result = invalid then return false
+    return r.result
 end function
 
 ' ── Progress ──────────────────────────────────────────────────────────────
