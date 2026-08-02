@@ -399,6 +399,7 @@ async def get_master_playlist(
     file_id: Optional[int] = Query(None),
     t: float = Query(0),
     quality: Optional[int] = Query(None, description="Target height (1080/720/480); omit for original"),
+    hevc: int = Query(1, description="0 if the client cannot decode HEVC; forces an H.264 transcode"),
     db: AsyncSession = Depends(get_db)
 ):
     """Proper HLS master playlist. AVPlayer and AVAssetDownloadURLSession both need this."""
@@ -416,6 +417,10 @@ async def get_master_playlist(
     server_base = f"{request.url.scheme}://{request.url.netloc}"
     playlist_url = (f"{server_base}/api/v1/stream/{media_id}/playlist.m3u8"
                     f"?token={token or ''}&aidx={aidx}")
+    # Carry the capability through, or the media playlist would stream-copy the
+    # HEVC this master playlist just promised not to send.
+    if not hevc:
+        playlist_url += "&hevc=0"
     if sidx is not None:
         playlist_url += f"&sidx={sidx}&stype={stype}"
     if file_id:
@@ -437,7 +442,7 @@ async def get_master_playlist(
     effective_q = quality
     if effective_q and src_height and src_height <= effective_q:
         effective_q = None
-    if effective_q is None and sidx is None and probe_vcodec in ("hevc", "h265"):
+    if hevc and effective_q is None and sidx is None and probe_vcodec in ("hevc", "h265"):
         codecs = "hvc1.1.6.L123.B0,mp4a.40.2"
     else:
         codecs = "avc1.64001f,mp4a.40.2"
@@ -468,6 +473,7 @@ async def get_media_playlist(
     file_id: Optional[int] = Query(None),
     t: float = Query(0),
     quality: Optional[int] = Query(None, description="Target height (1080/720/480); omit for original"),
+    hevc: int = Query(1, description="0 if the client cannot decode HEVC; forces an H.264 transcode"),
     db: AsyncSession = Depends(get_db)
 ):
     # Verify user and capture username for HLS token generation
@@ -525,9 +531,13 @@ async def get_media_playlist(
         if probe_vcodec == "h264":
             vcodec = "copy"
             v_bsf = "h264_mp4toannexb"
-        elif probe_vcodec in ("hevc", "h265"):
+        elif probe_vcodec in ("hevc", "h265") and hevc:
             vcodec = "copy"
             v_bsf = "hevc_mp4toannexb"
+        # HEVC with hevc=0 falls through to libx264: the client said it cannot
+        # decode it, and a stream copy would fetch fine and then fail to decode,
+        # which surfaces as a bare "playback error" with no HTTP error to
+        # explain it. Resolution is untouched -- this changes codec only.
         # Other codecs (mpeg4, av1, vp9, vc1 …) → transcode to libx264
 
     # Calculate start segment from requested time (for track-switch seeking)
