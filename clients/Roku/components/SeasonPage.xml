@@ -20,20 +20,20 @@
         <Label id="showTitle" translation="[96, 58]" width="1500"
                font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
         <Label id="seasonInfo" translation="[96, 120]" width="900"
-               font="font:SmallBoldSystemFont" color="0x6F97C8FF" />
-        <Rectangle color="0x4A9FFFFF" width="64" height="4" translation="[96, 160]" />
+               font="font:SmallBoldSystemFont" color="0x7FA6D8FF" />
+        <Rectangle color="0x5AA9FFFF" width="64" height="4" translation="[96, 160]" />
 
         <!-- ═══ SEASONS rail ═══ -->
         <Label translation="[96, 198]" text="SEASONS"
-               color="0x6F97C8FF" font="font:SmallBoldSystemFont" width="240" />
+               color="0x7FA6D8FF" font="font:SmallBoldSystemFont" width="240" />
         <LabelList id="seasonList"
                    translation="[96, 246]"
                    itemSize="[270, 60]"
                    itemSpacing="[0, 6]"
                    numRows="10"
                    focusBitmapUri=""
-                   focusedColor="0x4A9FFFFF"
-                   color="0xB9C6DAFF"
+                   focusedColor="0x5AA9FFFF"
+                   color="0xC2CEE2FF"
                    font="font:MediumSystemFont"
                    focusedFont="font:MediumBoldSystemFont" />
 
@@ -53,6 +53,6 @@
         <!-- Hint — kept inside the action-safe area (bottom limit ≈1027) -->
         <Label translation="[96, 992]" width="1400"
                text="Left/Right = switch column     OK = play     Back = return"
-               color="0x44557AFF" font="font:SmallSystemFont" />
+               color="0x5A6478FF" font="font:SmallSystemFont" />
     </children>
 </component>

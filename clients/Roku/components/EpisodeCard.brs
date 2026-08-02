@@ -1,6 +1,6 @@
 sub init()
     m.bg        = m.top.findNode("bg")
-    m.accent    = m.top.findNode("accent")
+    m.focusRing = m.top.findNode("focusRing")
     m.thumb     = m.top.findNode("thumb")
     m.progTrack = m.top.findNode("progTrack")
     m.progFill  = m.top.findNode("progFill")
@@ -33,12 +33,12 @@ end sub
 
 sub onFocusChanged()
     if m.top.itemHasFocus then
-        m.bg.color       = "0x1D3156FF"
-        m.accent.opacity = 1.0
+        m.bg.uri            = "pkg:/images/row_focus_r10.9.png"
+        m.focusRing.opacity = 1.0
         m.titleLbl.color = "0xFFFFFFFF"
     else
-        m.bg.color       = "0x0E1526F2"
-        m.accent.opacity = 0.0
-        m.titleLbl.color = "0xE6EDF7FF"
+        m.bg.uri            = "pkg:/images/row_r10.9.png"
+        m.focusRing.opacity = 0.0
+        m.titleLbl.color    = "0xE6EDF7FF"
     end if
 end sub

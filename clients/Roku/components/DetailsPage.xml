@@ -8,14 +8,18 @@
     <script type="text/brightscript" uri="pkg:/components/DetailsPage.brs" />
     <children>
         <!-- Static background (never scrolls) -->
-        <Rectangle color="0x080818FF" width="1920" height="1080" />
-        <Poster id="backdrop" width="1920" height="1080" opacity="0.07" loadDisplayMode="scaleToZoom" />
+        <Rectangle color="0x06070FFF" width="1920" height="1080" />
+        <Poster id="backdrop" width="1920" height="1080" opacity="0.15" loadDisplayMode="scaleToZoom" />
+        <!-- Fades the artwork out under the text column. At a flat 0.07 the
+             backdrop's own title bled through and looked like an artifact. -->
+        <Poster uri="pkg:/images/backdrop_scrim.png" width="1920" height="1080" />
 
         <!-- ═══ Scrollable content group ═══ -->
         <Group id="scrollGroup">
 
             <!-- Poster — 240×360 -->
             <Poster id="poster" translation="[96, 70]" width="240" height="360" loadDisplayMode="scaleToZoom" />
+            <Poster uri="pkg:/images/corner_poster_lg.png" translation="[96, 70]" width="240" height="360" />
 
             <!-- Title -->
             <Label id="titleLabel" translation="[396, 70]" width="1080"
@@ -23,43 +27,42 @@
 
             <!-- Meta: year · type -->
             <Label id="metaLabel" translation="[396, 200]" width="900"
-                   font="font:SmallSystemFont" color="0x4A9FFFFF" />
+                   font="font:SmallSystemFont" color="0x5AA9FFFF" />
 
             <!-- Divider -->
-            <Rectangle translation="[396, 234]" width="880" height="1" color="0x1C1C3AFF" />
+            <Rectangle translation="[396, 234]" width="880" height="1" color="0x1B2340FF" />
 
             <!-- Overview (max 4 lines) — starts 18px below divider -->
             <Label id="overviewLabel" translation="[396, 254]" width="900"
-                   font="font:SmallSystemFont" color="0xCCCCCCFF" wrap="true" numLines="4" />
+                   font="font:SmallSystemFont" color="0xC2CEE2FF" wrap="true" numLines="4" />
 
             <!-- Genres — 254 + 4×32 + 52 gap = 434 -->
             <Label id="genresLabel" translation="[396, 434]" width="900"
-                   font="font:SmallSystemFont" color="0x888888FF" />
+                   font="font:SmallSystemFont" color="0x8494ADFF" />
 
             <!-- Play button — 56px below genres -->
-            <Rectangle id="playBtn"      translation="[396, 500]" width="210" height="58" color="0x4A9FFFFF" />
-            <Label     id="playBtnLabel" translation="[416, 519]"
+            <Poster id="playBtn" uri="pkg:/images/btn58_focus.9.png" translation="[396, 500]" width="210" height="58" />
+            <Label     id="playBtnLabel" translation="[416, 510]"
                        text="Play" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="180" />
 
             <!-- Browse Episodes button (TV shows only) -->
-            <Rectangle id="episodesBtn"      translation="[624, 500]" width="290" height="58"
-                       color="0x1A2A4AFF" visible="false" />
-            <Label     id="episodesBtnLabel" translation="[640, 519]"
-                       text="Browse Episodes" color="0xCCCCCCFF"
+            <Poster id="episodesBtn" uri="pkg:/images/btn58.9.png" translation="[624, 500]" width="290" height="58" visible="false" />
+            <Label     id="episodesBtnLabel" translation="[640, 512]"
+                       text="Browse Episodes" color="0xC2CEE2FF"
                        font="font:SmallBoldSystemFont" width="268" visible="false" />
 
             <!-- ── Cast section — 80px below play button bottom ── -->
             <!-- play bottom = 500+58=558, cast label at 558+80=638 -->
-            <Label id="castSectionLabel" translation="[96, 588]"
-                   text="Cast" font="font:SmallBoldSystemFont"
-                   color="0x4A9FFFFF" width="200" opacity="0" />
+            <Label id="castSectionLabel" translation="[96, 578]"
+                   text="Cast" font="font:MediumBoldSystemFont"
+                   color="0xC8D4E8FF" width="300" opacity="0" />
             <!-- Cast row: built dynamically; cards are 190×250 + 2-line name + role -->
-            <Group id="castRow" translation="[96, 634]" />
+            <Group id="castRow" translation="[96, 616]" />
 
             <!-- ── Similar section — 50px below cast row bottom (684+350+50=1084) ── -->
             <Label id="similarSectionLabel" translation="[96, 1034]"
-                   text="More Like This" font="font:SmallBoldSystemFont"
-                   color="0x4A9FFFFF" width="300" opacity="0" />
+                   text="More Like This" font="font:MediumBoldSystemFont"
+                   color="0xC8D4E8FF" width="400" opacity="0" />
             <!-- Similar row: built dynamically; cards are 200×300 + 2-line title -->
             <Group id="similarRow" translation="[96, 1080]" />
 
@@ -68,6 +71,6 @@
         <!-- Hint — pinned to bottom, never scrolls -->
         <Label id="hintLabel" translation="[96, 996]"
                text="Back=return   Left/Right=switch   OK=select"
-               color="0x33334AFF" font="font:SmallSystemFont" width="1200" />
+               color="0x5A6478FF" font="font:SmallSystemFont" width="1200" />
     </children>
 </component>

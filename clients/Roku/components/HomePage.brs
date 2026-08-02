@@ -63,11 +63,9 @@ sub init()
 
     ' Settings view nodes
     m.sItem   = []
-    m.sAccent = []
     m.sValue  = []
     for i = 0 to 4
         m.sItem.push(m.top.findNode("sItem" + i.ToStr()))
-        m.sAccent.push(m.top.findNode("sAccent" + i.ToStr()))
         m.sValue.push(m.top.findNode("sValue" + i.ToStr()))
     end for
     m.sStatus0     = m.top.findNode("sStatus0")
@@ -389,7 +387,7 @@ sub buildHomeRows()
 
     ' ── Category tiles (always first) ───────────────────
     m.labelCategories.translation  = [96, 136]
-    m.categoryRowGroup.translation = [96, 174]
+    m.categoryRowGroup.translation = [96, 188]
     m.homeRowGroups.push(m.categoryRowGroup)
     m.homeRowTypes.push("category")
     m.homeRowLabels.push(m.labelCategories)
@@ -400,7 +398,7 @@ sub buildHomeRows()
     ' PosterItem is 270px tall. Each row section = 38 (label) + 270 (poster) + 60 (gap) = 368px.
     ' Y cursor starts after category row (174 + 225 tile + 50 gap)
     ROW_STRIDE = 368   ' label + poster height + breathing room
-    nextY = 449
+    nextY = 463
 
     ' Reset homeView scroll
     m.homeScrollY = 0
@@ -410,7 +408,7 @@ sub buildHomeRows()
     if hasCW
         m.labelCW.translation    = [96, nextY]
         m.labelCW.visible        = true
-        m.cwRowGroup.translation = [96, nextY + 38]
+        m.cwRowGroup.translation = [96, nextY + 52]
         m.cwRowGroup.visible     = true
         m.homeRowGroups.push(m.cwRowGroup)
         m.homeRowTypes.push("poster")
@@ -428,7 +426,7 @@ sub buildHomeRows()
     if hasMovies
         m.labelMovies.translation    = [96, nextY]
         m.labelMovies.visible        = true
-        m.moviesRowGroup.translation = [96, nextY + 38]
+        m.moviesRowGroup.translation = [96, nextY + 52]
         m.moviesRowGroup.visible     = true
         m.homeRowGroups.push(m.moviesRowGroup)
         m.homeRowTypes.push("poster")
@@ -446,7 +444,7 @@ sub buildHomeRows()
     if hasShows
         m.labelShows.translation    = [96, nextY]
         m.labelShows.visible        = true
-        m.showsRowGroup.translation = [96, nextY + 38]
+        m.showsRowGroup.translation = [96, nextY + 52]
         m.showsRowGroup.visible     = true
         m.homeRowGroups.push(m.showsRowGroup)
         m.homeRowTypes.push("poster")
@@ -615,7 +613,7 @@ sub updateRowLabels()
         if i = m.activeHomeRow
             m.homeRowLabels[i].color = "0xFFFFFFFF"
         else
-            m.homeRowLabels[i].color = "0x888888FF"
+            m.homeRowLabels[i].color = "0x8494ADFF"
         end if
     end for
 end sub
@@ -846,7 +844,7 @@ sub loadSettingsInfo()
     if m.sItem = invalid or m.sItem.count() = 0 then return
     m.sValue[0].text  = m.serverUrl
     m.sStatus0.text   = "● Checking…"
-    m.sStatus0.color  = "0x888888FF"
+    m.sStatus0.color  = "0x8494ADFF"
     di = CreateObject("roDeviceInfo")
     m.sAboutDevice.text = di.GetModelDisplayName()
     ' Read the real build out of the manifest — the old hardcoded "1.0" told
@@ -885,15 +883,15 @@ sub onPingError(event as object)
 end sub
 
 sub updateSettingsFocus()
-    BG_NORMAL  = "0x0E0E28FF"
-    BG_FOCUSED = "0x152840FF"
+    ' Rows are rounded 9-patch plates now, so focus swaps the plate rather than
+    ' tinting a Rectangle and lighting a square accent bar.
+    ROW_NORMAL  = "pkg:/images/row_r10.9.png"
+    ROW_FOCUSED = "pkg:/images/row_focus_r10.9.png"
     for i = 0 to m.settNumItems - 1
         if m.inContent and i = m.settFocusIdx
-            m.sItem[i].color     = BG_FOCUSED
-            m.sAccent[i].opacity = 1.0
+            m.sItem[i].uri = ROW_FOCUSED
         else
-            m.sItem[i].color     = BG_NORMAL
-            m.sAccent[i].opacity = 0.0
+            m.sItem[i].uri = ROW_NORMAL
         end if
     end for
 end sub

@@ -21,11 +21,11 @@
         <Group id="setupView" visible="false">
             <Label translation="[0, 392]" width="1920" horizAlign="center"
                    text="Your library. Every screen."
-                   font="font:MediumSystemFont" color="0x6F97C8FF" />
+                   font="font:MediumSystemFont" color="0x7FA6D8FF" />
 
             <!-- Focal connect button -->
             <Rectangle id="connectCard" translation="[700, 520]" width="520" height="104" color="0x152540E6" />
-            <Rectangle translation="[700, 520]" width="520" height="4" color="0x4A9FFFFF" />
+            <Rectangle translation="[700, 520]" width="520" height="4" color="0x5AA9FFFF" />
             <Label id="connectLabel"
                    translation="[700, 553]" width="520" horizAlign="center"
                    text="▶   Connect to Server"
@@ -61,7 +61,7 @@
                    font="font:MediumSystemFont" color="0x9FB6D4FF" />
             <Label id="loginUrl"
                    translation="[0, 444]" width="1920" horizAlign="center"
-                   text="" font="font:MediumBoldSystemFont" color="0x4A9FFFFF" />
+                   text="" font="font:MediumBoldSystemFont" color="0x5AA9FFFF" />
 
             <Label translation="[0, 520]" width="1920" horizAlign="center"
                    text="2     Open /pair and enter this code"
@@ -72,7 +72,7 @@
 
             <!-- Code card -->
             <Rectangle translation="[660, 618]" width="600" height="140" color="0x0C1830E6" />
-            <Rectangle translation="[660, 754]" width="600" height="4" color="0x4A9FFFFF" />
+            <Rectangle translation="[660, 754]" width="600" height="4" color="0x5AA9FFFF" />
             <Label id="codeLabel"
                    translation="[660, 654]" width="600" horizAlign="center"
                    text="----  ----"
@@ -81,7 +81,7 @@
             <Label id="statusLabel"
                    translation="[0, 800]" width="1920" horizAlign="center"
                    text="Waiting for authorization…"
-                   font="font:SmallSystemFont" color="0x6F97C8FF" />
+                   font="font:SmallSystemFont" color="0x7FA6D8FF" />
             <Label id="errorLabel"
                    translation="[0, 846]" width="1920" horizAlign="center"
                    text="" font="font:SmallSystemFont" color="0xFF6B6BFF" />

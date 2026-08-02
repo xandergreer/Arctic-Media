@@ -1,6 +1,7 @@
 sub init()
     m.poster        = m.top.findNode("poster")
-    m.focusBorder   = m.top.findNode("focusBorder")
+    m.focusRing     = m.top.findNode("focusRing")
+    m.focusGlow     = m.top.findNode("focusGlow")
     m.titleBg       = m.top.findNode("titleBg")
     m.titleLabel    = m.top.findNode("titleLabel")
     m.progressBg    = m.top.findNode("progressBg")
@@ -56,9 +57,13 @@ end sub
 
 sub onFocus(event as object)
     pct = event.getData()
-    m.focusBorder.opacity = pct * 0.9
-    m.titleBg.opacity     = pct
-    m.titleLabel.opacity  = pct
-    scale = 1.0 + (pct * 0.05)
+    ' Ring reads the selection, glow gives it elevation, scale gives it weight.
+    ' The glow trails the ring (0.85) so the bloom reads as light rather than
+    ' as a second border.
+    m.focusRing.opacity  = pct
+    m.focusGlow.opacity  = pct * 0.85
+    m.titleBg.opacity    = pct
+    m.titleLabel.opacity = pct
+    scale = 1.0 + (pct * 0.06)
     m.top.scale = [scale, scale]
 end sub

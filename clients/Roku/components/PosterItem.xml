@@ -7,32 +7,49 @@
         <field id="focusPercent" type="float" alwaysNotify="true" />
     </interface>
     <children>
-        <Rectangle id="bg" color="0x1A1A2AFF" width="182" height="270" />
-        <Rectangle id="focusBorder" color="0x4A9FFFFF" width="186" height="274"
-                   translation="[-2, -2]" opacity="0" />
+        <!-- Soft accent bloom behind the card. Fading this in on focus reads as
+             the card lifting; the old 2px outline just looked outlined. -->
+        <Poster id="focusGlow" uri="pkg:/images/focus_glow_r14.9.png"
+                width="222" height="310" translation="[-20, -20]" opacity="0" />
+
+        <!-- Rounded placeholder, so an item with no artwork is still a card
+             rather than a hard grey block. -->
+        <Poster id="bg" uri="pkg:/images/surface_r14.9.png" width="182" height="270" />
         <Poster id="poster" width="182" height="270" loadDisplayMode="scaleToZoom" />
-        <Poster id="cornerMask" uri="pkg:/images/corner_poster.png" width="182" height="270" />
-        <!-- Progress bar (CW items only) -->
-        <Rectangle id="progressBg"   translation="[0, 256]" width="182" height="8" color="0x000000AA" opacity="0" />
-        <Rectangle id="progressFill" translation="[0, 256]" width="1"   height="8" color="0x4A9FFFFF" opacity="0" />
-        <!-- Episode badge (CW items only) -->
-        <!-- The label is deliberately left auto-sizing (no width/height): every
-             fixed box guessed here has been too small for the real font, first
-             at 66px ("S1...") and again at 88px ("S1 E..."). With width 0 the
-             text can never truncate, and PosterItem.brs sizes the backing
-             rectangle to whatever it measures. -->
-        <Rectangle id="epBadgeBg" translation="[0, 0]" width="104" height="34" color="0x000000AA" opacity="0" />
-        <Label id="epBadge" translation="[8, 4]"
-               font="font:SmallSystemFont" color="0xFFFFFFFF" opacity="0" />
+
+        <!-- Square overlays go BEFORE the corner mask. Drawn after it they
+             paint square corners back over the rounded ones, which is most of
+             why these cards read as blocky. -->
         <Rectangle id="titleBg" color="0x000000CC" width="182" height="46"
                    translation="[0, 224]" opacity="0" />
+        <Rectangle id="progressBg"   translation="[0, 258]" width="182" height="6" color="0x00000099" opacity="0" />
+        <Rectangle id="progressFill" translation="[0, 258]" width="1"   height="6" color="0x5AA9FFFF" opacity="0" />
+
+        <!-- Paints the page background into the corners to fake rounding.
+             Only correct while the page behind it is flat 0x06070F. -->
+        <Poster id="cornerMask" uri="pkg:/images/corner_poster.png" width="182" height="270" />
+
+        <!-- Episode badge. The label is deliberately left auto-sizing (no
+             width/height): every fixed box guessed here was too small for the
+             real font, first at 66px ("S1...") and again at 88px for a real
+             "S1 E40". PosterItem.brs sizes the backing plate to what it
+             measures, so the text cannot truncate again. -->
+        <Poster id="epBadgeBg" uri="pkg:/images/badge32.9.png"
+                translation="[8, 8]" width="104" height="32" opacity="0" />
+        <Label id="epBadge" translation="[22, 12]"
+               font="font:SmallSystemFont" color="0xDCE7F7FF" opacity="0" />
+
         <Label id="titleLabel"
-               translation="[6, 229]"
-               width="170" height="40"
+               translation="[10, 229]"
+               width="162" height="40"
                font="font:SmallBoldSystemFont"
-               color="0xFFFFFFFF"
+               color="0xF4F7FCFF"
                wrap="true"
                opacity="0" />
+
+        <!-- Ring last so it sits above the mask, the scrim and the title -->
+        <Poster id="focusRing" uri="pkg:/images/ring_r12.9.png"
+                width="182" height="270" opacity="0" />
     </children>
     <script type="text/brightscript" uri="pkg:/components/PosterItem.brs" />
 </component>

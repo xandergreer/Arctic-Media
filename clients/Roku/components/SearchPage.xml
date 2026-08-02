@@ -12,16 +12,16 @@
         <Rectangle color="0x06060FFF" width="1920" height="1080" />
 
         <!-- Header bar -->
-        <Rectangle color="0x0E0E28FF" width="1920" height="108" />
-        <Rectangle color="0x4A9FFF33" width="1920" height="2" translation="[0, 108]" />
-        <Label translation="[96, 58]" text="Arctic Media" color="0x4A9FFFFF"
+        <Rectangle color="0x0B0E1FFF" width="1920" height="108" />
+        <Rectangle color="0x5AA9FF2E" width="1920" height="2" translation="[0, 108]" />
+        <Label translation="[96, 58]" text="Arctic Media" color="0x5AA9FFFF"
                font="font:MediumBoldSystemFont" width="300" />
         <Label translation="[416, 62]" text="Search" color="0xFFFFFFFF"
                font="font:SmallBoldSystemFont" width="200" />
 
         <!-- ═══ LEFT: compact keyboard ═══ -->
-        <Rectangle color="0x0A0A1AF7" width="700" height="972" translation="[0, 108]" />
-        <Rectangle color="0x4A9FFF26" width="2" height="972" translation="[700, 108]" />
+        <Rectangle color="0x090C1AF7" width="700" height="972" translation="[0, 108]" />
+        <Rectangle color="0x5AA9FF26" width="2" height="972" translation="[700, 108]" />
         <MiniKeyboard id="keyboard" translation="[96, 210]" />
 
         <!-- ═══ RIGHT: results ═══ -->
@@ -32,11 +32,11 @@
 
         <Label id="noResultsLabel" translation="[760, 500]"
                text="No results found"
-               color="0x6F97C8FF" font="font:MediumSystemFont"
+               color="0x7FA6D8FF" font="font:MediumSystemFont"
                width="1064" horizAlign="center" visible="false" />
 
         <Label id="resultsHeader" translation="[760, 150]" text="RESULTS"
-               color="0x6F97C8FF" font="font:SmallBoldSystemFont"
+               color="0x7FA6D8FF" font="font:SmallBoldSystemFont"
                width="600" visible="false" />
 
         <!-- MarkupGrid is focusable (unlike a plain Group), so it can take key
@@ -54,9 +54,9 @@
         <!-- Footer hints -->
         <Label id="kbHint" translation="[96, 992]"
                text="Back = exit     * = browse results"
-               color="0x44557AFF" font="font:SmallSystemFont" width="620" />
+               color="0x5A6478FF" font="font:SmallSystemFont" width="620" />
         <Label id="resHint" translation="[760, 992]"
                text="* = back to keyboard     Arrows = browse     OK = open"
-               color="0x44557AFF" font="font:SmallSystemFont" width="1064" visible="false" />
+               color="0x5A6478FF" font="font:SmallSystemFont" width="1064" visible="false" />
     </children>
 </component>

@@ -5,13 +5,20 @@
         <field id="focusPercent" type="float" alwaysNotify="true" />
     </interface>
     <children>
-        <Rectangle id="bg"          color="0x0D1F38FF" width="400" height="225" />
-        <Rectangle id="focusBorder" color="0x4A9FFFFF" width="404" height="229" translation="[-2,-2]" opacity="0" />
-        <Poster    id="poster"       width="400" height="225" loadDisplayMode="scaleToZoom" opacity="0.62" />
-        <Poster    id="cornerMask"  uri="pkg:/images/corner_cat.png" width="400" height="225" />
-        <Rectangle id="gradient"    color="0x00000099" width="400" height="100" translation="[0,125]" />
-        <Label     id="titleLabel"  translation="[18,158]" width="364" height="48"
-                   font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+        <Poster id="focusGlow" uri="pkg:/images/focus_glow_r14.9.png"
+                width="440" height="265" translation="[-20, -20]" opacity="0" />
+
+        <Poster    id="bg" uri="pkg:/images/surface_r14.9.png" width="400" height="225" />
+        <Poster    id="poster" width="400" height="225" loadDisplayMode="scaleToZoom" opacity="0.62" />
+        <!-- Scrim before the mask, or it squares off the bottom corners -->
+        <Rectangle id="gradient" color="0x000000A6" width="400" height="104" translation="[0, 121]" />
+        <Poster    id="cornerMask" uri="pkg:/images/corner_cat.png" width="400" height="225" />
+
+        <Label     id="titleLabel" translation="[24, 156]" width="352" height="48"
+                   font="font:MediumBoldSystemFont" color="0xF4F7FCFF" />
+
+        <Poster    id="focusRing" uri="pkg:/images/ring_r14.9.png"
+                   width="400" height="225" opacity="0" />
     </children>
     <script type="text/brightscript" uri="pkg:/components/CategoryTile.brs" />
 </component>

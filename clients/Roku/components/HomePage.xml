@@ -9,16 +9,16 @@
     <script type="text/brightscript" uri="pkg:/components/HomePage.brs" />
     <children>
         <!-- Background -->
-        <Rectangle color="0x080818FF" width="1920" height="1080" />
+        <Rectangle color="0x06070FFF" width="1920" height="1080" />
 
         <!-- Header bar -->
-        <Rectangle color="0x0E0E28FF" width="1920" height="108" />
-        <Rectangle color="0x4A9FFF33" width="1920" height="2" translation="[0, 108]" />
+        <Rectangle color="0x0B0E1FFF" width="1920" height="108" />
+        <Rectangle color="0x5AA9FF2E" width="1920" height="2" translation="[0, 108]" />
 
         <!-- App name -->
         <Label translation="[96, 54]"
                text="Arctic Media"
-               color="0x4A9FFFFF"
+               color="0x5AA9FFFF"
                font="font:MediumBoldSystemFont"
                width="280" />
 
@@ -58,10 +58,10 @@
 
         <!-- ═══ HOME VIEW ═══ -->
         <Group id="homeView" visible="true">
-            <Label id="labelCategories" translation="[96,116]" text="My Library"            color="0x888888FF" font="font:SmallBoldSystemFont" width="300" />
-            <Label id="labelCW"         translation="[96,282]" text="Continue Watching"      color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
-            <Label id="labelMovies"     translation="[96,282]" text="Recently Added Movies"  color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
-            <Label id="labelShows"      translation="[96,282]" text="Recently Added TV"      color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
+            <Label id="labelCategories" translation="[96,116]" text="My Library"            color="0xC8D4E8FF" font="font:MediumBoldSystemFont" width="300" />
+            <Label id="labelCW"         translation="[96,282]" text="Continue Watching"      color="0xC8D4E8FF" font="font:MediumBoldSystemFont" width="400" visible="false" />
+            <Label id="labelMovies"     translation="[96,282]" text="Recently Added Movies"  color="0xC8D4E8FF" font="font:MediumBoldSystemFont" width="400" visible="false" />
+            <Label id="labelShows"      translation="[96,282]" text="Recently Added TV"      color="0xC8D4E8FF" font="font:MediumBoldSystemFont" width="400" visible="false" />
             <Group id="categoryRowGroup" />
             <Group id="cwRowGroup"       visible="false" />
             <Group id="moviesRowGroup"   visible="false" />
@@ -85,49 +85,44 @@
             <Label translation="[96, 140]" text="Settings" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="400" />
 
             <!-- CONNECTION -->
-            <Label translation="[96, 216]" text="CONNECTION" color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
+            <Label translation="[96, 216]" text="CONNECTION" color="0x5AA9FFFF" font="font:SmallBoldSystemFont" width="300" />
 
             <!-- Item 0: Server status -->
-            <Rectangle id="sItem0"   translation="[96, 244]" width="1728" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent0" translation="[96, 244]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Poster id="sItem0"   uri="pkg:/images/row_r10.9.png" translation="[96, 244]" width="1728" height="76" />
             <Label translation="[120, 268]"   text="Server"  color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
             <Label id="sValue0"  translation="[536, 268]"  text=""  color="0x666666FF" font="font:SmallSystemFont" width="1000" />
-            <Label id="sStatus0" translation="[1560, 268]" text=""  color="0x888888FF" font="font:SmallSystemFont" width="260" />
+            <Label id="sStatus0" translation="[1560, 268]" text=""  color="0x8494ADFF" font="font:SmallSystemFont" width="260" />
 
             <!-- Item 1: Sign Out -->
-            <Rectangle id="sItem1"   translation="[96, 328]" width="1728" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent1" translation="[96, 328]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Poster id="sItem1"   uri="pkg:/images/row_r10.9.png" translation="[96, 328]" width="1728" height="76" />
             <Label translation="[120, 352]"  text="Sign Out"           color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
             <Label translation="[536, 352]" text="Re-pair this device" color="0x666666FF" font="font:SmallSystemFont"     width="600" />
 
             <!-- Item 2: Change Server -->
-            <Rectangle id="sItem2"   translation="[96, 412]" width="1728" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent2" translation="[96, 412]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Poster id="sItem2"   uri="pkg:/images/row_r10.9.png" translation="[96, 412]" width="1728" height="76" />
             <Label translation="[120, 436]"  text="Change Server"   color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
             <Label translation="[536, 436]" text="Update server URL" color="0x666666FF" font="font:SmallSystemFont"     width="600" />
 
             <!-- PLAYBACK -->
-            <Label translation="[96, 510]" text="PLAYBACK" color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
+            <Label translation="[96, 510]" text="PLAYBACK" color="0x5AA9FFFF" font="font:SmallBoldSystemFont" width="300" />
 
             <!-- Item 3: Subtitles -->
-            <Rectangle id="sItem3"   translation="[96, 538]" width="1728" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent3" translation="[96, 538]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Poster id="sItem3"   uri="pkg:/images/row_r10.9.png" translation="[96, 538]" width="1728" height="76" />
             <Label translation="[120, 562]"  text="Subtitles"  color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label id="sValue3" translation="[536, 562]" text="Off" color="0x888888FF" font="font:SmallSystemFont" width="300" />
+            <Label id="sValue3" translation="[536, 562]" text="Off" color="0x8494ADFF" font="font:SmallSystemFont" width="300" />
             <Label translation="[1770, 562]" text="›" color="0x666666FF" font="font:SmallSystemFont" width="50" />
 
             <!-- Item 4: Video Quality -->
-            <Rectangle id="sItem4"   translation="[96, 622]" width="1728" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent4" translation="[96, 622]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Poster id="sItem4"   uri="pkg:/images/row_r10.9.png" translation="[96, 622]" width="1728" height="76" />
             <Label translation="[120, 646]"  text="Video Quality" color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label id="sValue4" translation="[536, 646]" text="Auto" color="0x888888FF" font="font:SmallSystemFont" width="300" />
+            <Label id="sValue4" translation="[536, 646]" text="Auto" color="0x8494ADFF" font="font:SmallSystemFont" width="300" />
             <Label translation="[1770, 646]" text="›" color="0x666666FF" font="font:SmallSystemFont" width="50" />
 
             <!-- ABOUT -->
-            <Label translation="[96, 720]"  text="ABOUT"       color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
-            <Label translation="[120, 760]"  text="App Version" color="0x888888FF" font="font:SmallSystemFont"     width="400" />
+            <Label translation="[96, 720]"  text="ABOUT"       color="0x5AA9FFFF" font="font:SmallBoldSystemFont" width="300" />
+            <Label translation="[120, 760]"  text="App Version" color="0x8494ADFF" font="font:SmallSystemFont"     width="400" />
             <Label id="sAboutVersion" translation="[536, 760]" text=""    color="0x555555FF" font="font:SmallSystemFont"     width="400" />
-            <Label translation="[120, 800]"  text="Device"      color="0x888888FF" font="font:SmallSystemFont"     width="400" />
+            <Label translation="[120, 800]"  text="Device"      color="0x8494ADFF" font="font:SmallSystemFont"     width="400" />
             <Label id="sAboutDevice" translation="[536, 800]"  text="" color="0x555555FF" font="font:SmallSystemFont" width="1728" />
 
         </Group>
@@ -139,8 +134,8 @@
         <!-- Footer bar. The shelves scroll the full height of the screen, so the
              hint needs to sit on opaque background rather than on top of whatever
              poster happens to be underneath it. Mirrors the header's divider. -->
-        <Rectangle color="0x080818FF" width="1920" height="88" translation="[0, 992]" />
-        <Rectangle color="0x4A9FFF22" width="1920" height="2"  translation="[0, 992]" />
+        <Rectangle color="0x06070FFF" width="1920" height="88" translation="[0, 992]" />
+        <Rectangle color="0x5AA9FF1F" width="1920" height="2"  translation="[0, 992]" />
 
         <!-- y=1012 keeps the baseline inside the 5% title-safe area (bottom edge
              1026 at 1080p); at 1052 the descenders were clipped off-screen. -->

@@ -293,7 +293,7 @@ sub updateSubtitleMenu()
             m.subLabels[i].color = "0xFFFFFFFF"
         else
             m.subItems[i].color  = "0x0A0A20FF"
-            m.subLabels[i].color = "0xCCCCCCFF"
+            m.subLabels[i].color = "0xC2CEE2FF"
         end if
     end for
 end sub
@@ -655,7 +655,7 @@ sub updateOsd()
     state = m.video.state
     if state = "paused"
         m.osdState.text  = "PAUSED"
-        m.osdState.color = "0x4A9FFFFF"
+        m.osdState.color = "0x5AA9FFFF"
     else if state = "buffering" or state = "connecting"
         m.osdState.text  = "BUFFERING"
         m.osdState.color = "0xFFAA00FF"

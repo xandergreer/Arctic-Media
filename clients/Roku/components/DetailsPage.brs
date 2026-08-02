@@ -263,7 +263,7 @@ sub setPlayButtonLabel(lbl as string)
         m.playBtn.width              = 300
         m.playBtnLabel.width         = 260
         m.episodesBtn.translation    = [678, 500]
-        m.episodesBtnLbl.translation = [694, 519]
+        m.episodesBtnLbl.translation = [694, 512]
     end if
 end sub
 
@@ -397,25 +397,19 @@ sub buildCastRow(castArr as object)
         ' ~64px, and the block between the Play button (ends y=558) and the hint
         ' (y=996) cannot absorb that on top of a 250px card.
         nameLabel.width       = 210
-        nameLabel.numLines    = 1
-        nameLabel.wrap        = false
+        nameLabel.numLines    = 2
+        nameLabel.wrap        = true
         nameLabel.font        = "font:SmallBoldSystemFont"
-        nameLabel.color       = "0xBBBBBBFF"
+        nameLabel.color       = "0xC2CEE2FF"
         actorName = actor.name
         if actorName <> invalid then nameLabel.text = actorName
         card.appendChild(nameLabel)
 
-        ' Role / character — single line directly below name (~28px gap)
-        roleLabel             = CreateObject("roSGNode", "Label")
-        roleLabel.translation = [0, CARD_H + 44]
-        roleLabel.width       = 210
-        roleLabel.numLines    = 1
-        roleLabel.wrap        = false
-        roleLabel.font        = "font:SmallSystemFont"
-        roleLabel.color       = "0x888888FF"
-        actorRole = actor.role
-        if actorRole <> invalid then roleLabel.text = actorRole
-        card.appendChild(roleLabel)
+        ' No role line. SmallBoldSystemFont is ~46px per line at 1080p, so a
+        ' two-line name already reaches y=968 and a role beneath it collided
+        ' with the hint at 996. One line truncated most real names ("Scarlett
+        ' Johansson" needs ~380px), so the name keeps the two lines and the
+        ' role — which was itself truncating to "Voice on Rad..." — is dropped.
 
         m.castRow.appendChild(card)
     end for
@@ -476,7 +470,7 @@ sub buildSimilarRow(items as object)
         titleLbl.numLines    = 2
         titleLbl.wrap        = true
         titleLbl.font        = "font:SmallSystemFont"
-        titleLbl.color       = "0xCCCCCCFF"
+        titleLbl.color       = "0xC2CEE2FF"
         itemTitle = item.title
         if itemTitle <> invalid then titleLbl.text = itemTitle
         card.appendChild(titleLbl)
@@ -515,15 +509,15 @@ end sub
 sub highlightBtn(idx as integer)
     m.selectedBtn = idx
     if idx = 0 then
-        m.playBtn.color        = "0x4A9FFFFF"
-        m.episodesBtn.color    = "0x1A2A4AFF"
-        m.playBtnLabel.color   = "0xFFFFFFFF"
-        m.episodesBtnLbl.color = "0xCCCCCCFF"
+        m.playBtn.uri          = "pkg:/images/btn58_focus.9.png"
+        m.episodesBtn.uri      = "pkg:/images/btn58.9.png"
+        m.playBtnLabel.color   = "0x06070FFF"
+        m.episodesBtnLbl.color = "0xC2CEE2FF"
     else
-        m.playBtn.color        = "0x1A2A4AFF"
-        m.episodesBtn.color    = "0x4A9FFFFF"
-        m.playBtnLabel.color   = "0xCCCCCCFF"
-        m.episodesBtnLbl.color = "0xFFFFFFFF"
+        m.playBtn.uri          = "pkg:/images/btn58.9.png"
+        m.episodesBtn.uri      = "pkg:/images/btn58_focus.9.png"
+        m.playBtnLabel.color   = "0xC2CEE2FF"
+        m.episodesBtnLbl.color = "0x06070FFF"
     end if
 end sub
 
@@ -531,9 +525,9 @@ sub highlightCast(idx as integer)
     clearCastHighlight()
     m.castIdx = idx
     bg = m.top.findNode("castBg_" + idx.ToStr())
-    if bg <> invalid then bg.color = "0x4A9FFFFF"
+    if bg <> invalid then bg.color = "0x5AA9FFFF"
     nm = m.top.findNode("castName_" + idx.ToStr())
-    if nm <> invalid then nm.color = "0x4A9FFFFF"
+    if nm <> invalid then nm.color = "0x5AA9FFFF"
 end sub
 
 sub clearCastHighlight()
@@ -547,7 +541,7 @@ sub highlightSimilar(idx as integer)
     clearSimilarHighlight()
     m.similarIdx = idx
     simBdr = m.top.findNode("simBorder_" + idx.ToStr())
-    if simBdr <> invalid then simBdr.color = "0x4A9FFFFF"
+    if simBdr <> invalid then simBdr.color = "0x5AA9FFFF"
 end sub
 
 sub clearSimilarHighlight()

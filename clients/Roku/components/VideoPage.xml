@@ -15,13 +15,13 @@
              480×120 pill at y=620 keeps it well above subtitles and the OSD. -->
         <Group id="seekOverlay" visible="false">
             <Rectangle color="0x06061AEE" width="480" height="116" translation="[720, 622]" />
-            <Rectangle color="0x4A9FFFFF" width="480" height="3"   translation="[720, 622]" />
+            <Rectangle color="0x5AA9FFFF" width="480" height="3"   translation="[720, 622]" />
             <!-- Direction + delta  e.g. "<< 30s"  or  ">> 1:30" -->
             <Label id="seekDeltaLabel" translation="[720, 638]" width="480" horizAlign="center"
-                   font="font:LargeBoldSystemFont" color="0x4A9FFFFF" />
+                   font="font:LargeBoldSystemFont" color="0x5AA9FFFF" />
             <!-- Absolute position  e.g. "23:45  /  45:00" -->
             <Label id="seekPosLabel" translation="[720, 696]" width="480" horizAlign="center"
-                   font="font:SmallSystemFont" color="0xCCCCCCFF" />
+                   font="font:SmallSystemFont" color="0xC2CEE2FF" />
         </Group>
 
         <!-- ═══ OSD ═══ -->
@@ -34,11 +34,11 @@
                  full-bleed; only the text has to respect the inset. -->
             <Rectangle color="0x000000CC" width="1920" height="108" translation="[0, 0]" />
             <Label id="osdEpLabel" translation="[96, 58]" width="200"
-                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" />
+                   font="font:SmallBoldSystemFont" color="0x5AA9FFFF" />
             <Label id="osdTitle" translation="[96, 58]" width="1180"
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" />
             <Label id="osdState" translation="[1304, 58]" width="520"
-                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" horizAlign="right" />
+                   font="font:SmallBoldSystemFont" color="0x5AA9FFFF" horizAlign="right" />
 
             <!-- BOTTOM BAR (no transport buttons — seek is always L/R) -->
             <Rectangle color="0x000000CC" width="1920" height="180" translation="[0, 900]" />
@@ -49,9 +49,9 @@
                  VideoPage.brs; change them together or the fill and the dot
                  drift off the track. -->
             <Rectangle id="seekBg"   translation="[96, 918]" width="1728" height="6"  color="0x2A2A50FF" />
-            <Rectangle id="seekFill" translation="[96, 918]" width="0"    height="6"  color="0x4A9FFFFF" />
+            <Rectangle id="seekFill" translation="[96, 918]" width="0"    height="6"  color="0x5AA9FFFF" />
             <!-- Dot centered on bar: bar center y=921, dot h=14 → top y=914, x=89 when at 0% -->
-            <Rectangle id="seekDot"  translation="[89, 914]" width="14"   height="14" color="0x4A9FFFFF" />
+            <Rectangle id="seekDot"  translation="[89, 914]" width="14"   height="14" color="0x5AA9FFFF" />
 
             <!-- Time labels -->
             <Label id="osdCurrentTime" translation="[96,   940]" width="220"
@@ -69,15 +69,15 @@
         <!-- ═══ SUBTITLE PANEL ═══ -->
         <Group id="subtitlePanel" visible="false">
             <Rectangle color="0x080818F2" width="500" height="286" translation="[710, 380]" />
-            <Rectangle color="0x4A9FFFFF" width="500" height="4"   translation="[710, 380]" />
+            <Rectangle color="0x5AA9FFFF" width="500" height="4"   translation="[710, 380]" />
             <Label translation="[734, 400]" text="SUBTITLES"
-                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="460" />
+                   font="font:SmallBoldSystemFont" color="0x5AA9FFFF" width="460" />
             <Rectangle id="subItem0" color="0x152840FF" width="460" height="58" translation="[730, 438]" />
             <Label     id="subLabel0" translation="[754, 457]" text="Off"
                        font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="420" />
             <Rectangle id="subItem1" color="0x0A0A20FF" width="460" height="58" translation="[730, 506]" />
             <Label     id="subLabel1" translation="[754, 525]" text="On (Captions)"
-                       font="font:SmallBoldSystemFont" color="0xCCCCCCFF" width="420" />
+                       font="font:SmallBoldSystemFont" color="0xC2CEE2FF" width="420" />
             <Label translation="[730, 596]"
                    text="Up / Down = navigate     OK = select     Back = close"
                    font="font:SmallSystemFont" color="0x444466FF" width="460" />
@@ -90,9 +90,9 @@
              with the countdown bar at y=880. -->
         <Group id="autoplayPanel" visible="false">
             <Rectangle color="0x08081AEE" width="600" height="190" translation="[1224, 700]" />
-            <Rectangle color="0x4A9FFFFF" width="4"   height="190" translation="[1224, 700]" />
+            <Rectangle color="0x5AA9FFFF" width="4"   height="190" translation="[1224, 700]" />
             <Label translation="[1242, 714]" text="UP NEXT"
-                   font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="560" />
+                   font="font:SmallBoldSystemFont" color="0x5AA9FFFF" width="560" />
             <Label id="autoplayTitle" translation="[1242, 742]" text=""
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="560" wrap="true" numLines="2" />
             <Label id="autoplayLabel" translation="[1242, 818]" text=""
@@ -100,7 +100,7 @@
             <Label translation="[1242, 846]" text="OK = play now   Back = cancel"
                    font="font:SmallSystemFont" color="0x44444499" width="560" />
             <Rectangle color="0x1C2C4AFF" width="556" height="4" translation="[1246, 878]" />
-            <Rectangle id="autoplayCountdownBar" color="0x4A9FFFFF" width="556" height="4" translation="[1246, 878]" />
+            <Rectangle id="autoplayCountdownBar" color="0x5AA9FFFF" width="556" height="4" translation="[1246, 878]" />
         </Group>
     </children>
 </component>
