@@ -123,7 +123,7 @@
             <Label translation="[120, 760]"  text="App Version" color="0x8494ADFF" font="font:SmallSystemFont"     width="400" />
             <Label id="sAboutVersion" translation="[536, 760]" text=""    color="0x555555FF" font="font:SmallSystemFont"     width="400" />
             <Label translation="[120, 800]"  text="Device"      color="0x8494ADFF" font="font:SmallSystemFont"     width="400" />
-            <Label id="sAboutDevice" translation="[536, 800]"  text="" color="0x555555FF" font="font:SmallSystemFont" width="1728" />
+            <Label id="sAboutDevice" translation="[536, 800]"  text="" color="0x555555FF" font="font:SmallSystemFont" width="1288" />
 
         </Group>
 

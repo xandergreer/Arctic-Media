@@ -289,10 +289,10 @@ end sub
 sub updateSubtitleMenu()
     for i = 0 to 1
         if i = m.subFocusIdx
-            m.subItems[i].color  = "0x152840FF"
+            m.subItems[i].uri  = "pkg:/images/row_focus_r10.9.png"
             m.subLabels[i].color = "0xFFFFFFFF"
         else
-            m.subItems[i].color  = "0x0A0A20FF"
+            m.subItems[i].uri  = "pkg:/images/row_r10.9.png"
             m.subLabels[i].color = "0xC2CEE2FF"
         end if
     end for

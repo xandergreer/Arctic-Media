@@ -20,8 +20,9 @@
                font="font:SmallBoldSystemFont" width="200" />
 
         <!-- ═══ LEFT: compact keyboard ═══ -->
-        <Rectangle color="0x090C1AF7" width="700" height="972" translation="[0, 108]" />
-        <Rectangle color="0x5AA9FF26" width="2" height="972" translation="[700, 108]" />
+        <!-- Rounded card instead of a full-bleed slab plus a divider line -->
+        <Poster uri="pkg:/images/surface_r14.9.png" translation="[64, 152]"
+                width="628" height="800" />
         <MiniKeyboard id="keyboard" translation="[96, 210]" />
 
         <!-- ═══ RIGHT: results ═══ -->

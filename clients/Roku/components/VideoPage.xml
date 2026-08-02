@@ -14,8 +14,7 @@
              Centered horizontally, sits above the OSD bottom bar.
              480×120 pill at y=620 keeps it well above subtitles and the OSD. -->
         <Group id="seekOverlay" visible="false">
-            <Rectangle color="0x06061AEE" width="480" height="116" translation="[720, 622]" />
-            <Rectangle color="0x5AA9FFFF" width="480" height="3"   translation="[720, 622]" />
+            <Poster uri="pkg:/images/surface_r14.9.png" width="480" height="116" translation="[720, 622]" />
             <!-- Direction + delta  e.g. "<< 30s"  or  ">> 1:30" -->
             <Label id="seekDeltaLabel" translation="[720, 638]" width="480" horizAlign="center"
                    font="font:LargeBoldSystemFont" color="0x5AA9FFFF" />
@@ -68,14 +67,13 @@
 
         <!-- ═══ SUBTITLE PANEL ═══ -->
         <Group id="subtitlePanel" visible="false">
-            <Rectangle color="0x080818F2" width="500" height="286" translation="[710, 380]" />
-            <Rectangle color="0x5AA9FFFF" width="500" height="4"   translation="[710, 380]" />
+            <Poster uri="pkg:/images/surface_r14.9.png" width="500" height="286" translation="[710, 380]" />
             <Label translation="[734, 400]" text="SUBTITLES"
                    font="font:SmallBoldSystemFont" color="0x5AA9FFFF" width="460" />
-            <Rectangle id="subItem0" color="0x152840FF" width="460" height="58" translation="[730, 438]" />
+            <Poster id="subItem0" uri="pkg:/images/row_focus_r10.9.png" width="460" height="58" translation="[730, 438]" />
             <Label     id="subLabel0" translation="[754, 457]" text="Off"
                        font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="420" />
-            <Rectangle id="subItem1" color="0x0A0A20FF" width="460" height="58" translation="[730, 506]" />
+            <Poster id="subItem1" uri="pkg:/images/row_r10.9.png" width="460" height="58" translation="[730, 506]" />
             <Label     id="subLabel1" translation="[754, 525]" text="On (Captions)"
                        font="font:SmallBoldSystemFont" color="0xC2CEE2FF" width="420" />
             <Label translation="[730, 596]"
@@ -89,8 +87,7 @@
              Height 190 (was 170) because the hint line at y=860 was colliding
              with the countdown bar at y=880. -->
         <Group id="autoplayPanel" visible="false">
-            <Rectangle color="0x08081AEE" width="600" height="190" translation="[1224, 700]" />
-            <Rectangle color="0x5AA9FFFF" width="4"   height="190" translation="[1224, 700]" />
+            <Poster uri="pkg:/images/surface_r14.9.png" width="600" height="190" translation="[1224, 700]" />
             <Label translation="[1242, 714]" text="UP NEXT"
                    font="font:SmallBoldSystemFont" color="0x5AA9FFFF" width="560" />
             <Label id="autoplayTitle" translation="[1242, 742]" text=""

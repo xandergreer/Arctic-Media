@@ -24,8 +24,7 @@
                    font="font:MediumSystemFont" color="0x7FA6D8FF" />
 
             <!-- Focal connect button -->
-            <Rectangle id="connectCard" translation="[700, 520]" width="520" height="104" color="0x152540E6" />
-            <Rectangle translation="[700, 520]" width="520" height="4" color="0x5AA9FFFF" />
+            <Poster id="connectCard" uri="pkg:/images/surface_r14.9.png" translation="[700, 520]" width="520" height="104" />
             <Label id="connectLabel"
                    translation="[700, 553]" width="520" horizAlign="center"
                    text="▶   Connect to Server"
@@ -71,8 +70,7 @@
                    text="" font="font:SmallSystemFont" color="0x55557799" />
 
             <!-- Code card -->
-            <Rectangle translation="[660, 618]" width="600" height="140" color="0x0C1830E6" />
-            <Rectangle translation="[660, 754]" width="600" height="4" color="0x5AA9FFFF" />
+            <Poster uri="pkg:/images/surface_r14.9.png" translation="[660, 618]" width="600" height="140" />
             <Label id="codeLabel"
                    translation="[660, 654]" width="600" horizAlign="center"
                    text="----  ----"
