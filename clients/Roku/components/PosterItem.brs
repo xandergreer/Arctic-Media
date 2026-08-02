@@ -38,6 +38,14 @@ sub onContent(event as object)
     epLbl = content["episodeLabel"]
     if epLbl <> invalid and epLbl <> "" then
         m.epBadge.text      = epLbl
+        ' The label auto-sizes, so fit the backing box to it. boundingRect is
+        ' only valid once the label has been laid out; before that the 104px
+        ' default from the XML stands in, which mis-sizes the box for one frame
+        ' but never clips the text.
+        r = m.epBadge.boundingRect()
+        if r <> invalid and r.width > 0 then
+            m.epBadgeBg.width = Int(r.width) + 16
+        end if
         m.epBadgeBg.opacity = 1.0
         m.epBadge.opacity   = 1.0
     else

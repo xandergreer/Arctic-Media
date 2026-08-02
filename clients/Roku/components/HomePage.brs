@@ -17,6 +17,8 @@ sub init()
     m.movieGrid    = m.top.findNode("movieGrid")
     m.showGrid     = m.top.findNode("showGrid")
     m.settingsView = m.top.findNode("settingsView")
+    m.searchPrompt = m.top.findNode("searchPrompt")
+    m.sAboutVersion = m.top.findNode("sAboutVersion")
     m.loadingLabel = m.top.findNode("loadingLabel")
     m.headerHint   = m.top.findNode("headerHint")
     m.gridHint     = m.top.findNode("gridHint")
@@ -42,11 +44,12 @@ sub init()
     m.pillMeasured = false
     m.pillPadX     = 18   ' breathing room between the glyphs and each round cap
 
-    ' Custom grid config: 8 cols × 230px stride = 1840px (x40→1880)
-    ' 3 visible rows × 300px stride = 900px (y126→1026)
+    ' Custom grid config, sized to the title-safe box and the footer bar.
+    ' 8 cols × 220px stride from x=96 → last poster ends at 1818 (safe: 1824).
+    ' 3 rows × 290px stride from y=116 → last poster ends at 976 (bar: 992).
     m.numGridCols   = 8
-    m.gridStrideX   = 230
-    m.gridStrideY   = 300
+    m.gridStrideX   = 220
+    m.gridStrideY   = 290
     m.movieRowGroups = []
     m.showRowGroups  = []
     m.movieRowItems  = []
@@ -156,6 +159,7 @@ sub updateTabs()
     m.movieGrid.visible    = (m.activeIdx = 1)
     m.showGrid.visible     = (m.activeIdx = 2)
     m.settingsView.visible = (m.activeIdx = 3)
+    m.searchPrompt.visible = (m.activeIdx = 4)
     if m.activeIdx = 3 then loadSettingsInfo()
 end sub
 
@@ -384,8 +388,8 @@ sub buildHomeRows()
     m.homeRowWidth  = []
 
     ' ── Category tiles (always first) ───────────────────
-    m.labelCategories.translation  = [40, 136]
-    m.categoryRowGroup.translation = [40, 174]
+    m.labelCategories.translation  = [96, 136]
+    m.categoryRowGroup.translation = [96, 174]
     m.homeRowGroups.push(m.categoryRowGroup)
     m.homeRowTypes.push("category")
     m.homeRowLabels.push(m.labelCategories)
@@ -404,9 +408,9 @@ sub buildHomeRows()
 
     ' ── Continue Watching ───────────────────────────────
     if hasCW
-        m.labelCW.translation    = [40, nextY]
+        m.labelCW.translation    = [96, nextY]
         m.labelCW.visible        = true
-        m.cwRowGroup.translation = [40, nextY + 38]
+        m.cwRowGroup.translation = [96, nextY + 38]
         m.cwRowGroup.visible     = true
         m.homeRowGroups.push(m.cwRowGroup)
         m.homeRowTypes.push("poster")
@@ -422,9 +426,9 @@ sub buildHomeRows()
 
     ' ── Recently Added Movies ────────────────────────────
     if hasMovies
-        m.labelMovies.translation    = [40, nextY]
+        m.labelMovies.translation    = [96, nextY]
         m.labelMovies.visible        = true
-        m.moviesRowGroup.translation = [40, nextY + 38]
+        m.moviesRowGroup.translation = [96, nextY + 38]
         m.moviesRowGroup.visible     = true
         m.homeRowGroups.push(m.moviesRowGroup)
         m.homeRowTypes.push("poster")
@@ -440,9 +444,9 @@ sub buildHomeRows()
 
     ' ── Recently Added TV Shows ──────────────────────────────
     if hasShows
-        m.labelShows.translation    = [40, nextY]
+        m.labelShows.translation    = [96, nextY]
         m.labelShows.visible        = true
-        m.showsRowGroup.translation = [40, nextY + 38]
+        m.showsRowGroup.translation = [96, nextY + 38]
         m.showsRowGroup.visible     = true
         m.homeRowGroups.push(m.showsRowGroup)
         m.homeRowTypes.push("poster")
@@ -645,7 +649,7 @@ end sub
 sub scrollHomeToRow(rowIdx as integer)
     if m.homeRowLabels = invalid then return
     SCREEN_TOP    = 120   ' just below the tab bar
-    SCREEN_BOTTOM = 1040  ' just above the hint label
+    SCREEN_BOTTOM = 980   ' just above the footer bar, which starts at y=992
 
     rowLabel = m.homeRowLabels[rowIdx]
     rowGroup = m.homeRowGroups[rowIdx]
@@ -682,10 +686,10 @@ sub scrollHomeRow(rowIdx as integer)
 
     itemScreenX = m.rowScrollX[rowIdx] + itemIdx * stride
 
-    if itemScreenX < 40
-        m.rowScrollX[rowIdx] = 40 - itemIdx * stride
-    else if itemScreenX + itemW > 1880
-        m.rowScrollX[rowIdx] = 1880 - itemW - itemIdx * stride
+    if itemScreenX < 96
+        m.rowScrollX[rowIdx] = 96 - itemIdx * stride
+    else if itemScreenX + itemW > 1824
+        m.rowScrollX[rowIdx] = 1824 - itemW - itemIdx * stride
     end if
 
     curTrans = m.homeRowGroups[rowIdx].translation
@@ -845,6 +849,10 @@ sub loadSettingsInfo()
     m.sStatus0.color  = "0x888888FF"
     di = CreateObject("roDeviceInfo")
     m.sAboutDevice.text = di.GetModelDisplayName()
+    ' Read the real build out of the manifest — the old hardcoded "1.0" told
+    ' neither us nor a support request which build was actually installed.
+    ai = CreateObject("roAppInfo")
+    if m.sAboutVersion <> invalid then m.sAboutVersion.text = ai.GetVersion()
     m.sValue[3].text  = m.subtitleOptions[m.subtitleIdx]
     m.sValue[4].text  = m.qualityOptions[m.qualityIdx]
     pingServer()

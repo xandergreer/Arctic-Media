@@ -16,7 +16,7 @@
         <Rectangle color="0x4A9FFF33" width="1920" height="2" translation="[0, 108]" />
 
         <!-- App name -->
-        <Label translation="[40, 28]"
+        <Label translation="[96, 54]"
                text="Arctic Media"
                color="0x4A9FFFFF"
                font="font:MediumBoldSystemFont"
@@ -31,11 +31,11 @@
         <!-- Tabs. width is left at the default 0 so each label auto-sizes to its
              own text — moveTabPill() measures them with boundingRect() to size
              the pill, which a fixed width box would defeat. -->
-        <Label id="tabHome"     translation="[370, 34]" text="Home"     color="0xFFFFFFFF" font="font:SmallBoldSystemFont" />
-        <Label id="tabMovies"   translation="[530, 34]" text="Movies"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
-        <Label id="tabShows"    translation="[690, 34]" text="TV Shows" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
-        <Label id="tabSettings" translation="[890, 34]" text="Settings" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
-        <Label id="tabSearch"   translation="[1070, 34]" text="Search"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabHome"     translation="[370, 58]" text="Home"     color="0xFFFFFFFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabMovies"   translation="[530, 58]" text="Movies"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabShows"    translation="[690, 58]" text="TV Shows" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabSettings" translation="[890, 58]" text="Settings" color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
+        <Label id="tabSearch"   translation="[1070, 58]" text="Search"   color="0x7F8A9AFF" font="font:SmallBoldSystemFont" />
 
         <!-- Slides the pill between tabs instead of snapping it. Position and
              width interpolate together so the caps stay put relative to the
@@ -58,10 +58,10 @@
 
         <!-- ═══ HOME VIEW ═══ -->
         <Group id="homeView" visible="true">
-            <Label id="labelCategories" translation="[40,116]" text="My Library"            color="0x888888FF" font="font:SmallBoldSystemFont" width="300" />
-            <Label id="labelCW"         translation="[40,282]" text="Continue Watching"      color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
-            <Label id="labelMovies"     translation="[40,282]" text="Recently Added Movies"  color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
-            <Label id="labelShows"      translation="[40,282]" text="Recently Added TV"      color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
+            <Label id="labelCategories" translation="[96,116]" text="My Library"            color="0x888888FF" font="font:SmallBoldSystemFont" width="300" />
+            <Label id="labelCW"         translation="[96,282]" text="Continue Watching"      color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
+            <Label id="labelMovies"     translation="[96,282]" text="Recently Added Movies"  color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
+            <Label id="labelShows"      translation="[96,282]" text="Recently Added TV"      color="0x888888FF" font="font:SmallBoldSystemFont" width="400" visible="false" />
             <Group id="categoryRowGroup" />
             <Group id="cwRowGroup"       visible="false" />
             <Group id="moviesRowGroup"   visible="false" />
@@ -69,61 +69,66 @@
         </Group>
 
         <!-- ═══ MOVIES VIEW ═══ -->
-        <Group id="movieGrid" translation="[40, 126]" visible="false" />
+        <Group id="movieGrid" translation="[96, 116]" visible="false" />
 
         <!-- ═══ TV SHOWS VIEW ═══ -->
-        <Group id="showGrid" translation="[40, 126]" visible="false" />
+        <Group id="showGrid" translation="[96, 116]" visible="false" />
+
+        <!-- ═══ SEARCH TAB PROMPT ═══ -->
+        <Label id="searchPrompt" translation="[0, 500]" width="1920" horizAlign="center"
+               text="Press OK to search your library"
+               font="font:MediumSystemFont" color="0x3A4A66FF" visible="false" />
 
         <!-- ═══ SETTINGS VIEW ═══ -->
         <Group id="settingsView" visible="false">
 
-            <Label translation="[60, 140]" text="Settings" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="400" />
+            <Label translation="[96, 140]" text="Settings" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" width="400" />
 
             <!-- CONNECTION -->
-            <Label translation="[60, 216]" text="CONNECTION" color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
+            <Label translation="[96, 216]" text="CONNECTION" color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
 
             <!-- Item 0: Server status -->
-            <Rectangle id="sItem0"   translation="[60, 244]" width="1800" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent0" translation="[60, 244]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
-            <Label translation="[84, 268]"   text="Server"  color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label id="sValue0"  translation="[500, 268]"  text=""  color="0x666666FF" font="font:SmallSystemFont" width="1000" />
-            <Label id="sStatus0" translation="[1580, 268]" text=""  color="0x888888FF" font="font:SmallSystemFont" width="260" />
+            <Rectangle id="sItem0"   translation="[96, 244]" width="1728" height="76" color="0x0E0E28FF" />
+            <Rectangle id="sAccent0" translation="[96, 244]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Label translation="[120, 268]"   text="Server"  color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
+            <Label id="sValue0"  translation="[536, 268]"  text=""  color="0x666666FF" font="font:SmallSystemFont" width="1000" />
+            <Label id="sStatus0" translation="[1560, 268]" text=""  color="0x888888FF" font="font:SmallSystemFont" width="260" />
 
             <!-- Item 1: Sign Out -->
-            <Rectangle id="sItem1"   translation="[60, 328]" width="1800" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent1" translation="[60, 328]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
-            <Label translation="[84, 352]"  text="Sign Out"           color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label translation="[500, 352]" text="Re-pair this device" color="0x666666FF" font="font:SmallSystemFont"     width="600" />
+            <Rectangle id="sItem1"   translation="[96, 328]" width="1728" height="76" color="0x0E0E28FF" />
+            <Rectangle id="sAccent1" translation="[96, 328]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Label translation="[120, 352]"  text="Sign Out"           color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
+            <Label translation="[536, 352]" text="Re-pair this device" color="0x666666FF" font="font:SmallSystemFont"     width="600" />
 
             <!-- Item 2: Change Server -->
-            <Rectangle id="sItem2"   translation="[60, 412]" width="1800" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent2" translation="[60, 412]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
-            <Label translation="[84, 436]"  text="Change Server"   color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label translation="[500, 436]" text="Update server URL" color="0x666666FF" font="font:SmallSystemFont"     width="600" />
+            <Rectangle id="sItem2"   translation="[96, 412]" width="1728" height="76" color="0x0E0E28FF" />
+            <Rectangle id="sAccent2" translation="[96, 412]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Label translation="[120, 436]"  text="Change Server"   color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
+            <Label translation="[536, 436]" text="Update server URL" color="0x666666FF" font="font:SmallSystemFont"     width="600" />
 
             <!-- PLAYBACK -->
-            <Label translation="[60, 510]" text="PLAYBACK" color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
+            <Label translation="[96, 510]" text="PLAYBACK" color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
 
             <!-- Item 3: Subtitles -->
-            <Rectangle id="sItem3"   translation="[60, 538]" width="1800" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent3" translation="[60, 538]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
-            <Label translation="[84, 562]"  text="Subtitles"  color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label id="sValue3" translation="[500, 562]" text="Off" color="0x888888FF" font="font:SmallSystemFont" width="300" />
-            <Label translation="[1800, 562]" text="›" color="0x666666FF" font="font:SmallSystemFont" width="50" />
+            <Rectangle id="sItem3"   translation="[96, 538]" width="1728" height="76" color="0x0E0E28FF" />
+            <Rectangle id="sAccent3" translation="[96, 538]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Label translation="[120, 562]"  text="Subtitles"  color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
+            <Label id="sValue3" translation="[536, 562]" text="Off" color="0x888888FF" font="font:SmallSystemFont" width="300" />
+            <Label translation="[1770, 562]" text="›" color="0x666666FF" font="font:SmallSystemFont" width="50" />
 
             <!-- Item 4: Video Quality -->
-            <Rectangle id="sItem4"   translation="[60, 622]" width="1800" height="76" color="0x0E0E28FF" />
-            <Rectangle id="sAccent4" translation="[60, 622]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
-            <Label translation="[84, 646]"  text="Video Quality" color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
-            <Label id="sValue4" translation="[500, 646]" text="Auto" color="0x888888FF" font="font:SmallSystemFont" width="300" />
-            <Label translation="[1800, 646]" text="›" color="0x666666FF" font="font:SmallSystemFont" width="50" />
+            <Rectangle id="sItem4"   translation="[96, 622]" width="1728" height="76" color="0x0E0E28FF" />
+            <Rectangle id="sAccent4" translation="[96, 622]" width="4"    height="76" color="0x4A9FFFFF" opacity="0" />
+            <Label translation="[120, 646]"  text="Video Quality" color="0xFFFFFFFF" font="font:SmallBoldSystemFont" width="400" />
+            <Label id="sValue4" translation="[536, 646]" text="Auto" color="0x888888FF" font="font:SmallSystemFont" width="300" />
+            <Label translation="[1770, 646]" text="›" color="0x666666FF" font="font:SmallSystemFont" width="50" />
 
             <!-- ABOUT -->
-            <Label translation="[60, 720]"  text="ABOUT"       color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
-            <Label translation="[84, 760]"  text="App Version" color="0x888888FF" font="font:SmallSystemFont"     width="400" />
-            <Label translation="[500, 760]" text="1.0"         color="0x555555FF" font="font:SmallSystemFont"     width="400" />
-            <Label translation="[84, 800]"  text="Device"      color="0x888888FF" font="font:SmallSystemFont"     width="400" />
-            <Label id="sAboutDevice" translation="[500, 800]"  text="" color="0x555555FF" font="font:SmallSystemFont" width="900" />
+            <Label translation="[96, 720]"  text="ABOUT"       color="0x4A9FFFFF" font="font:SmallBoldSystemFont" width="300" />
+            <Label translation="[120, 760]"  text="App Version" color="0x888888FF" font="font:SmallSystemFont"     width="400" />
+            <Label id="sAboutVersion" translation="[536, 760]" text=""    color="0x555555FF" font="font:SmallSystemFont"     width="400" />
+            <Label translation="[120, 800]"  text="Device"      color="0x888888FF" font="font:SmallSystemFont"     width="400" />
+            <Label id="sAboutDevice" translation="[536, 800]"  text="" color="0x555555FF" font="font:SmallSystemFont" width="1728" />
 
         </Group>
 
@@ -139,7 +144,7 @@
 
         <!-- y=1012 keeps the baseline inside the 5% title-safe area (bottom edge
              1026 at 1080p); at 1052 the descenders were clipped off-screen. -->
-        <Label id="headerHint" translation="[40, 1012]" text="Left / Right = tabs     OK or Down = browse     * = sign out" color="0x5A6472FF" font="font:SmallSystemFont" width="900" />
-        <Label id="gridHint"   translation="[40, 1012]" text="Up = back to tabs     Left / Right = browse     OK = select     * = sign out" color="0x5A6472FF" font="font:SmallSystemFont" width="1000" visible="false" />
+        <Label id="headerHint" translation="[96, 996]" text="Left / Right = tabs     OK or Down = browse     * = sign out" color="0x5A6472FF" font="font:SmallSystemFont" width="1728" />
+        <Label id="gridHint"   translation="[96, 996]" text="Up = back to tabs     Left / Right = browse     OK = select     * = sign out" color="0x5A6472FF" font="font:SmallSystemFont" width="1728" visible="false" />
     </children>
 </component>

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component name="EpisodeCard" extends="Group">
     <interface>
-        <field id="width"        type="float"   value="1420" />
+        <field id="width"        type="float"   value="1384" />
         <field id="height"       type="float"   value="176" />
         <field id="itemContent"  type="node"    onChange="onContentChanged" />
         <field id="itemHasFocus" type="boolean" onChange="onFocusChanged" />
     </interface>
     <script type="text/brightscript" uri="pkg:/components/EpisodeCard.brs" />
     <children>
-        <Rectangle id="bg" width="1420" height="176" color="0x0E1526F2" />
+        <Rectangle id="bg" width="1384" height="176" color="0x0E1526F2" />
         <Rectangle id="accent" width="5" height="176" color="0x4A9FFFFF" opacity="0" />
 
         <Poster id="thumb" translation="[16, 7]" width="288" height="162"
@@ -19,11 +19,11 @@
         <Rectangle id="progFill"  translation="[16, 161]" width="0" height="8"
                    color="0x4A9FFFFF" visible="false" />
 
-        <Label id="titleLbl" translation="[336, 20]" width="1050"
+        <Label id="titleLbl" translation="[336, 20]" width="1032"
                font="font:MediumBoldSystemFont" color="0xE6EDF7FF" />
-        <Label id="metaLbl" translation="[336, 64]" width="1050"
+        <Label id="metaLbl" translation="[336, 64]" width="1032"
                font="font:SmallBoldSystemFont" color="0x6F97C8FF" />
-        <Label id="ovLbl" translation="[336, 98]" width="1050"
+        <Label id="ovLbl" translation="[336, 98]" width="1032"
                font="font:SmallSystemFont" color="0x9FB0C9FF"
                wrap="true" numLines="2" />
     </children>

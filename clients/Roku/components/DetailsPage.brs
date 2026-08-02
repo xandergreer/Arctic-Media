@@ -392,7 +392,11 @@ sub buildCastRow(castArr as object)
         nameLabel             = CreateObject("roSGNode", "Label")
         nameLabel.id          = "castName_" + i.ToStr()
         nameLabel.translation = [0, CARD_H + 10]
-        nameLabel.width       = CARD_W
+        ' Spill into the 30px inter-card gap: 190px truncated a majority of real
+        ' actor names. Still one line — two lines of SmallBoldSystemFont need
+        ' ~64px, and the block between the Play button (ends y=558) and the hint
+        ' (y=996) cannot absorb that on top of a 250px card.
+        nameLabel.width       = 210
         nameLabel.numLines    = 1
         nameLabel.wrap        = false
         nameLabel.font        = "font:SmallBoldSystemFont"
@@ -403,8 +407,8 @@ sub buildCastRow(castArr as object)
 
         ' Role / character — single line directly below name (~28px gap)
         roleLabel             = CreateObject("roSGNode", "Label")
-        roleLabel.translation = [0, CARD_H + 38]
-        roleLabel.width       = CARD_W
+        roleLabel.translation = [0, CARD_H + 44]
+        roleLabel.width       = 210
         roleLabel.numLines    = 1
         roleLabel.wrap        = false
         roleLabel.font        = "font:SmallSystemFont"

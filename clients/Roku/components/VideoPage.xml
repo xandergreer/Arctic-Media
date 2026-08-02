@@ -27,34 +27,43 @@
         <!-- ═══ OSD ═══ -->
         <Group id="osd" visible="false">
 
-            <!-- TOP BAR: episode badge + title + state -->
-            <Rectangle color="0x000000CC" width="1920" height="72" translation="[0, 0]" />
-            <Label id="osdEpLabel" translation="[40, 22]" width="200"
+            <!-- TOP BAR: episode badge + title + state.
+                 Text sits at y=58 and x=96..1824 — the 5% title-safe box at
+                 1080p. At the old y=22 the title rendered above the safe line
+                 and got eaten by overscan on real sets. The bar itself stays
+                 full-bleed; only the text has to respect the inset. -->
+            <Rectangle color="0x000000CC" width="1920" height="108" translation="[0, 0]" />
+            <Label id="osdEpLabel" translation="[96, 58]" width="200"
                    font="font:SmallBoldSystemFont" color="0x4A9FFFFF" />
-            <Label id="osdTitle" translation="[40, 22]" width="1300"
+            <Label id="osdTitle" translation="[96, 58]" width="1180"
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" />
-            <Label id="osdState" translation="[1360, 22]" width="520"
+            <Label id="osdState" translation="[1304, 58]" width="520"
                    font="font:SmallBoldSystemFont" color="0x4A9FFFFF" horizAlign="right" />
 
             <!-- BOTTOM BAR (no transport buttons — seek is always L/R) -->
             <Rectangle color="0x000000CC" width="1920" height="180" translation="[0, 900]" />
 
-            <!-- Seek bar — y=918, h=6 -->
-            <Rectangle id="seekBg"   translation="[60, 918]" width="1800" height="6"  color="0x2A2A50FF" />
-            <Rectangle id="seekFill" translation="[60, 918]" width="0"    height="6"  color="0x4A9FFFFF" />
-            <!-- Dot centered on bar: bar center y=921, dot h=14 → top y=914, x=53 when at 0% -->
-            <Rectangle id="seekDot"  translation="[53, 914]" width="14"   height="14" color="0x4A9FFFFF" />
+            <!-- Seek bar — spans the title-safe width exactly, x=96..1824, so
+                 the ends of the progress bar are actually visible. These three
+                 numbers are mirrored by m.seekBarX / m.seekBarW in
+                 VideoPage.brs; change them together or the fill and the dot
+                 drift off the track. -->
+            <Rectangle id="seekBg"   translation="[96, 918]" width="1728" height="6"  color="0x2A2A50FF" />
+            <Rectangle id="seekFill" translation="[96, 918]" width="0"    height="6"  color="0x4A9FFFFF" />
+            <!-- Dot centered on bar: bar center y=921, dot h=14 → top y=914, x=89 when at 0% -->
+            <Rectangle id="seekDot"  translation="[89, 914]" width="14"   height="14" color="0x4A9FFFFF" />
 
             <!-- Time labels -->
-            <Label id="osdCurrentTime" translation="[60,   940]" width="220"
+            <Label id="osdCurrentTime" translation="[96,   940]" width="220"
                    font="font:SmallSystemFont" color="0xFFFFFFFF" />
-            <Label id="osdTotalTime"   translation="[1640, 940]" width="220"
+            <Label id="osdTotalTime"   translation="[1604, 940]" width="220"
                    font="font:SmallSystemFont" color="0x666688FF" horizAlign="right" />
 
-            <!-- Hint -->
-            <Label translation="[60, 1046]"
+            <!-- Hint. y=1046 put this below the 1026 safe line and hard against
+                 the frame edge; 996 keeps the descenders inside. -->
+            <Label translation="[96, 996]"
                    text="← / → = seek (hold to go faster)     ↓ = next episode     OK = play/pause     * = subtitles     Back = exit"
-                   font="font:SmallSystemFont" color="0x2A2A4AFF" width="1800" horizAlign="center" />
+                   font="font:SmallSystemFont" color="0x2A2A4AFF" width="1728" horizAlign="center" />
         </Group>
 
         <!-- ═══ SUBTITLE PANEL ═══ -->
@@ -75,19 +84,23 @@
         </Group>
 
         <!-- ═══ UP NEXT TOAST ═══ -->
+        <!-- Right edge lands on 1824, the title-safe boundary; at x=1296 the
+             600-wide panel ran to 1896 and lost its right edge to overscan.
+             Height 190 (was 170) because the hint line at y=860 was colliding
+             with the countdown bar at y=880. -->
         <Group id="autoplayPanel" visible="false">
-            <Rectangle color="0x08081AEE" width="600" height="170" translation="[1296, 720]" />
-            <Rectangle color="0x4A9FFFFF" width="4"   height="170" translation="[1296, 720]" />
-            <Label translation="[1314, 734]" text="UP NEXT"
+            <Rectangle color="0x08081AEE" width="600" height="190" translation="[1224, 700]" />
+            <Rectangle color="0x4A9FFFFF" width="4"   height="190" translation="[1224, 700]" />
+            <Label translation="[1242, 714]" text="UP NEXT"
                    font="font:SmallBoldSystemFont" color="0x4A9FFFFF" width="560" />
-            <Label id="autoplayTitle" translation="[1314, 762]" text=""
+            <Label id="autoplayTitle" translation="[1242, 742]" text=""
                    font="font:SmallBoldSystemFont" color="0xFFFFFFFF" width="560" wrap="true" numLines="2" />
-            <Label id="autoplayLabel" translation="[1314, 836]" text=""
+            <Label id="autoplayLabel" translation="[1242, 818]" text=""
                    font="font:SmallSystemFont" color="0xAAAAAAFF" width="300" />
-            <Label translation="[1314, 860]" text="OK = play now   Back = cancel"
+            <Label translation="[1242, 846]" text="OK = play now   Back = cancel"
                    font="font:SmallSystemFont" color="0x44444499" width="560" />
-            <Rectangle color="0x1C2C4AFF" width="556" height="4" translation="[1318, 880]" />
-            <Rectangle id="autoplayCountdownBar" color="0x4A9FFFFF" width="556" height="4" translation="[1318, 880]" />
+            <Rectangle color="0x1C2C4AFF" width="556" height="4" translation="[1246, 878]" />
+            <Rectangle id="autoplayCountdownBar" color="0x4A9FFFFF" width="556" height="4" translation="[1246, 878]" />
         </Group>
     </children>
 </component>

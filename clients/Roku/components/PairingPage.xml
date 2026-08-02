@@ -86,7 +86,7 @@
                    translation="[0, 846]" width="1920" horizAlign="center"
                    text="" font="font:SmallSystemFont" color="0xFF6B6BFF" />
 
-            <Label translation="[0, 1006]" width="1920" horizAlign="center"
+            <Label translation="[0, 992]" width="1920" horizAlign="center"
                    text="Press * (Options) to change server"
                    font="font:SmallSystemFont" color="0x3A4A66FF" />
         </Group>

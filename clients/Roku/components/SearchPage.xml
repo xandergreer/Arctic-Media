@@ -14,26 +14,26 @@
         <!-- Header bar -->
         <Rectangle color="0x0E0E28FF" width="1920" height="108" />
         <Rectangle color="0x4A9FFF33" width="1920" height="2" translation="[0, 108]" />
-        <Label translation="[60, 32]" text="Arctic Media" color="0x4A9FFFFF"
+        <Label translation="[96, 58]" text="Arctic Media" color="0x4A9FFFFF"
                font="font:MediumBoldSystemFont" width="300" />
-        <Label translation="[380, 38]" text="Search" color="0xFFFFFFFF"
+        <Label translation="[416, 62]" text="Search" color="0xFFFFFFFF"
                font="font:SmallBoldSystemFont" width="200" />
 
         <!-- ═══ LEFT: compact keyboard ═══ -->
         <Rectangle color="0x0A0A1AF7" width="700" height="972" translation="[0, 108]" />
         <Rectangle color="0x4A9FFF26" width="2" height="972" translation="[700, 108]" />
-        <MiniKeyboard id="keyboard" translation="[92, 210]" />
+        <MiniKeyboard id="keyboard" translation="[96, 210]" />
 
         <!-- ═══ RIGHT: results ═══ -->
         <Label id="hintLabel" translation="[760, 500]"
                text="Type to search your library"
                color="0x3A4A66FF" font="font:MediumSystemFont"
-               width="1100" horizAlign="center" />
+               width="1064" horizAlign="center" />
 
         <Label id="noResultsLabel" translation="[760, 500]"
                text="No results found"
                color="0x6F97C8FF" font="font:MediumSystemFont"
-               width="1100" horizAlign="center" visible="false" />
+               width="1064" horizAlign="center" visible="false" />
 
         <Label id="resultsHeader" translation="[760, 150]" text="RESULTS"
                color="0x6F97C8FF" font="font:SmallBoldSystemFont"
@@ -52,11 +52,11 @@
                     visible="false" />
 
         <!-- Footer hints -->
-        <Label id="kbHint" translation="[60, 1000]"
+        <Label id="kbHint" translation="[96, 992]"
                text="Back = exit     * = browse results"
                color="0x44557AFF" font="font:SmallSystemFont" width="620" />
-        <Label id="resHint" translation="[760, 1000]"
+        <Label id="resHint" translation="[760, 992]"
                text="* = back to keyboard     Arrows = browse     OK = open"
-               color="0x44557AFF" font="font:SmallSystemFont" width="1100" visible="false" />
+               color="0x44557AFF" font="font:SmallSystemFont" width="1064" visible="false" />
     </children>
 </component>

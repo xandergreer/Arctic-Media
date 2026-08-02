@@ -35,6 +35,16 @@ sub init()
     m.upNextShown  = false
     m.seekAccum    = 0
     m.seekPresses  = 0   ' consecutive seek presses for acceleration
+
+    ' Seek bar geometry. These MUST match seekBg/seekFill/seekDot in
+    ' VideoPage.xml — the fill width and the dot position are computed from
+    ' them every position tick, so a change on one side only sends the dot off
+    ' the end of the track. x=96 and w=1728 put the bar on the title-safe
+    ' boundaries, so both ends of the progress bar survive overscan.
+    m.seekBarX = 96
+    m.seekBarW = 1728
+    m.seekDotY = 914
+    m.seekDotX = m.seekBarX - 7   ' half the 14px dot, to centre it on the bar
     m.showId       = 0
     m.cwSeasonNum  = 0
     m.cwEpisodeNum = 0
@@ -225,18 +235,23 @@ sub onBgEpisodesResult(event as object)
     end for
 end sub
 
+' The title shares the top bar with the episode badge on its left and the
+' PAUSED/BUFFERING state on its right, so it gets a different origin and width
+' depending on whether there is a badge. Both layouts stay inside the
+' title-safe box (x 96..1824, text baseline y=58) that VideoPage.xml sets up —
+' osdState occupies 1304..1824, so the title stops short of 1304.
 sub updateOsdHeader(title as string)
     if m.episodeLabel <> "" then
         m.osdEpLabel.text = m.episodeLabel
         m.osdEpLabel.width = 150
         m.osdTitle.text = title
-        m.osdTitle.translation = [200, 22]
-        m.osdTitle.width = 1140
+        m.osdTitle.translation = [256, 58]
+        m.osdTitle.width = 1020
     else
         m.osdEpLabel.text = ""
         m.osdTitle.text = title
-        m.osdTitle.translation = [40, 22]
-        m.osdTitle.width = 1300
+        m.osdTitle.translation = [96, 58]
+        m.osdTitle.width = 1180
     end if
 end sub
 
@@ -464,7 +479,7 @@ sub playNext()
     m.osdCurrentTime.text = "0:00"
     m.osdTotalTime.text   = ""
     m.seekFill.width      = 0
-    m.seekDot.translation = [53, 914]
+    m.seekDot.translation = [m.seekDotX, m.seekDotY]
     hlsUrl = BuildHlsUrl(m.serverUrl, m.token, m.mediaId)
     cn = CreateObject("roSGNode", "ContentNode")
     cn.url          = hlsUrl
@@ -632,9 +647,9 @@ sub updateOsd()
         pct = curPos / dur
         if pct < 0.0 then pct = 0.0
         if pct > 1.0 then pct = 1.0
-        fillW = Int(pct * 1800)
+        fillW = Int(pct * m.seekBarW)
         m.seekFill.width      = fillW
-        m.seekDot.translation = [53 + fillW, 914]
+        m.seekDot.translation = [m.seekDotX + fillW, m.seekDotY]
     end if
 
     state = m.video.state
